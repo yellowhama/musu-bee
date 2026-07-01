@@ -4,6 +4,19 @@ Status snapshot after the A (uninstall.ps1 release) + B (F-2/F-3/G-1) work block
 This is a forward-looking handoff doc: what shipped, what's blocked on real
 hardware, and the prioritized next moves.
 
+## 2026-06-26 Supersession Note
+
+The latest branch work is `feat/v33-residual-finalize` rc.21 audit hotfix, not
+the older rc.9/`feat/f3-relay-fleet-state` landing plan below. The core 3-state
+invariants still stand, with one correction now promoted to the formal contract:
+`relay` is a yellow display/freshness state only and is not delegated-work
+routing. New source gates now also reject/filter remote-unusable registry rows
+and add owner-scoped stale-row cleanup.
+
+Current hard blockers before telling the main PC to use the one-line install:
+hosted `desktop-latest` still publishes rc.20 assets, and live cloud registry
+still contains `hugh-main public_url=http://127.0.0.1:13397`.
+
 ## Shipped this block (verified)
 
 | Item | What | Verification | Push state |
@@ -23,8 +36,9 @@ blocks (merged + production). G-2 (legacy `~/.musu` reconcile) and G-3
    offline` on the live installed cockpit. Needs: rc.9 build + both-machine
    reinstall, then force a direct-probe failure (block the LAN bind / NAT-split)
    while keeping the registry heartbeat fresh, and confirm the cockpit shows
-   yellow "relay" + the peer stays targetable. Boundary unit tests stand in
-   until this runs.
+   yellow "relay" as a display-only state. The peer must not be counted in
+   `online_nodes` or treated as work-targetable until relay transport is proven.
+   Boundary unit tests stand in until this runs.
 2. **Full uninstall lifecycle E2E** — packaged-MSIX install → uninstall (cockpit
    button + `Uninstall-MUSU.ps1`) → reinstall, confirming U-A/U-B/U-C + Method A
    all converge on real machines.
@@ -57,6 +71,9 @@ They are independent follow-ups, each its own small sub-WS:
 - U-C item (b): persist `node_name` at join + name cross-check on the
   fallback-to-persisted-IP path (residual; cross-account already impossible).
 - B-7: login env/안내 정합. B-3b: SaaS route gate.
+- Brain bonding follow-up: package/run proof for hidden `musu-brain` sidecar,
+  `~/.musu/brain` data root, task-completion ingest, token ACL verification, and
+  cockpit recall/capture UX.
 
 ## Key invariants future work must not break
 - Fleet status renders on THREE surfaces (web page / CLI / cockpit shell

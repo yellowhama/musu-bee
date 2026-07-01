@@ -20,14 +20,34 @@ param(
     [string]$ReleaseBase = "https://github.com/yellowhama/musu-bee/releases/download/desktop-latest",
     [string]$CertFileName = "blossompark.musu.cer",
     [string]$AppInstallerFileName = "musu.appinstaller",
+    # Must match repo VERSION. This turns a forgotten `desktop-latest` upload
+    # into a visible install failure instead of silently installing an old RC.
+    [string]$ExpectedReleaseVersion = "1.15.0-rc.22",
+    [string]$PublicConfigUrl = "https://musu.pro/api/public-config",
     # Canonical self-URL used to re-fetch the script when self-elevating under
     # `irm | iex` (no $PSCommandPath in that mode).
     [string]$SelfUrl = "https://musu.pro/install.ps1",
     # Unattended/CI installs: trust + install but do NOT auto-launch the app.
-    [switch]$NoLaunch
+    [switch]$NoLaunch,
+    # Verifies the public-config/appinstaller release contract without requiring
+    # elevation or modifying certificate/package state.
+    [switch]$ValidateReleaseOnly
 )
 
 $ErrorActionPreference = "Stop"
+
+function Enable-ModernTls {
+    try {
+        $tls12 = [Net.SecurityProtocolType]::Tls12
+        if (([Net.ServicePointManager]::SecurityProtocol -band $tls12) -ne $tls12) {
+            [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor $tls12
+        }
+    } catch {
+        Write-Verbose "Could not adjust ServicePointManager TLS settings: $($_.Exception.Message)"
+    }
+}
+
+Enable-ModernTls
 
 # Pinned signing-certificate thumbprint (canonical key blossompark.musu). The
 # cert and the MSIX it signs are fetched over the SAME channel, so MSIX code
@@ -42,23 +62,149 @@ function Test-IsAdmin {
     return $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-if (-not (Test-IsAdmin)) {
-    Write-Host "MUSU install needs administrator rights to trust the beta certificate." -ForegroundColor Yellow
-    Write-Host "Re-launching elevated..." -ForegroundColor Yellow
-    # Re-fetch + run the script in an elevated PowerShell. This works whether we
-    # were started from a file OR piped via `irm ... | iex` (in which case there
-    # is no $PSCommandPath to re-launch). We re-download from the canonical SelfUrl
-    # and pipe to iex inside the elevated shell.
-    $inner = "`$ErrorActionPreference='Stop'; iex ((New-Object Net.WebClient).DownloadString('$SelfUrl'))"
-    $b64 = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($inner))
-    Start-Process powershell -Verb RunAs -ArgumentList @(
-        "-ExecutionPolicy", "Bypass", "-NoProfile", "-EncodedCommand", $b64
-    )
-    return
+function Convert-PublicVersionToPackageVersion {
+    param([Parameter(Mandatory = $true)][string]$PublicVersion)
+
+    if ($PublicVersion -match '^(\d+)\.(\d+)\.(\d+)-rc\.(\d+)$') {
+        return "$($Matches[1]).$($Matches[2]).$($Matches[3]).$($Matches[4])"
+    }
+    if ($PublicVersion -match '^(\d+)\.(\d+)\.(\d+)$') {
+        return "$($Matches[1]).$($Matches[2]).$($Matches[3]).0"
+    }
+    throw "Unsupported MUSU release version '$PublicVersion'."
+}
+
+function Get-PublicConfigReleaseVersion {
+    param([Parameter(Mandatory = $true)][string]$Url)
+
+    $response = Invoke-WebRequest -UseBasicParsing -Uri $Url -TimeoutSec 30
+    if ([int]$response.StatusCode -ne 200) {
+        throw "Public config returned HTTP $($response.StatusCode) from $Url."
+    }
+    $config = $response.Content | ConvertFrom-Json
+    if ($config.schema -ne "musu.public_config.v1") {
+        throw "Public config schema mismatch from $Url."
+    }
+    if (-not $config.releaseVersion) {
+        throw "Public config from $Url did not include releaseVersion."
+    }
+    return [string]$config.releaseVersion
+}
+
+function Get-AppInstallerVersions {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $text = Get-Content -LiteralPath $Path -Raw
+    $appMatch = [regex]::Match($text, '<AppInstaller[\s\S]*?\sVersion="([^"]+)"')
+    $mainMatch = [regex]::Match($text, '<MainPackage[\s\S]*?\sVersion="([^"]+)"')
+    if (-not $appMatch.Success) {
+        throw "Could not parse AppInstaller Version from $Path."
+    }
+    if (-not $mainMatch.Success) {
+        throw "Could not parse MainPackage Version from $Path."
+    }
+    return [pscustomobject]@{
+        AppInstallerVersion = $appMatch.Groups[1].Value
+        MainPackageVersion = $mainMatch.Groups[1].Value
+    }
 }
 
 $work = Join-Path $env:TEMP "musu-install"
 New-Item -ItemType Directory -Force $work | Out-Null
+
+Write-Host "Checking MUSU release channel..." -ForegroundColor Cyan
+$expectedPackageVersion = Convert-PublicVersionToPackageVersion -PublicVersion $ExpectedReleaseVersion
+$publicReleaseVersion = Get-PublicConfigReleaseVersion -Url $PublicConfigUrl
+if ($publicReleaseVersion -ne $ExpectedReleaseVersion) {
+    throw "musu.pro is publishing releaseVersion '$publicReleaseVersion', but this installer expects '$ExpectedReleaseVersion'. Aborting so this PC does not install the wrong release."
+}
+$appInstallerPath = Join-Path $work $AppInstallerFileName
+$appInstallerUrl = "${ReleaseBase}/${AppInstallerFileName}?rc=${expectedPackageVersion}"
+Invoke-WebRequest $appInstallerUrl -OutFile $appInstallerPath -UseBasicParsing
+$appInstallerVersions = Get-AppInstallerVersions -Path $appInstallerPath
+if ($appInstallerVersions.AppInstallerVersion -ne $expectedPackageVersion -or
+    $appInstallerVersions.MainPackageVersion -ne $expectedPackageVersion) {
+    throw "desktop-latest appinstaller version mismatch. Expected $expectedPackageVersion but got AppInstaller=$($appInstallerVersions.AppInstallerVersion), MainPackage=$($appInstallerVersions.MainPackageVersion). Aborting so this PC does not install a stale package."
+}
+Write-Host "    release OK ($ExpectedReleaseVersion / package $expectedPackageVersion)" -ForegroundColor DarkGray
+
+if ($ValidateReleaseOnly) {
+    Write-Host "MUSU release channel validation passed." -ForegroundColor Green
+    return
+}
+
+if (-not (Test-IsAdmin)) {
+    Write-Host "MUSU install needs administrator rights to trust the beta certificate." -ForegroundColor Yellow
+    Write-Host "Re-launching elevated..." -ForegroundColor Yellow
+
+    # Decide HOW to re-launch elevated. Two cases:
+    #   (a) We were started from a real file on disk ($PSCommandPath is set) — e.g.
+    #       a local dev/test run or a saved copy. Re-launch THAT SAME file with -File.
+    #       This avoids the elevated child silently re-downloading musu.pro's published
+    #       script, which would run code different from the local file under test.
+    #   (b) We were piped via `irm ... | iex` (no $PSCommandPath). There is no file to
+    #       re-launch, so we re-download from the canonical SelfUrl and pipe to iex
+    #       inside the elevated shell.
+    # Either way, the elevated child re-enters this script and Test-IsAdmin is true for
+    # it (it runs with the Administrator token), so it falls through past this block —
+    # there is no self-elevation infinite loop.
+    #
+    # Either way, the re-entered elevated child reaches the script-scope `trap` below,
+    # which keeps a terminating error visible: an elevated child runs in a NEW window
+    # that otherwise closes the instant the script returns, hiding the failure from the
+    # user. The trap pauses (Read-Host) on error so the user can read it — but only in
+    # interactive, attended runs. In -NoLaunch / non-interactive (CI) runs it must NOT
+    # pause, or the install would hang forever waiting on input no one will give.
+    if ($PSCommandPath) {
+        # Case (a): re-run the local file as-is, preserving -NoLaunch when set.
+        $childArgs = @(
+            "-ExecutionPolicy", "Bypass", "-NoProfile",
+            "-File", $PSCommandPath
+        )
+        if ($NoLaunch) { $childArgs += "-NoLaunch" }
+        Start-Process powershell -Verb RunAs -ArgumentList $childArgs
+    } else {
+        # Case (b): irm|iex — re-fetch from canonical SelfUrl and run in the elevated
+        # shell. We deliberately do NOT add a try/catch + pause around the run here:
+        # the script we download IS this same script, which already installs a
+        # script-scope `trap` (see below) that keeps the failure on screen with a
+        # single conditional pause. Wrapping it again would pause twice.
+        #
+        # We re-run the downloaded text as a script block invoked with `&` (NOT plain
+        # `iex`), because the downloaded script begins with a param() block: a plain
+        # `iex` re-declares $NoLaunch from that param() and resets it to its default,
+        # silently dropping a -NoLaunch the user asked for. Invoking it as a script
+        # block lets us BIND -NoLaunch through the param() block so the inner trap honors
+        # the non-interactive / unattended contract.
+        $noLaunchArg = if ($NoLaunch) { " -NoLaunch" } else { "" }
+        $inner = "`$ErrorActionPreference='Stop'; & ([scriptblock]::Create((New-Object Net.WebClient).DownloadString('$SelfUrl')))$noLaunchArg"
+        $b64 = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($inner))
+        Start-Process powershell -Verb RunAs -ArgumentList @(
+            "-ExecutionPolicy", "Bypass", "-NoProfile", "-EncodedCommand", $b64
+        )
+    }
+    return
+}
+
+# From here on we run with the Administrator token (either we were already admin, or
+# the elevated child re-entered this script). When the elevated child was launched via
+# `-File` (local-file case in the self-elevation block above), it runs in a NEW window
+# that closes the moment the script ends — so any terminating error below would vanish
+# before the user could read it. This script-scope trap keeps the failure on screen by
+# pausing, but ONLY in attended runs: in -NoLaunch / non-interactive (CI) shells it
+# must not block on input. After (optionally) pausing it `break`s, which terminates the
+# script and propagates the original terminating error so the non-zero exit semantics are
+# preserved. This single trap also serves the irm|iex path, since that path re-runs THIS
+# same script (as a script block), so the trap is present there too — exactly one pause.
+trap {
+    Write-Host ""
+    $failureLabel = if ($ValidateReleaseOnly) { "MUSU release validation failed" } else { "MUSU install failed" }
+    Write-Host "$failureLabel`: $($_.Exception.Message)" -ForegroundColor Red
+    if (-not $NoLaunch -and [Environment]::UserInteractive) {
+        Read-Host 'Press Enter to close'
+    }
+    break
+}
 
 Write-Host "[1/4] Downloading certificate..." -ForegroundColor Cyan
 $certPath = Join-Path $work $CertFileName
@@ -75,10 +221,40 @@ if ($actualThumb -ne $expectedThumb) {
     throw "Certificate thumbprint mismatch. Expected $expectedThumb but got $actualThumb. Aborting install — do NOT trust this certificate."
 }
 Write-Host "    thumbprint OK ($actualThumb)" -ForegroundColor DarkGray
+# Trust the cert in BOTH stores, but only AFTER the pinned-thumbprint check above —
+# the same verified cert object/file is used for both imports, so the pin still gates
+# everything that gets trusted.
+#   - TrustedPeople: required for Add-AppxPackage to accept a self-signed MSIX.
+#   - Root: on some machines TrustedPeople alone is not enough and Add-AppxPackage
+#     still fails with 0x800B0109 (A certificate chain could not be built to a
+#     trusted root authority). Adding the cert as a trusted root closes that gap.
+#     install-msix.ps1 (the dev-side installer) adds Root for the same reason.
 Import-Certificate -FilePath $certPath -CertStoreLocation Cert:\LocalMachine\TrustedPeople | Out-Null
+Import-Certificate -FilePath $certPath -CertStoreLocation Cert:\LocalMachine\Root | Out-Null
 
 Write-Host "[3/4] Installing MUSU (with auto-update)..." -ForegroundColor Cyan
-Add-AppxPackage -AppInstallerFile "$ReleaseBase/$AppInstallerFileName"
+# Add-AppxPackage can still fail with 0x800B0109 (untrusted cert chain) even after the
+# cert is trusted — e.g. store propagation timing, or a deeper machine trust-policy
+# issue. Catch it explicitly to give the user an actionable message instead of a raw
+# HRESULT. Mirrors install-msix.ps1's 0x800B0109 handling. Because we already trusted
+# the cert in BOTH Root and TrustedPeople above, a 0x800B0109 here means "trusted in
+# both stores and STILL rejected" — a deeper problem, reflected in the message.
+try {
+    Add-AppxPackage -AppInstallerFile $appInstallerPath
+} catch {
+    $msg = $_.Exception.Message
+    if ($msg -match "0x800B0109") {
+        Write-Host ""
+        Write-Host "Certificate trust error (0x800B0109) while installing the package." -ForegroundColor Red
+        Write-Host "This script already trusted the signing certificate in BOTH the Root and" -ForegroundColor Yellow
+        Write-Host "TrustedPeople LocalMachine stores, so a failure here points to a deeper" -ForegroundColor Yellow
+        Write-Host "machine trust-policy issue. Try: reboot and re-run this installer; if it" -ForegroundColor Yellow
+        Write-Host "still fails, install the certificate manually (double-click" -ForegroundColor Yellow
+        Write-Host "$certPath, 'Install Certificate' -> Local Machine -> Trusted Root) and retry." -ForegroundColor Yellow
+        Write-Host ""
+    }
+    throw
+}
 
 if ($NoLaunch) {
     Write-Host "[4/4] Skipping auto-start (-NoLaunch)." -ForegroundColor DarkGray

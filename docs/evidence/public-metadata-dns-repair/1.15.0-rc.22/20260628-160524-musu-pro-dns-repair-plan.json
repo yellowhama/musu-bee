@@ -1,0 +1,178 @@
+﻿{
+    "schema":  "musu.public_metadata_dns_repair_plan.v1",
+    "generated_at":  "2026-06-28T16:05:57.7605513+09:00",
+    "ok":  true,
+    "base_url":  "https://musu.pro",
+    "host":  "musu.pro",
+    "www_host":  "www.musu.pro",
+    "release_blocker_present":  true,
+    "ready_for_public_metadata_verifier":  false,
+    "will_mutate_external_dns":  false,
+    "apply_requested":  false,
+    "apply_supported":  false,
+    "can_apply":  false,
+    "apply_note":  "This planner never mutates DNS/provider state. ConfirmCloudflareApply is accepted only to make accidental mutation intent visible in the JSON.",
+    "dns_state":  {
+                      "provider_guess":  "cloudflare",
+                      "expected_nameservers":  [
+                                                   "ns1.vercel-dns.com",
+                                                   "ns2.vercel-dns.com"
+                                               ],
+                      "current_nameservers":  [
+                                                  "blakely.ns.cloudflare.com",
+                                                  "weston.ns.cloudflare.com"
+                                              ],
+                      "nameserver_matches_expected":  false,
+                      "missing_expected_nameservers":  [
+                                                           "ns1.vercel-dns.com",
+                                                           "ns2.vercel-dns.com"
+                                                       ],
+                      "unexpected_nameservers":  [
+                                                     "blakely.ns.cloudflare.com",
+                                                     "weston.ns.cloudflare.com"
+                                                 ],
+                      "expected_apex_a_records":  [
+                                                      "76.76.21.21"
+                                                  ],
+                      "current_apex_a_records":  [
+                                                     "104.21.82.53",
+                                                     "172.67.196.17"
+                                                 ],
+                      "current_apex_aaaa_records":  [
+                                                        "2606:4700:3033::ac43:c411",
+                                                        "2606:4700:3037::6815:5235"
+                                                    ],
+                      "apex_a_matches_expected":  false,
+                      "missing_expected_apex_a_records":  [
+                                                              "76.76.21.21"
+                                                          ],
+                      "unexpected_apex_a_records":  [
+                                                        "104.21.82.53",
+                                                        "172.67.196.17"
+                                                    ],
+                      "expected_www_cname":  "cname.vercel-dns-0.com",
+                      "current_www_cname_records":  [
+
+                                                    ],
+                      "current_www_a_records":  [
+                                                    "104.21.82.53",
+                                                    "172.67.196.17"
+                                                ],
+                      "www_cname_matches_expected":  false
+                  },
+    "tls_state":  {
+                      "apex_tls":  {
+                                       "name":  "apex_tls",
+                                       "ok":  false,
+                                       "failure_kind":  "tls_handshake_failed",
+                                       "connect_host":  "musu.pro",
+                                       "server_name":  "musu.pro",
+                                       "port":  443,
+                                       "timeout_sec":  12,
+                                       "error":  "Exception calling \"AuthenticateAsClient\" with \"1\" argument(s): \"Unable to read data from the transport connection: An existing connection was forcibly closed by the remote host.\"",
+                                       "tls_protocol":  null,
+                                       "certificate_subject":  null,
+                                       "certificate_thumbprint":  null
+                                   },
+                      "www_tls":  {
+                                      "name":  "www_tls",
+                                      "ok":  true,
+                                      "failure_kind":  null,
+                                      "connect_host":  "www.musu.pro",
+                                      "server_name":  "www.musu.pro",
+                                      "port":  443,
+                                      "timeout_sec":  12,
+                                      "error":  null,
+                                      "tls_protocol":  "Tls13",
+                                      "certificate_subject":  "CN=musu.pro",
+                                      "certificate_thumbprint":  "66143017CF2F1133CA10A5AFCA0275ACA941C9AC"
+                                  },
+                      "vercel_edge_apex_tls":  [
+                                                   {
+                                                       "name":  "vercel_edge_apex_tls",
+                                                       "ok":  false,
+                                                       "failure_kind":  "tls_handshake_failed",
+                                                       "connect_host":  "76.76.21.21",
+                                                       "server_name":  "musu.pro",
+                                                       "port":  443,
+                                                       "timeout_sec":  12,
+                                                       "error":  "Exception calling \"AuthenticateAsClient\" with \"1\" argument(s): \"Unable to read data from the transport connection: An existing connection was forcibly closed by the remote host.\"",
+                                                       "tls_protocol":  null,
+                                                       "certificate_subject":  null,
+                                                       "certificate_thumbprint":  null
+                                                   }
+                                               ],
+                      "vercel_edge_apex_tls_ok":  false
+                  },
+    "public_metadata_verification":  {
+                                         "ran":  true,
+                                         "exit_code":  1,
+                                         "parse_ok":  true,
+                                         "ok":  false,
+                                         "failure_kinds":  [
+                                                               "request_failed",
+                                                               "dns_nameserver_mismatch",
+                                                               "apex_tls_handshake_failed",
+                                                               "vercel_edge_apex_tls_failed"
+                                                           ]
+                                     },
+    "vercel_inspect":  {
+                           "ran":  false,
+                           "reason":  "RunVercelInspect_not_set",
+                           "command":  "vercel domains inspect musu.pro --token $env:VERCEL_TOKEN",
+                           "exit_code":  null,
+                           "output_tail":  ""
+                       },
+    "cloudflare":  {
+                       "token_status":  {
+                                            "checked":  false,
+                                            "reason":  "VerifyCloudflareToken_not_set",
+                                            "valid":  null,
+                                            "error":  null
+                                        },
+                       "mutation_supported":  false
+                   },
+    "recommended_actions":  [
+                                {
+                                    "priority":  1,
+                                    "name":  "repair_dns_authority_and_records",
+                                    "reason":  "Current DNS does not match the expected Vercel public metadata path.",
+                                    "manual_steps":  [
+                                                         "Run: vercel domains inspect musu.pro --token $env:VERCEL_TOKEN",
+                                                         "Choose one DNS authority path before editing records: switch the registrar nameservers to Vercel DNS, or keep Cloudflare/third-party DNS and configure Vercel\u0027s exact external records.",
+                                                         "If switching to Vercel DNS, migrate required MX/TXT/mail records first, then set nameservers to ns1.vercel-dns.com, ns2.vercel-dns.com.",
+                                                         "If keeping Cloudflare/third-party DNS, set apex A to 76.76.21.21, remove conflicting apex A/AAAA/HTTPS records unless Vercel explicitly requires them, and set www.musu.pro CNAME to cname.vercel-dns-0.com or the exact value from vercel domains inspect.",
+                                                         "Wait for DNS propagation, then rerun this planner and verify-store-public-metadata.ps1."
+                                                     ]
+                                },
+                                {
+                                    "priority":  2,
+                                    "name":  "repair_apex_tls_certificate_path",
+                                    "reason":  "Canonical apex HTTPS or direct Vercel edge SNI TLS failed.",
+                                    "manual_steps":  [
+                                                         "After DNS repair, check that Vercel reports the domain as valid and assigned to the musu-pro project.",
+                                                         "If using Cloudflare proxying, confirm Cloudflare SSL/TLS mode and certificate issuance do not terminate the apex before Vercel can serve the domain.",
+                                                         "Keep https://musu.pro as the canonical host and avoid relying on www.musu.pro if it only redirects back to a failing apex."
+                                                     ]
+                                },
+                                {
+                                    "priority":  3,
+                                    "name":  "verify_release_metadata_after_repair",
+                                    "reason":  "The Store/public metadata lane closes only when the canonical verifier passes.",
+                                    "manual_steps":  [
+                                                         "Run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\windows\\verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json",
+                                                         "Run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\windows\\write-release-go-no-go.ps1 -Json",
+                                                         "Commit the passing evidence only after the verifier is green."
+                                                     ]
+                                }
+                            ],
+    "verification_commands":  [
+                                  "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\windows\\plan-musu-pro-public-metadata-dns-repair.ps1 -BaseUrl https://musu.pro -Json",
+                                  "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\windows\\verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json",
+                                  "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\windows\\write-release-go-no-go.ps1 -Json"
+                              ],
+    "official_reference_urls":  [
+                                    "https://vercel.com/docs/domains/working-with-domains/add-a-domain",
+                                    "https://vercel.com/docs/domains/working-with-domains/managing-dns-records"
+                                ]
+}

@@ -7,12 +7,24 @@ on:
       - main
     paths:
       - 'musu-bee/**'
+      - 'VERSION'
+      - 'scripts/windows/Install-MUSU.ps1'
+      - 'scripts/windows/Uninstall-MUSU.ps1'
+      - 'scripts/windows/repair-fleet-node-public-url.ps1'
+      - 'scripts/windows/canary-desktop-release.ps1'
+      - 'scripts/windows/verify-musu-pro-install-channel.ps1'
       - '.github/workflows/deploy-musu-bee.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'musu-bee/**'
+      - 'VERSION'
+      - 'scripts/windows/Install-MUSU.ps1'
+      - 'scripts/windows/Uninstall-MUSU.ps1'
+      - 'scripts/windows/repair-fleet-node-public-url.ps1'
+      - 'scripts/windows/canary-desktop-release.ps1'
+      - 'scripts/windows/verify-musu-pro-install-channel.ps1'
       - '.github/workflows/deploy-musu-bee.yml'
 
 env:
@@ -51,31 +63,101 @@ jobs:
       - name: Sync production P2P control-plane env
         if: github.ref == 'refs/heads/main'
         run: |
-          sync_vercel_env() {
-            name="$1"
-            value="$2"
-            if [ -z "$value" ]; then
-              echo "$name is not set; skipping."
-              return 0
-            fi
-            vercel env add "$name" production \
-              --force \
-              --yes \
-              --value "$value" \
-              --token="$VERCEL_TOKEN"
+          node <<'NODE'
+          async function main() {
+            const envSpec = [
+              { key: "MUSU_P2P_CONTROL_TOKEN_SHA256S", value: process.env.MUSU_P2P_CONTROL_TOKEN_SHA256S, type: "sensitive" },
+              { key: "KV_REST_API_URL", value: process.env.KV_REST_API_URL, type: "plain" },
+              { key: "KV_REST_API_TOKEN", value: process.env.KV_REST_API_TOKEN, type: "sensitive" },
+              { key: "UPSTASH_REDIS_REST_URL", value: process.env.UPSTASH_REDIS_REST_URL, type: "plain" },
+              { key: "UPSTASH_REDIS_REST_TOKEN", value: process.env.UPSTASH_REDIS_REST_TOKEN, type: "sensitive" },
+              { key: "MUSU_P2P_RELAY_ENABLED", value: process.env.MUSU_P2P_RELAY_ENABLED, type: "plain" },
+              { key: "MUSU_P2P_RELAY_TRANSPORT_WIRED", value: process.env.MUSU_P2P_RELAY_TRANSPORT_WIRED, type: "plain" },
+              { key: "MUSU_P2P_RELAY_URL", value: process.env.MUSU_P2P_RELAY_URL, type: "plain" },
+              { key: "MUSU_P2P_RELAY_ENTITLEMENT", value: process.env.MUSU_P2P_RELAY_ENTITLEMENT, type: "sensitive" },
+              { key: "MUSU_P2P_RELAY_LEASE_MAX_RECORDS", value: process.env.MUSU_P2P_RELAY_LEASE_MAX_RECORDS, type: "plain" },
+              { key: "MUSU_P2P_RELAY_LEASE_TTL_SEC", value: process.env.MUSU_P2P_RELAY_LEASE_TTL_SEC, type: "plain" },
+            ];
+
+            const candidates = [];
+            for (const item of envSpec) {
+              if (typeof item.value === "string" && item.value.trim().length > 0) {
+                candidates.push(item);
+              } else {
+                console.log(`${item.key} is not set; skipping.`);
+              }
+            }
+
+            if (candidates.length === 0) {
+              console.log("No production P2P control-plane env values set; skipping Vercel REST env sync.");
+              return;
+            }
+
+            const token = process.env.VERCEL_TOKEN;
+            const projectId = process.env.VERCEL_PROJECT_ID;
+            if (!token) {
+              throw new Error("VERCEL_TOKEN is required to sync production P2P control-plane env.");
+            }
+            if (!projectId) {
+              throw new Error("VERCEL_PROJECT_ID is required to sync production P2P control-plane env.");
+            }
+
+            const endpoint = new URL(`https://api.vercel.com/v10/projects/${encodeURIComponent(projectId)}/env`);
+            endpoint.searchParams.set("upsert", "true");
+            if (process.env.VERCEL_ORG_ID) {
+              endpoint.searchParams.set("teamId", process.env.VERCEL_ORG_ID);
+            }
+
+            let failedCount = 0;
+            for (const item of candidates) {
+              const response = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  key: item.key,
+                  value: item.value,
+                  type: item.type,
+                  target: ["production"],
+                  comment: "musu.pro production P2P control-plane env synced by deploy-musu-bee.yml",
+                }),
+              });
+
+              const bodyText = await response.text();
+              let body = {};
+              if (bodyText) {
+                try {
+                  body = JSON.parse(bodyText);
+                } catch {
+                  body = {};
+                }
+              }
+              const failed = Array.isArray(body.failed) ? body.failed : [];
+              if (!response.ok || failed.length > 0) {
+                const failureSummary = failed
+                  .map((entry) => entry && entry.error ? `${entry.error.envVarKey || entry.error.key || item.key}:${entry.error.code || "unknown"}` : `${item.key}:unknown`)
+                  .join(", ");
+                const suffix = failureSummary ? ` (${failureSummary})` : "";
+                console.error(`${item.key} sync failed with HTTP ${response.status}${suffix}.`);
+                failedCount += 1;
+                continue;
+              }
+
+              console.log(`${item.key} synced to Vercel production via REST upsert.`);
+            }
+
+            if (failedCount > 0) {
+              throw new Error(`${failedCount} Vercel production P2P env sync operation(s) failed.`);
+            }
           }
 
-          sync_vercel_env MUSU_P2P_CONTROL_TOKEN_SHA256S "$MUSU_P2P_CONTROL_TOKEN_SHA256S"
-          sync_vercel_env KV_REST_API_URL "$KV_REST_API_URL"
-          sync_vercel_env KV_REST_API_TOKEN "$KV_REST_API_TOKEN"
-          sync_vercel_env UPSTASH_REDIS_REST_URL "$UPSTASH_REDIS_REST_URL"
-          sync_vercel_env UPSTASH_REDIS_REST_TOKEN "$UPSTASH_REDIS_REST_TOKEN"
-          sync_vercel_env MUSU_P2P_RELAY_ENABLED "$MUSU_P2P_RELAY_ENABLED"
-          sync_vercel_env MUSU_P2P_RELAY_TRANSPORT_WIRED "$MUSU_P2P_RELAY_TRANSPORT_WIRED"
-          sync_vercel_env MUSU_P2P_RELAY_URL "$MUSU_P2P_RELAY_URL"
-          sync_vercel_env MUSU_P2P_RELAY_ENTITLEMENT "$MUSU_P2P_RELAY_ENTITLEMENT"
-          sync_vercel_env MUSU_P2P_RELAY_LEASE_MAX_RECORDS "$MUSU_P2P_RELAY_LEASE_MAX_RECORDS"
-          sync_vercel_env MUSU_P2P_RELAY_LEASE_TTL_SEC "$MUSU_P2P_RELAY_LEASE_TTL_SEC"
+          main().catch((error) => {
+            console.error(error.message);
+            process.exit(1);
+          });
+          NODE
         working-directory: musu-bee
         env:
           MUSU_P2P_CONTROL_TOKEN_SHA256S: ${{ secrets.MUSU_P2P_CONTROL_TOKEN_SHA256S }}
@@ -104,6 +186,11 @@ jobs:
           NEXT_PUBLIC_APP_URL: https://musu.pro
           NEXT_PUBLIC_AUTH_ENABLED: "true"
 
+      - name: Verify production desktop-latest release assets
+        if: github.ref == 'refs/heads/main'
+        shell: pwsh
+        run: ./scripts/windows/canary-desktop-release.ps1 -Json -SkipLocalArtifactLengthChecks
+
       - name: Deploy to Vercel
         id: deploy
         timeout-minutes: 10
@@ -111,6 +198,15 @@ jobs:
           url=$(vercel deploy --prebuilt --yes ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$url" >> "$GITHUB_OUTPUT"
         working-directory: musu-bee
+
+      - name: Verify production health
+        if: github.ref == 'refs/heads/main'
+        run: curl -fsS https://musu.pro/api/health
+
+      - name: Verify production install channel
+        if: github.ref == 'refs/heads/main'
+        shell: pwsh
+        run: ./scripts/windows/verify-musu-pro-install-channel.ps1 -Json
 
       - name: Comment PR preview URL
         if: github.event_name == 'pull_request'

@@ -25,6 +25,8 @@ param(
     [switch]$FailOnRouteReachabilityDiagnostic,
     [switch]$SkipRuntimeCpuScenarioMatrix,
     [switch]$FailOnRuntimeCpuScenarioMatrix,
+    [switch]$SkipPrivateMeshPhysicalPeerEvidence,
+    [switch]$FailOnPrivateMeshPhysicalPeerEvidence,
     [switch]$NoReturnZip,
     [switch]$Json
 )
@@ -107,6 +109,8 @@ $msixLegacyConflictsPath = Join-Path $repoRoot ".local-build\msix-legacy-conflic
 $runtimeIdleCpuEvidencePath = Join-Path $repoRoot ".local-build\runtime-idle-cpu\$stamp-$safeMachine.desktop-open.evidence.json"
 $runtimeCpuScenarioOutputRoot = Join-Path $repoRoot ".local-build\runtime-cpu-scenarios\$stamp-$safeMachine"
 $routeReachabilityDiagnosticPath = Join-Path $repoRoot ".local-build\route-diagnostics\$stamp-$safeMachine-$safeRouteReachabilityTarget.route-reachability-diagnostic.json"
+$privateMeshPhysicalPeerEvidencePath = Join-Path $repoRoot ".local-build\private-mesh-physical-peer\$stamp-$safeMachine.physical-peer-evidence.json"
+$privateMeshPhysicalPeerEvidenceSha256Path = "$privateMeshPhysicalPeerEvidencePath.sha256"
 $processAttributionSummaryPath = Join-Path $repoRoot ".local-build\process-attribution\$stamp-$safeMachine.process-attribution-summary.json"
 $runtimeCleanupReportPath = Join-Path $repoRoot ".local-build\runtime-cleanup\$stamp-$safeMachine.runtime-cleanup.json"
 $returnZipPath = Join-Path $repoRoot ".local-build\second-pc-return\$stamp-$safeMachine.second-pc-return.zip"
@@ -127,6 +131,8 @@ $runtimeCpuScenarioMatrixVerification = $null
 $routeReachabilityDiagnostic = $null
 $routeReachabilityDiagnosticError = $null
 $routeReachabilityDiagnosticVerification = $null
+$privateMeshPhysicalPeerEvidenceReport = $null
+$privateMeshPhysicalPeerEvidenceError = $null
 $processAttributionSummary = $null
 $processAttributionError = $null
 $processAttributionVerification = $null
@@ -180,7 +186,7 @@ function Invoke-ReleaseStep {
 
 function Start-MusuDesktopApp {
     $app = Get-StartApps | Where-Object {
-        $_.Name -eq "MUSU" -or $_.AppID -like "Yellowhama.MUSU_*"
+        $_.Name -eq "MUSU" -or $_.AppID -like "blossompark.musu_*" -or $_.AppID -like "Yellowhama.MUSU_*"
     } | Select-Object -First 1
     if (-not $app) {
         throw "Unable to find installed MUSU Start menu app for desktop-open CPU evidence."
@@ -376,7 +382,7 @@ function Invoke-RuntimeCleanup {
     }
 
     $desktopProcesses = @(Get-CimInstance Win32_Process -Filter "name='musu-desktop.exe'" -ErrorAction SilentlyContinue | Where-Object {
-        [string]$_.CommandLine -like "*Yellowhama.MUSU*"
+        [string]$_.CommandLine -like "*blossompark.musu*" -or [string]$_.CommandLine -like "*Yellowhama.MUSU*"
     })
     foreach ($process in $desktopProcesses) {
         try {
@@ -389,7 +395,7 @@ function Invoke-RuntimeCleanup {
     }
     Start-Sleep -Milliseconds 500
     $remainingDesktop = @(Get-CimInstance Win32_Process -Filter "name='musu-desktop.exe'" -ErrorAction SilentlyContinue | Where-Object {
-        [string]$_.CommandLine -like "*Yellowhama.MUSU*"
+        [string]$_.CommandLine -like "*blossompark.musu*" -or [string]$_.CommandLine -like "*Yellowhama.MUSU*"
     })
 
     $cleanup = [pscustomobject]@{
@@ -457,6 +463,53 @@ try {
         -ScriptName "collect-second-pc-handoff.ps1" `
         -Arguments @("-OutputPath", $handoffPath, "-CommandTimeoutSec", ([string]$CommandTimeoutSec), "-Json") `
         -ParseJson
+
+    if (-not $SkipPrivateMeshPhysicalPeerEvidence) {
+        try {
+            $musuExe = Resolve-PackagedMusuExe
+            if ([string]::IsNullOrWhiteSpace($musuExe)) {
+                throw "Unable to resolve packaged MUSU CLI for Private Mesh physical-peer evidence."
+            }
+
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $privateMeshPhysicalPeerEvidencePath) | Out-Null
+            $startedAt = Get-Date
+            $privateMeshPhysicalPeerEvidenceOutput = & $musuExe mesh physical-peer-evidence --output $privateMeshPhysicalPeerEvidencePath --json 2>&1
+            $privateMeshPhysicalPeerEvidenceExitCode = $LASTEXITCODE
+            $privateMeshPhysicalPeerEvidenceRaw = ($privateMeshPhysicalPeerEvidenceOutput | Out-String).Trim()
+            $privateMeshPhysicalPeerEvidenceParsed = $null
+            if (-not [string]::IsNullOrWhiteSpace($privateMeshPhysicalPeerEvidenceRaw)) {
+                try {
+                    $privateMeshPhysicalPeerEvidenceParsed = $privateMeshPhysicalPeerEvidenceRaw | ConvertFrom-Json
+                }
+                catch {
+                    throw "Private Mesh physical-peer evidence did not return parseable JSON.`n$privateMeshPhysicalPeerEvidenceRaw"
+                }
+            }
+
+            $steps.Add([pscustomobject]@{
+                name = "capture Private Mesh physical-peer evidence"
+                script = "musu mesh physical-peer-evidence"
+                exit_code = $privateMeshPhysicalPeerEvidenceExitCode
+                started_at = $startedAt.ToString("o")
+                completed_at = (Get-Date).ToString("o")
+                output = $privateMeshPhysicalPeerEvidenceRaw
+            }) | Out-Null
+
+            $privateMeshPhysicalPeerEvidenceReport = $privateMeshPhysicalPeerEvidenceParsed
+            if ($privateMeshPhysicalPeerEvidenceExitCode -ne 0) {
+                throw "Private Mesh physical-peer evidence failed with exit code ${privateMeshPhysicalPeerEvidenceExitCode}.`n$privateMeshPhysicalPeerEvidenceRaw"
+            }
+            if (-not (Test-Path -LiteralPath $privateMeshPhysicalPeerEvidencePath)) {
+                throw "Private Mesh physical-peer evidence file was not created: $privateMeshPhysicalPeerEvidencePath"
+            }
+        }
+        catch {
+            $privateMeshPhysicalPeerEvidenceError = $_.Exception.Message
+            if ($FailOnPrivateMeshPhysicalPeerEvidence) {
+                throw
+            }
+        }
+    }
 
     if (-not $SkipRouteReachabilityDiagnostic -and -not [string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective)) {
         try {
@@ -798,6 +851,8 @@ $returnFiles = @(
     $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }),
     $runtimeCpuScenarioFiles,
     $(if (-not $SkipRouteReachabilityDiagnostic -and -not [string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective)) { $routeReachabilityDiagnosticPath }),
+    $(if (-not $SkipPrivateMeshPhysicalPeerEvidence) { $privateMeshPhysicalPeerEvidencePath }),
+    $(if (-not $SkipPrivateMeshPhysicalPeerEvidence) { $privateMeshPhysicalPeerEvidenceSha256Path }),
     $processAttributionSummaryPath,
     $runtimeCleanupReportPath,
     $summaryPath
@@ -873,6 +928,11 @@ $result = [pscustomobject]@{
     route_reachability_tcp_test_succeeded = if ($routeReachabilityDiagnostic -and $routeReachabilityDiagnostic.PSObject.Properties["network_probe"]) { $routeReachabilityDiagnostic.network_probe.tcp_test_succeeded } else { $null }
     route_reachability_route_attempt_result = if ($routeReachabilityDiagnostic -and $routeReachabilityDiagnostic.PSObject.Properties["route_attempt"] -and $routeReachabilityDiagnostic.route_attempt) { [string]$routeReachabilityDiagnostic.route_attempt.result } else { $null }
     route_reachability_successful_multi_device_route_proof = if ($routeReachabilityDiagnostic -and $routeReachabilityDiagnostic.PSObject.Properties["conclusion"]) { [bool]$routeReachabilityDiagnostic.conclusion.successful_multi_device_route_proof } else { $null }
+    private_mesh_physical_peer_evidence_path = if ($SkipPrivateMeshPhysicalPeerEvidence) { $null } else { $privateMeshPhysicalPeerEvidencePath }
+    private_mesh_physical_peer_evidence_sha256_path = if ($SkipPrivateMeshPhysicalPeerEvidence) { $null } else { $privateMeshPhysicalPeerEvidenceSha256Path }
+    private_mesh_physical_peer_evidence_ok = if ($SkipPrivateMeshPhysicalPeerEvidence) { $null } elseif ($privateMeshPhysicalPeerEvidenceReport) { [bool]$privateMeshPhysicalPeerEvidenceReport.ok } else { $false }
+    private_mesh_physical_peer_evidence_report = $privateMeshPhysicalPeerEvidenceReport
+    private_mesh_physical_peer_evidence_error = $privateMeshPhysicalPeerEvidenceError
     runtime_idle_cpu_subrole_summary = $runtimeIdleCpuSubroleSummary
     runtime_cpu_scenario_subrole_summary = $runtimeCpuScenarioSubroleSummary
     runtime_cpu_subrole_contract_ok = [bool]$runtimeCpuSubroleContractOk
@@ -905,7 +965,7 @@ $result | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $summaryPath -Encod
 
 if (-not $NoReturnZip) {
     try {
-        $filesToZip = @($msixEvidencePath, $handoffPath, $msixLegacyConflictsPath, $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }), $runtimeCpuScenarioFiles, $(if (-not $SkipRouteReachabilityDiagnostic -and -not [string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective)) { $routeReachabilityDiagnosticPath }), $processAttributionSummaryPath, $runtimeCleanupReportPath, $summaryPath) | Where-Object {
+        $filesToZip = @($msixEvidencePath, $handoffPath, $msixLegacyConflictsPath, $(if (-not $SkipRuntimeIdleCpu) { $runtimeIdleCpuEvidencePath }), $runtimeCpuScenarioFiles, $(if (-not $SkipRouteReachabilityDiagnostic -and -not [string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective)) { $routeReachabilityDiagnosticPath }), $(if (-not $SkipPrivateMeshPhysicalPeerEvidence) { $privateMeshPhysicalPeerEvidencePath }), $(if (-not $SkipPrivateMeshPhysicalPeerEvidence) { $privateMeshPhysicalPeerEvidenceSha256Path }), $processAttributionSummaryPath, $runtimeCleanupReportPath, $summaryPath) | Where-Object {
             (-not [string]::IsNullOrWhiteSpace([string]$_)) -and (Test-Path -LiteralPath $_)
         }
         if ($filesToZip.Count -eq 0) {
@@ -937,6 +997,8 @@ else {
     "route_reachability_diagnostic_path: $(if ($result.route_reachability_diagnostic_path) { $result.route_reachability_diagnostic_path } elseif ($SkipRouteReachabilityDiagnostic -or [string]::IsNullOrWhiteSpace($routeReachabilityTargetEffective)) { '<skipped>' } else { '<not captured>' })"
     "route_target_consistency_ok: $(if ($null -ne $result.route_target_consistency_ok) { $result.route_target_consistency_ok } else { '<none>' })"
     "route_reachability_diagnostic_verified: $(if ($null -ne $result.route_reachability_diagnostic_verified) { $result.route_reachability_diagnostic_verified } else { '<skipped>' })"
+    "private_mesh_physical_peer_evidence_path: $(if ($result.private_mesh_physical_peer_evidence_path) { $result.private_mesh_physical_peer_evidence_path } elseif ($SkipPrivateMeshPhysicalPeerEvidence) { '<skipped>' } else { '<not captured>' })"
+    "private_mesh_physical_peer_evidence_ok: $(if ($null -ne $result.private_mesh_physical_peer_evidence_ok) { $result.private_mesh_physical_peer_evidence_ok } else { '<skipped>' })"
     "runtime_cpu_subrole_contract_ok: $($result.runtime_cpu_subrole_contract_ok)"
     if ($result.runtime_idle_cpu_subrole_summary) {
         $counts = $result.runtime_idle_cpu_subrole_summary.process_counts_by_subrole
@@ -982,6 +1044,10 @@ else {
     if ($result.route_reachability_diagnostic_error) {
         ""
         "route_reachability_diagnostic_error: $($result.route_reachability_diagnostic_error)"
+    }
+    if ($result.private_mesh_physical_peer_evidence_error) {
+        ""
+        "private_mesh_physical_peer_evidence_error: $($result.private_mesh_physical_peer_evidence_error)"
     }
     if ($result.msix_legacy_conflicts_error) {
         ""

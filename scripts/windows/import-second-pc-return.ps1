@@ -331,6 +331,20 @@ function Copy-IntoRoot {
     return (Resolve-Path -LiteralPath $targetPath).Path
 }
 
+function Copy-Sha256SidecarIntoRoot {
+    param(
+        [Parameter(Mandatory = $true)][string]$SourcePath,
+        [Parameter(Mandatory = $true)][string]$TargetRoot
+    )
+
+    $sidecarPath = "$SourcePath.sha256"
+    if (-not (Test-Path -LiteralPath $sidecarPath)) {
+        return $null
+    }
+
+    return Copy-IntoRoot -SourcePath $sidecarPath -TargetRoot $TargetRoot
+}
+
 function Get-JsonPropertyString {
     param(
         [Parameter(Mandatory = $true)]$Object,
@@ -476,6 +490,7 @@ $sourceRuntimeIdleCpuEvidence = Resolve-LatestRuntimeIdleReleaseEvidence -Root $
 $sourceRuntimeCpuScenarioMatrix = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.runtime_cpu_scenario_matrix.v1" -Label "runtime CPU scenario matrix" -Optional
 $sourceRouteReachabilityDiagnostic = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.route_reachability_diagnostic.v1" -Label "route reachability diagnostic" -Optional
 $sourceProcessAttributionSummary = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.process_attribution_summary.v1" -Label "process attribution summary" -Optional
+$sourcePrivateMeshPhysicalPeerEvidence = Resolve-LatestJsonBySchema -Root $extractRoot -Schema "musu.private_mesh_physical_peer_evidence.v1" -Label "Private Mesh physical-peer evidence" -Optional
 $sourceReleaseCheck = Get-ChildItem -LiteralPath $extractRoot -Filter "*.release-check.json" -File -Recurse -ErrorAction SilentlyContinue |
     Sort-Object LastWriteTimeUtc -Descending |
     Select-Object -First 1
@@ -512,6 +527,19 @@ $canonicalProcessAttributionSummary = if ($sourceProcessAttributionSummary) {
 else {
     $null
 }
+$privateMeshPhysicalPeerEvidenceRoot = Join-Path $repoRoot ".local-build\private-mesh-physical-peer"
+$canonicalPrivateMeshPhysicalPeerEvidence = if ($sourcePrivateMeshPhysicalPeerEvidence) {
+    Copy-IntoRoot -SourcePath $sourcePrivateMeshPhysicalPeerEvidence -TargetRoot $privateMeshPhysicalPeerEvidenceRoot
+}
+else {
+    $null
+}
+$canonicalPrivateMeshPhysicalPeerEvidenceSha256 = if ($sourcePrivateMeshPhysicalPeerEvidence) {
+    Copy-Sha256SidecarIntoRoot -SourcePath $sourcePrivateMeshPhysicalPeerEvidence -TargetRoot $privateMeshPhysicalPeerEvidenceRoot
+}
+else {
+    $null
+}
 $canonicalReleaseCheck = if ($sourceReleaseCheck) {
     Copy-IntoRoot -SourcePath $sourceReleaseCheck.FullName -TargetRoot (Join-Path $repoRoot ".local-build\second-pc-release-check")
 }
@@ -536,6 +564,9 @@ $releaseCheckGitFreshness = $null
 $releaseCheckRuntimeCpuRouteTarget = ""
 $releaseCheckRouteReachabilityTarget = ""
 $releaseCheckRouteTargetConsistencyOk = $null
+$releaseCheckPrivateMeshPhysicalPeerEvidencePath = ""
+$releaseCheckPrivateMeshPhysicalPeerEvidenceOk = $null
+$privateMeshPhysicalPeerEvidenceMatchesReleaseCheck = $null
 if ($canonicalReleaseCheck) {
     $releaseCheck = Get-Content -LiteralPath $canonicalReleaseCheck -Raw | ConvertFrom-Json
     if ((Get-JsonPropertyString -Object $releaseCheck -Name "schema") -ne "musu.second_pc_release_check.v1") {
@@ -550,6 +581,22 @@ if ($canonicalReleaseCheck) {
     $releaseCheckGitFreshness = New-GitFreshnessSummary -Evidence $releaseCheck -ExpectedGitCommit $currentGitCommit -Label "release_check"
     $releaseCheckRuntimeCpuRouteTarget = Get-JsonPropertyString -Object $releaseCheck -Name "runtime_cpu_route_target"
     $releaseCheckRouteReachabilityTarget = Get-JsonPropertyString -Object $releaseCheck -Name "route_reachability_target"
+    $releaseCheckPrivateMeshPhysicalPeerEvidencePath = Get-JsonPropertyString -Object $releaseCheck -Name "private_mesh_physical_peer_evidence_path"
+    $releaseCheckPrivateMeshPhysicalPeerEvidenceOk = if ($releaseCheck.PSObject.Properties["private_mesh_physical_peer_evidence_ok"] -and $null -ne $releaseCheck.private_mesh_physical_peer_evidence_ok) {
+        [bool]$releaseCheck.private_mesh_physical_peer_evidence_ok
+    }
+    else {
+        $null
+    }
+    $privateMeshPhysicalPeerEvidenceMatchesReleaseCheck = if ([string]::IsNullOrWhiteSpace($releaseCheckPrivateMeshPhysicalPeerEvidencePath) -and -not $canonicalPrivateMeshPhysicalPeerEvidence) {
+        $null
+    }
+    elseif (-not [string]::IsNullOrWhiteSpace($releaseCheckPrivateMeshPhysicalPeerEvidencePath) -and $canonicalPrivateMeshPhysicalPeerEvidence) {
+        (Split-Path -Leaf $releaseCheckPrivateMeshPhysicalPeerEvidencePath) -eq (Split-Path -Leaf $canonicalPrivateMeshPhysicalPeerEvidence)
+    }
+    else {
+        $false
+    }
     $releaseCheckRouteTargetConsistencyOk = if (
         [string]::IsNullOrWhiteSpace($releaseCheckRuntimeCpuRouteTarget) -and
         [string]::IsNullOrWhiteSpace($releaseCheckRouteReachabilityTarget)
@@ -938,6 +985,12 @@ $result = [pscustomobject]@{
     process_attribution_verified = [bool]$processAttributionVerified
     process_attribution_verification = $processAttributionVerification
     process_attribution_verification_error = $processAttributionVerificationError
+    private_mesh_physical_peer_evidence_path = $canonicalPrivateMeshPhysicalPeerEvidence
+    private_mesh_physical_peer_evidence_sha256_path = $canonicalPrivateMeshPhysicalPeerEvidenceSha256
+    private_mesh_physical_peer_evidence_imported = ($null -ne $canonicalPrivateMeshPhysicalPeerEvidence)
+    private_mesh_physical_peer_evidence_release_check_ok = $releaseCheckPrivateMeshPhysicalPeerEvidenceOk
+    private_mesh_physical_peer_evidence_release_check_path = if ([string]::IsNullOrWhiteSpace($releaseCheckPrivateMeshPhysicalPeerEvidencePath)) { $null } else { $releaseCheckPrivateMeshPhysicalPeerEvidencePath }
+    private_mesh_physical_peer_evidence_matches_release_check = $privateMeshPhysicalPeerEvidenceMatchesReleaseCheck
     release_check_path = $canonicalReleaseCheck
     release_check_git_freshness = $releaseCheckGitFreshness
     handoff_git_freshness = $handoffGitFreshness
@@ -981,6 +1034,9 @@ else {
     }
     "process_attribution_summary: $(if ($result.process_attribution_summary_path) { $result.process_attribution_summary_path } else { '<not present>' })"
     "process_attribution_verified: $($result.process_attribution_verified)"
+    "private_mesh_physical_peer_evidence: $(if ($result.private_mesh_physical_peer_evidence_path) { $result.private_mesh_physical_peer_evidence_path } else { '<not present>' })"
+    "private_mesh_physical_peer_evidence_release_check_ok: $(if ($null -ne $result.private_mesh_physical_peer_evidence_release_check_ok) { $result.private_mesh_physical_peer_evidence_release_check_ok } else { '<not present>' })"
+    "private_mesh_physical_peer_evidence_matches_release_check: $(if ($null -ne $result.private_mesh_physical_peer_evidence_matches_release_check) { $result.private_mesh_physical_peer_evidence_matches_release_check } else { '<not present>' })"
     "release_check: $(if ($result.release_check_path) { $result.release_check_path } else { '<not present>' })"
     "remote_name: $($result.remote_name)"
     "remote_addr: $($result.remote_addr)"

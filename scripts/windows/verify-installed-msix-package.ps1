@@ -2,6 +2,7 @@
 param(
     [string]$PackageName,
     [string]$PackagePath,
+    [string]$BrainExecutable = "musu-brain.exe",
     [ValidateSet("local-sideload-manual", "store-reviewed-immediate-registration")]
     [string]$StartupContract = "local-sideload-manual",
     [switch]$CheckAlias
@@ -46,10 +47,12 @@ if (-not $pkg) {
 
 $installLocation = $pkg.InstallLocation
 $musuExe = Join-Path $installLocation "musu.exe"
+$brainExe = Join-Path $installLocation $BrainExecutable
 $startupExe = Join-Path $installLocation "musu-startup.exe"
 $manifestPath = Join-Path $installLocation "AppxManifest.xml"
 
 Assert-True (Test-Path -LiteralPath $musuExe) "Installed package is missing musu.exe at $musuExe"
+Assert-True (Test-Path -LiteralPath $brainExe) "Installed package is missing $BrainExecutable at $brainExe"
 Assert-True (Test-Path -LiteralPath $startupExe) "Installed package is missing musu-startup.exe at $startupExe"
 Assert-True (Test-Path -LiteralPath $manifestPath) "Installed package is missing AppxManifest.xml at $manifestPath"
 
@@ -69,6 +72,14 @@ $alias = $manifestXml.SelectSingleNode(
     "//uap3:Extension[@Category='windows.appExecutionAlias']//desktop:ExecutionAlias[@Alias='musu.exe']",
     $ns
 )
+$brainExtension = $manifestXml.SelectSingleNode(
+    "//desktop:Extension[@Category='windows.fullTrustProcess' and @Executable='$BrainExecutable']",
+    $ns
+)
+$brainProcess = $manifestXml.SelectSingleNode(
+    "//desktop:Extension[@Category='windows.fullTrustProcess' and @Executable='$BrainExecutable']//desktop:FullTrustProcess",
+    $ns
+)
 $customStartupCapability = $manifestXml.SelectSingleNode(
     "//uap4:CustomCapability[@Name='Microsoft.nonUserConfigurableStartupTasks_8wekyb3d8bbwe']",
     $ns
@@ -76,6 +87,8 @@ $customStartupCapability = $manifestXml.SelectSingleNode(
 
 Assert-True ($null -ne $startupTask) "Installed package manifest is missing startupTask 'MusuBridgeStartup'"
 Assert-True ($null -ne $alias) "Installed package manifest is missing appExecutionAlias 'musu.exe'"
+Assert-True ($null -ne $brainExtension) "Installed package manifest is missing fullTrustProcess for $BrainExecutable"
+Assert-True ($null -ne $brainProcess) "Installed package manifest is missing FullTrustProcess declaration for $BrainExecutable"
 $startupImmediateRegistration = $startupTask.GetAttribute("ImmediateRegistration", $ns.LookupNamespace("rescap5"))
 
 $artifactContract = $null
@@ -117,6 +130,8 @@ $alternateAliasCount = @($legacyConflicts.AlternateAliasSources).Count
     Version                  = $pkg.Version.ToString()
     InstallLocation          = $installLocation
     MusuExePresent           = $true
+    BrainExePresent          = $true
+    BrainFullTrustProcess    = $true
     StartupExePresent        = $true
     StartupTaskId            = $startupTask.GetAttribute("TaskId")
     StartupEnabled           = $startupTask.GetAttribute("Enabled")

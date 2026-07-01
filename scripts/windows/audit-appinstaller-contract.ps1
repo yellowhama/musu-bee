@@ -77,9 +77,9 @@ if ($appXml) {
     # artifact. The local pattern is musu_<ver>_<arch>_<contract>.msix — assert the
     # hosted leaf does NOT match it for ANY arch/contract (not just x64), so the
     # durable hosted URL can never point at a per-build artifact name that rots.
-    $msixLeaf = ($aiMsixUri -split "/")[-1]
+    $msixLeaf = (($aiMsixUri -split "/")[-1] -split "[?#]", 2)[0]
     if ($msixLeaf -notmatch "\.msix$") {
-        Add-Failure "MainPackage Uri does not end in .msix: $aiMsixUri"
+        Add-Failure "MainPackage Uri path does not end in .msix: $aiMsixUri"
     }
     if ($msixLeaf -match "_(x64|x86|arm64|neutral)_(local-sideload-manual|store-reviewed-immediate-registration)\.msix$") {
         Add-Failure "MainPackage Uri points at a version-suffixed local artifact ($msixLeaf); it must be the fixed hosted name so the durable URL never rots"

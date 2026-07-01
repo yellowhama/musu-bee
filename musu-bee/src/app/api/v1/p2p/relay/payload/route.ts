@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { authorizeP2pControl, p2pControlPrincipal } from "@/lib/p2pControlAuth";
+import {
+  authorizeP2pControl,
+  p2pControlPrincipal,
+  p2pSourceNodeAuthBindingFields,
+  p2pSourceNodeAuthMismatch,
+} from "@/lib/p2pControlAuth";
 import { queryRelayLeases } from "@/lib/p2pRelayLeaseStore";
 import {
   appendRelayPayload,
@@ -114,6 +119,26 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const sourceNodeAuthMismatch = p2pSourceNodeAuthMismatch(
+    principal,
+    parsed.data.source_node_id
+  );
+  if (sourceNodeAuthMismatch) {
+    return NextResponse.json(
+      {
+        ok: false,
+        accepted: false,
+        stored: false,
+        owner_scoped: true,
+        ...p2pSourceNodeAuthBindingFields(principal),
+        error: sourceNodeAuthMismatch.error,
+        bound_source_node_id: sourceNodeAuthMismatch.bound_source_node_id,
+        declared_source_node_id: parsed.data.source_node_id,
+      },
+      { status: 403 }
+    );
+  }
+
   let matchedLease: Awaited<ReturnType<typeof queryRelayLeases>>[number] | undefined;
   try {
     const leases = await queryRelayLeases({
@@ -144,6 +169,7 @@ export async function POST(req: NextRequest) {
         stored: false,
         error: "relay_payload_lease_not_found",
         owner_scoped: true,
+        ...p2pSourceNodeAuthBindingFields(principal),
       },
       { status: 409 }
     );
@@ -168,6 +194,7 @@ export async function POST(req: NextRequest) {
         stored: false,
         error: "relay_payload_lease_node_mismatch",
         owner_scoped: true,
+        ...p2pSourceNodeAuthBindingFields(principal),
       },
       { status: 409 }
     );
@@ -223,6 +250,7 @@ export async function POST(req: NextRequest) {
       accepted: true,
       stored: true,
       owner_scoped: true,
+      ...p2pSourceNodeAuthBindingFields(principal),
       relay_payload_queue_endpoint_wired: true,
       relay_default_data_path: false,
       payload_transit_requires_lease: true,
@@ -259,6 +287,7 @@ export async function GET(req: NextRequest) {
       schema: "musu.p2p_relay_payloads.v1",
       ok: true,
       owner_scoped: true,
+      ...p2pSourceNodeAuthBindingFields(principal),
       relay_payload_queue_endpoint_wired: true,
       relay_default_data_path: false,
       release_grade: false,
@@ -327,6 +356,7 @@ export async function PATCH(req: NextRequest) {
           schema: "musu.p2p_relay_payload_claim.v1",
           ok: true,
           owner_scoped: true,
+          ...p2pSourceNodeAuthBindingFields(principal),
           accepted: true,
           claimed: true,
           relay_payload_queue_endpoint_wired: true,
@@ -349,6 +379,7 @@ export async function PATCH(req: NextRequest) {
               ? error.message
               : "relay_payload_claim_failed",
           owner_scoped: true,
+          ...p2pSourceNodeAuthBindingFields(principal),
           ...relayPayloadStoreFields(),
         },
         { status: 503 }
@@ -384,6 +415,7 @@ export async function PATCH(req: NextRequest) {
             ok: false,
             error: "relay_payload_not_found",
             owner_scoped: true,
+            ...p2pSourceNodeAuthBindingFields(principal),
             ...relayPayloadStoreFields(),
           },
           { status: 404 }
@@ -394,6 +426,7 @@ export async function PATCH(req: NextRequest) {
           schema: "musu.p2p_relay_payload_delivery.v1",
           ok: true,
           owner_scoped: true,
+          ...p2pSourceNodeAuthBindingFields(principal),
           accepted: true,
           delivered: true,
           relay_default_data_path: false,
@@ -412,6 +445,7 @@ export async function PATCH(req: NextRequest) {
           ok: false,
           error: errorMessage,
           owner_scoped: true,
+          ...p2pSourceNodeAuthBindingFields(principal),
           ...relayPayloadStoreFields(),
         },
         { status: errorMessage === "relay_payload_delivery_requires_claim" ? 409 : 503 }

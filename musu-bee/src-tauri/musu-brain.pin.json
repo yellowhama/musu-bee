@@ -1,0 +1,9 @@
+{
+  "schema": "musu.brain_sidecar_pin.v1",
+  "product_version": "1.15.0-rc.22",
+  "module_path": "github.com/yellowhama/musu-brain",
+  "main_package": "./cmd/musu-brain",
+  "default_repo_hint": "F:\\musu_2nd_brain",
+  "vcs_revision": "0b47c430e94fa504029c9b754dea70055beeee6e",
+  "vcs_time": "2026-07-01T16:52:30+09:00"
+}

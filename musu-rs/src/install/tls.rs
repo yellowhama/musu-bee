@@ -3,7 +3,7 @@
 //! Auto-generates self-signed certificates for inter-node encryption.
 //! Certificates are stored in `~/.musu/tls/`.
 
-use std::io::BufReader;
+use std::io::{BufReader, Write};
 use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Result};
@@ -37,6 +37,7 @@ pub fn ensure_tls_certs(musu_home: &Path, node_name: &str) -> Result<TlsPaths> {
 
     if paths.exists() {
         tracing::info!("TLS certs already exist, reusing");
+        restrict_private_key_permissions(&paths.key_path)?;
         return Ok(paths);
     }
 
@@ -70,16 +71,10 @@ pub fn ensure_tls_certs(musu_home: &Path, node_name: &str) -> Result<TlsPaths> {
     let key_pair = rcgen::KeyPair::generate()?;
     let cert = params.self_signed(&key_pair)?;
 
-    // Write PEM files.
+    // Write PEM files. The certificate is public; the private key is restricted
+    // before the secret bytes are written on Windows.
     std::fs::write(&paths.cert_path, cert.pem())?;
-    std::fs::write(&paths.key_path, key_pair.serialize_pem())?;
-
-    // Restrict key permissions (Unix only).
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&paths.key_path, std::fs::Permissions::from_mode(0o600))?;
-    }
+    write_private_key(&paths.key_path, key_pair.serialize_pem().as_bytes())?;
 
     tracing::info!(
         cert = %paths.cert_path.display(),
@@ -88,6 +83,63 @@ pub fn ensure_tls_certs(musu_home: &Path, node_name: &str) -> Result<TlsPaths> {
     );
 
     Ok(paths)
+}
+
+fn write_private_key(path: &Path, body: &[u8]) -> Result<()> {
+    #[cfg(windows)]
+    {
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(path)?;
+        restrict_private_key_permissions(path)?;
+        file.write_all(body)?;
+        return Ok(());
+    }
+
+    #[cfg(not(windows))]
+    {
+        std::fs::write(path, body)?;
+        restrict_private_key_permissions(path)?;
+        Ok(())
+    }
+}
+
+fn restrict_private_key_permissions(path: &Path) -> Result<()> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))?;
+    }
+
+    #[cfg(windows)]
+    {
+        let user = windows_acl_principal()?;
+        let output = std::process::Command::new("icacls")
+            .arg(path)
+            .arg("/inheritance:r")
+            .arg("/grant:r")
+            .arg(format!("{user}:F"))
+            .output()?;
+        if !output.status.success() {
+            let err = String::from_utf8_lossy(&output.stderr);
+            anyhow::bail!("icacls failed for {}: {}", path.display(), err.trim());
+        }
+    }
+
+    Ok(())
+}
+
+#[cfg(windows)]
+fn windows_acl_principal() -> Result<String> {
+    let user = std::env::var("USERNAME").map_err(|_| anyhow!("USERNAME env var missing"))?;
+    let domain = std::env::var("USERDOMAIN").unwrap_or_default();
+    if domain.is_empty() || user.contains('\\') || domain.eq_ignore_ascii_case(&user) {
+        Ok(user)
+    } else {
+        Ok(format!("{domain}\\{user}"))
+    }
 }
 
 /// Return the SHA-256 fingerprint of the first X.509 certificate in PEM form.

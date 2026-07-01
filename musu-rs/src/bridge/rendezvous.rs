@@ -13,6 +13,9 @@ use crate::bridge::AppState;
 use crate::peer::discovery::ResolvedPeer;
 
 const DEFAULT_RENDEZVOUS_TIMEOUT_MS: u64 = 3_000;
+const RELEASE_RELAY_TUNNEL_TRANSPORT_KIND: &str = "quic_relay_tunnel";
+const RELEASE_RELAY_TUNNEL_TRANSPORT_ENCRYPTION: &str = "quic_tls_1_3";
+const RELEASE_RELAY_TUNNEL_TRANSPORT_VERIFIER: &str = "musu_quic_tls_transport";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RendezvousStatus {
@@ -189,14 +192,72 @@ impl RelayPayloadQueueOutcome {
     }
 }
 
-// (Removed: the test-only ReleaseRelayTunnelSubmissionContract +
-// submit_release_relay_tunnel_payload "WAN relay runtime not implemented" stubs.
-// Per Phase-1 strategic gate (business-panel unanimous): self-built WAN relay is
-// out of scope — reach is headscale/WireGuard, not a hand-rolled relay tunnel.
-// These were #[cfg(test)] self-referential proofs that the runtime stayed
-// blocked; with the relay direction abandoned they assert nothing real.)
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReleaseRelayTunnelSubmissionContract {
+    pub transport_kind: &'static str,
+    pub release_grade: bool,
+    pub encryption: &'static str,
+    pub transport_verified_by: &'static str,
+}
 
-#[cfg(test)]
+pub fn release_relay_tunnel_submission_contract() -> ReleaseRelayTunnelSubmissionContract {
+    ReleaseRelayTunnelSubmissionContract {
+        transport_kind: RELEASE_RELAY_TUNNEL_TRANSPORT_KIND,
+        release_grade: true,
+        encryption: RELEASE_RELAY_TUNNEL_TRANSPORT_ENCRYPTION,
+        transport_verified_by: RELEASE_RELAY_TUNNEL_TRANSPORT_VERIFIER,
+    }
+}
+
+pub fn validate_release_relay_tunnel_submission(
+    relay_url: &str,
+    peer_public_key: &str,
+    payload: &crate::cloud::P2pRelayPayloadRequest,
+) -> std::result::Result<(), &'static str> {
+    let _contract = release_relay_tunnel_submission_contract();
+    if !relay_url.trim().starts_with("wss://") {
+        return Err("release_relay_tunnel_relay_url_not_wss");
+    }
+    if !peer_public_key.trim().starts_with("sha256:") {
+        return Err("release_relay_tunnel_peer_public_key_not_fingerprint");
+    }
+    if payload.source_node_id.trim().is_empty() {
+        return Err("release_relay_tunnel_source_node_id_missing");
+    }
+    if payload.target_node_id.trim().is_empty() {
+        return Err("release_relay_tunnel_target_node_id_missing");
+    }
+    if payload.tunnel_id.trim().is_empty() {
+        return Err("release_relay_tunnel_id_missing");
+    }
+    if payload.payload_kind.trim() != "forwarded_task_envelope" {
+        return Err("release_relay_tunnel_payload_kind_not_forwarded_task_envelope");
+    }
+    if !payload
+        .payload_sha256
+        .as_deref()
+        .map(is_hex_sha256)
+        .unwrap_or(false)
+    {
+        return Err("release_relay_tunnel_payload_sha256_invalid");
+    }
+    Ok(())
+}
+
+pub async fn submit_release_relay_tunnel_payload(
+    relay_url: &str,
+    peer_public_key: &str,
+    payload: &crate::cloud::P2pRelayPayloadRequest,
+) -> RelayPayloadQueueOutcome {
+    if let Err(failure_class) =
+        validate_release_relay_tunnel_submission(relay_url, peer_public_key, payload)
+    {
+        return RelayPayloadQueueOutcome::failed(failure_class);
+    }
+
+    RelayPayloadQueueOutcome::failed("release_relay_tunnel_runtime_not_implemented")
+}
+
 fn is_hex_sha256(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
@@ -321,9 +382,35 @@ pub fn local_candidate_endpoints_for_advertised_url(
     tailscale_ip: Option<&str>,
     observed_at: &str,
 ) -> Vec<crate::cloud::CandidateEndpoint> {
+    local_candidate_endpoints_for_route_hosts(
+        advertised,
+        std::iter::empty::<&str>(),
+        tailscale_ip,
+        observed_at,
+    )
+}
+
+pub fn local_candidate_endpoints_for_route_hosts<'a>(
+    advertised: &str,
+    lan_hosts: impl IntoIterator<Item = &'a str>,
+    tailscale_ip: Option<&str>,
+    observed_at: &str,
+) -> Vec<crate::cloud::CandidateEndpoint> {
     let mut candidates = Vec::new();
     if let Some(candidate) = candidate_endpoint_from_url(advertised, observed_at, None, None) {
         push_candidate_endpoint_unique(&mut candidates, candidate);
+    }
+    for lan_host in lan_hosts {
+        let trimmed = lan_host.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if let Some(lan_url) = endpoint_url_with_host(advertised, trimmed) {
+            if let Some(candidate) = candidate_endpoint_from_url(&lan_url, observed_at, None, None)
+            {
+                push_candidate_endpoint_unique(&mut candidates, candidate);
+            }
+        }
     }
     if let Some(tailscale_ip) = tailscale_ip.and_then(|value| {
         let trimmed = value.trim();
@@ -382,6 +469,26 @@ fn relay_attempted_route_kinds(
     kinds
 }
 
+fn env_truthy(name: &str) -> bool {
+    std::env::var(name)
+        .ok()
+        .map(|value| {
+            matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "1" | "true" | "yes" | "on"
+            )
+        })
+        .unwrap_or(false)
+}
+
+fn relay_transport_intent_for_direct_failure() -> crate::cloud::RelayTransportIntent {
+    if env_truthy("MUSU_P2P_RELAY_TRANSPORT_WIRED") {
+        crate::cloud::RelayTransportIntent::ReleaseTunnel
+    } else {
+        crate::cloud::RelayTransportIntent::StoreForwardQueue
+    }
+}
+
 fn relay_lease_request_for_direct_failure(
     cfg: &crate::bridge::config::BridgeConfig,
     fallback_peer: &ResolvedPeer,
@@ -395,6 +502,7 @@ fn relay_lease_request_for_direct_failure(
         source_node_id: cfg.node_name.clone(),
         target_node_id: crate::bridge::route_evidence::target_node_id(fallback_peer),
         requested_capability: requested_capability.map(str::to_string),
+        transport_intent: Some(relay_transport_intent_for_direct_failure()),
         attempted_route_kinds: relay_attempted_route_kinds(fallback_peer, attempted_peers),
         direct_path_failed: true,
         failure_class: Some(failure_class.to_string()),
@@ -895,6 +1003,42 @@ pub async fn submit_relay_payload_after_lease(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::{LazyLock, Mutex, MutexGuard};
+
+    static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
+
+    struct EnvRestore {
+        values: Vec<(&'static str, Option<std::ffi::OsString>)>,
+    }
+
+    impl EnvRestore {
+        fn capture(keys: &[&'static str]) -> Self {
+            Self {
+                values: keys
+                    .iter()
+                    .map(|key| (*key, std::env::var_os(key)))
+                    .collect(),
+            }
+        }
+    }
+
+    impl Drop for EnvRestore {
+        fn drop(&mut self) {
+            for (key, value) in &self.values {
+                if let Some(value) = value {
+                    std::env::set_var(key, value);
+                } else {
+                    std::env::remove_var(key);
+                }
+            }
+        }
+    }
+
+    fn lock_env() -> MutexGuard<'static, ()> {
+        ENV_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
 
     #[test]
     fn endpoint_addr_from_url_preserves_host_port() {
@@ -909,6 +1053,118 @@ mod tests {
         assert_eq!(
             endpoint_addr_from_url("http://[fd7a:115c:a1e0::99]:8070/"),
             "[fd7a:115c:a1e0::99]:8070"
+        );
+    }
+
+    fn release_relay_tunnel_payload_request() -> crate::cloud::P2pRelayPayloadRequest {
+        crate::cloud::P2pRelayPayloadRequest {
+            schema: "musu.relay_payload_envelope.v1".to_string(),
+            session_id: "session-1".to_string(),
+            lease_id: "lease-1".to_string(),
+            source_node_id: "source-node".to_string(),
+            target_node_id: "target-node".to_string(),
+            tunnel_id: "relay-session-1-lease-1".to_string(),
+            payload_kind: "forwarded_task_envelope".to_string(),
+            payload_base64: "e30=".to_string(),
+            payload_sha256: Some("a".repeat(64)),
+            candidate_route_kinds: vec![crate::cloud::RouteKind::Relay],
+            attempted_route_kinds: vec![crate::cloud::RouteKind::Lan],
+        }
+    }
+
+    #[test]
+    fn release_relay_tunnel_submission_contract_is_release_grade_and_fail_closed() {
+        let contract = release_relay_tunnel_submission_contract();
+        assert_eq!(contract.transport_kind, "quic_relay_tunnel");
+        assert!(contract.release_grade);
+        assert_eq!(contract.encryption, "quic_tls_1_3");
+        assert_eq!(contract.transport_verified_by, "musu_quic_tls_transport");
+
+        let payload = release_relay_tunnel_payload_request();
+        validate_release_relay_tunnel_submission(
+            "wss://relay.musu.pro/api/v1/relay/connect",
+            "sha256:release-peer",
+            &payload,
+        )
+        .expect("release relay tunnel submission contract");
+
+        let mut missing_source_payload = payload.clone();
+        missing_source_payload.source_node_id.clear();
+        assert_eq!(
+            validate_release_relay_tunnel_submission(
+                "wss://relay.musu.pro/api/v1/relay/connect",
+                "sha256:release-peer",
+                &missing_source_payload
+            )
+            .unwrap_err(),
+            "release_relay_tunnel_source_node_id_missing"
+        );
+
+        let mut missing_target_payload = payload.clone();
+        missing_target_payload.target_node_id.clear();
+        assert_eq!(
+            validate_release_relay_tunnel_submission(
+                "wss://relay.musu.pro/api/v1/relay/connect",
+                "sha256:release-peer",
+                &missing_target_payload
+            )
+            .unwrap_err(),
+            "release_relay_tunnel_target_node_id_missing"
+        );
+
+        let mut missing_tunnel_payload = payload.clone();
+        missing_tunnel_payload.tunnel_id.clear();
+        assert_eq!(
+            validate_release_relay_tunnel_submission(
+                "wss://relay.musu.pro/api/v1/relay/connect",
+                "sha256:release-peer",
+                &missing_tunnel_payload
+            )
+            .unwrap_err(),
+            "release_relay_tunnel_id_missing"
+        );
+
+        let mut preview_payload = payload.clone();
+        preview_payload.payload_kind = "task_callback_envelope".to_string();
+        assert_eq!(
+            validate_release_relay_tunnel_submission(
+                "wss://relay.musu.pro/api/v1/relay/connect",
+                "sha256:release-peer",
+                &preview_payload
+            )
+            .unwrap_err(),
+            "release_relay_tunnel_payload_kind_not_forwarded_task_envelope"
+        );
+
+        assert_eq!(
+            validate_release_relay_tunnel_submission(
+                "https://relay.musu.pro/api/v1/relay/connect",
+                "sha256:release-peer",
+                &payload
+            )
+            .unwrap_err(),
+            "release_relay_tunnel_relay_url_not_wss"
+        );
+        assert_eq!(
+            validate_release_relay_tunnel_submission(
+                "wss://relay.musu.pro/api/v1/relay/connect",
+                "release-peer",
+                &payload
+            )
+            .unwrap_err(),
+            "release_relay_tunnel_peer_public_key_not_fingerprint"
+        );
+
+        let mut bad_hash_payload = payload;
+        bad_hash_payload.payload_sha256 = Some("not-a-sha".to_string());
+        assert_eq!(
+            validate_release_relay_tunnel_submission(
+                "wss://relay.musu.pro/api/v1/relay/connect",
+                "sha256:release-peer",
+                &bad_hash_payload
+            )
+            .unwrap_err(),
+            "release_relay_tunnel_payload_sha256_invalid"
         );
     }
 
@@ -984,6 +1240,37 @@ mod tests {
         ));
         assert_eq!(candidates[1].addr, "100.64.1.20:8949");
         assert!(candidates[1].public_addr.is_none());
+    }
+
+    #[test]
+    fn local_candidate_endpoints_include_all_lan_hosts_without_duplicates() {
+        let candidates = local_candidate_endpoints_for_route_hosts(
+            "http://192.168.1.154:8070",
+            ["192.168.1.154", "192.168.1.192", "10.0.0.7"],
+            Some("100.64.1.20"),
+            "2026-06-27T00:00:00Z",
+        );
+
+        let addrs: Vec<&str> = candidates
+            .iter()
+            .map(|candidate| candidate.addr.as_str())
+            .collect();
+        assert_eq!(
+            addrs,
+            vec![
+                "192.168.1.154:8070",
+                "192.168.1.192:8070",
+                "10.0.0.7:8070",
+                "100.64.1.20:8070"
+            ]
+        );
+        assert!(matches!(candidates[0].kind, crate::cloud::RouteKind::Lan));
+        assert!(matches!(candidates[1].kind, crate::cloud::RouteKind::Lan));
+        assert!(matches!(candidates[2].kind, crate::cloud::RouteKind::Lan));
+        assert!(matches!(
+            candidates[3].kind,
+            crate::cloud::RouteKind::Tailscale
+        ));
     }
 
     #[test]
@@ -1200,6 +1487,10 @@ mod tests {
 
     #[test]
     fn relay_lease_request_records_failed_direct_paths_without_using_relay_as_default() {
+        let _env_guard = lock_env();
+        let _env_restore = EnvRestore::capture(&["MUSU_P2P_RELAY_TRANSPORT_WIRED"]);
+        std::env::remove_var("MUSU_P2P_RELAY_TRANSPORT_WIRED");
+
         let cfg = crate::bridge::config::BridgeConfig {
             bridge_host: "127.0.0.1".to_string(),
             bridge_port: 8070,
@@ -1257,12 +1548,74 @@ mod tests {
         assert_eq!(req.target_node_id, "target-node");
         assert_eq!(req.requested_capability.as_deref(), Some("remote_command"));
         assert_eq!(
+            req.transport_intent,
+            Some(crate::cloud::RelayTransportIntent::StoreForwardQueue)
+        );
+        assert_eq!(
             req.attempted_route_kinds,
             vec![
                 crate::cloud::RouteKind::Lan,
                 crate::cloud::RouteKind::Tailscale,
                 crate::cloud::RouteKind::DirectQuic,
             ]
+        );
+        assert!(req.direct_path_failed);
+        assert_eq!(
+            req.failure_class.as_deref(),
+            Some("forward_failed_after_retries")
+        );
+    }
+
+    #[test]
+    fn relay_lease_request_uses_release_tunnel_intent_when_transport_flag_is_set() {
+        let _env_guard = lock_env();
+        let _env_restore = EnvRestore::capture(&["MUSU_P2P_RELAY_TRANSPORT_WIRED"]);
+        std::env::set_var("MUSU_P2P_RELAY_TRANSPORT_WIRED", "1");
+
+        let cfg = crate::bridge::config::BridgeConfig {
+            bridge_host: "127.0.0.1".to_string(),
+            bridge_port: 8070,
+            public_url: Some("http://127.0.0.1:8070".to_string()),
+            node_name: "source-node".to_string(),
+            db_path: ":memory:".into(),
+            audit_db_path: ":memory:".into(),
+            nodes_toml_path: ".musu/nodes.toml".into(),
+            token: "x".repeat(32),
+            peer_token: None,
+            localhost_auth_required: true,
+            env: crate::bridge::config::AuthMode::Development,
+            rate_limit_disabled: true,
+            rate_limit_per_min: 0,
+            allow_plaintext_lan: false,
+            file_serve_roots: vec![],
+            file_serve_writable: false,
+            tls_enabled: false,
+            tls_cert_path: None,
+            tls_key_path: None,
+        };
+        let fallback_peer = ResolvedPeer {
+            addr: "203.0.113.10:8070".to_string(),
+            name: Some("target-node".to_string()),
+            source: crate::peer::discovery::PeerSource::Registry,
+            meta: None,
+        };
+
+        let req = relay_lease_request_for_direct_failure(
+            &cfg,
+            &fallback_peer,
+            "rv_release_tunnel_intent",
+            &[],
+            "forward_failed_after_retries",
+            Some("remote_command"),
+        );
+
+        assert_eq!(
+            req.transport_intent,
+            Some(crate::cloud::RelayTransportIntent::ReleaseTunnel)
+        );
+        assert_eq!(
+            req.attempted_route_kinds,
+            vec![crate::cloud::RouteKind::DirectQuic]
         );
         assert!(req.direct_path_failed);
         assert_eq!(

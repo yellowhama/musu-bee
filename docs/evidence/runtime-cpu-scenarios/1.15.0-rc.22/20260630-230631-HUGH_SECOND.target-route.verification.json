@@ -1,0 +1,1555 @@
+{
+    "ok":  true,
+    "evidence_path":  "F:\\workspace\\musu-bee\\docs\\evidence\\runtime-cpu-scenarios\\1.15.0-rc.22\\20260630-230631-HUGH_SECOND.runtime-cpu-scenario-matrix.json",
+    "fail_count":  0,
+    "version":  "1.15.0-rc.22",
+    "git_commit":  "9f6ce5a30ae810eaef2e6e67137ee8db4bc64d4f",
+    "operator_machine":  "HUGH_SECOND",
+    "required_scenarios":  [
+                               "startup-open",
+                               "runtime-started",
+                               "dashboard-open",
+                               "desktop-open",
+                               "post-route"
+                           ],
+    "present_required_scenarios":  [
+                                       "startup-open",
+                                       "runtime-started",
+                                       "dashboard-open",
+                                       "desktop-open",
+                                       "post-route"
+                                   ],
+    "require_post_route_probe":  true,
+    "require_post_route_target":  true,
+    "expected_post_route_target":  "hugh-main",
+    "reject_self_post_route_target":  true,
+    "reject_local_post_route_target":  true,
+    "allow_failed_post_route_probe":  false,
+    "checks":  [
+                   {
+                       "name":  "parse",
+                       "status":  "pass",
+                       "message":  "runtime CPU scenario matrix parses"
+                   },
+                   {
+                       "name":  "schema",
+                       "status":  "pass",
+                       "message":  "schema is valid"
+                   },
+                   {
+                       "name":  "version",
+                       "status":  "pass",
+                       "message":  "version matches 1.15.0-rc.22"
+                   },
+                   {
+                       "name":  "matrix ok",
+                       "status":  "pass",
+                       "message":  "matrix reports ok=true"
+                   },
+                   {
+                       "name":  "git commit present",
+                       "status":  "pass",
+                       "message":  "git commit is recorded"
+                   },
+                   {
+                       "name":  "expected git commit",
+                       "status":  "pass",
+                       "message":  "git commit matches current HEAD 9f6ce5a30ae810eaef2e6e67137ee8db4bc64d4f"
+                   },
+                   {
+                       "name":  "git clean during matrix",
+                       "status":  "pass",
+                       "message":  "matrix was captured from clean git state"
+                   },
+                   {
+                       "name":  "MUSU executable release identity",
+                       "status":  "pass",
+                       "message":  "matrix used the packaged WindowsApps MUSU command"
+                   },
+                   {
+                       "name":  "operator machine",
+                       "status":  "pass",
+                       "message":  "operator_machine is present"
+                   },
+                   {
+                       "name":  "sample duration",
+                       "status":  "pass",
+                       "message":  "sample duration is at least 60s"
+                   },
+                   {
+                       "name":  "cpu budget",
+                       "status":  "pass",
+                       "message":  "matrix CPU budget is \u003c= 5% of one logical core"
+                   },
+                   {
+                       "name":  "owned process budget present",
+                       "status":  "pass",
+                       "message":  "owned process budget is 16"
+                   },
+                   {
+                       "name":  "WebView2 budget present",
+                       "status":  "pass",
+                       "message":  "WebView2 process budget is 8"
+                   },
+                   {
+                       "name":  "working set budget present",
+                       "status":  "pass",
+                       "message":  "working set budget is 1024MB"
+                   },
+                   {
+                       "name":  "doctor background snapshot present",
+                       "status":  "pass",
+                       "message":  "runtime CPU matrix captures a MUSU doctor background snapshot"
+                   },
+                   {
+                       "name":  "doctor background snapshot schema",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot schema is valid"
+                   },
+                   {
+                       "name":  "doctor background snapshot command",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records the MUSU doctor command"
+                   },
+                   {
+                       "name":  "doctor background snapshot completeness",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot came from a package that exposes the complete loop-attribution schema"
+                   },
+                   {
+                       "name":  "doctor background fields present",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot includes background feature fields"
+                   },
+                   {
+                       "name":  "doctor background required fields",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot includes the required loop-attribution fields"
+                   },
+                   {
+                       "name":  "doctor background cloud heartbeat floor",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records a low-duty cloud heartbeat floor"
+                   },
+                   {
+                       "name":  "doctor background relay poller floor",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records bounded relay payload poller cadence"
+                   },
+                   {
+                       "name":  "doctor background planner floor",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records bounded planner cadence"
+                   },
+                   {
+                       "name":  "doctor background planner timeout bounds",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records bounded planner command timeout"
+                   },
+                   {
+                       "name":  "doctor background auto-update interval floor",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records bounded auto-update supervisor cadence"
+                   },
+                   {
+                       "name":  "doctor background auto-update health poll bounds",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records bounded auto-update health polling backoff"
+                   },
+                   {
+                       "name":  "doctor background bridge health poll bounds",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records bounded bridge readiness polling backoff"
+                   },
+                   {
+                       "name":  "doctor background runtime loop candidates",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records the expected runtime loop candidate summary"
+                   },
+                   {
+                       "name":  "doctor background runtime loop candidate keys",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot includes the expected runtime loop candidate keys"
+                   },
+                   {
+                       "name":  "doctor background active runtime loop candidate count",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records a consistent active runtime loop candidate count"
+                   },
+                   {
+                       "name":  "doctor background active runtime loop candidate keys",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records the active runtime loop candidate keys"
+                   },
+                   {
+                       "name":  "scenario present: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 is present"
+                   },
+                   {
+                       "name":  "startup app opened",
+                       "status":  "pass",
+                       "message":  "startup-open launched the packaged desktop app"
+                   },
+                   {
+                       "name":  "startup sample delay",
+                       "status":  "pass",
+                       "message":  "startup-open sample delay 2.01s \u003c= 3s"
+                   },
+                   {
+                       "name":  "measurement present: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 has measurement"
+                   },
+                   {
+                       "name":  "measurement ok: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 reports ok=true"
+                   },
+                   {
+                       "name":  "measurement clean git: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 measured clean git"
+                   },
+                   {
+                       "name":  "measurement duration: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 sample duration is at least 60s"
+                   },
+                   {
+                       "name":  "process metadata available: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 captured process metadata for PID/parent/path attribution"
+                   },
+                   {
+                       "name":  "process metadata timeout: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 process metadata lookup did not time out"
+                   },
+                   {
+                       "name":  "helper process scope: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 helper scope is limited to MUSU process tree or repo-related helpers"
+                   },
+                   {
+                       "name":  "CPU attribution present: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 records PID/role CPU attribution"
+                   },
+                   {
+                       "name":  "CPU attribution schema: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 CPU attribution schema is valid"
+                   },
+                   {
+                       "name":  "CPU attribution scope: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 CPU attribution excludes unrelated helper processes"
+                   },
+                   {
+                       "name":  "CPU attribution sample count: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 CPU attribution sample count matches measurement"
+                   },
+                   {
+                       "name":  "CPU attribution role counts: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 CPU attribution records MUSU/node/WebView2/other role sample counts"
+                   },
+                   {
+                       "name":  "CPU attribution subrole counts: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 CPU attribution records bridge/runtime/desktop/helper subrole sample counts"
+                   },
+                   {
+                       "name":  "CPU attribution totals by role: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 CPU attribution records MUSU/node/WebView2/other CPU totals by role"
+                   },
+                   {
+                       "name":  "CPU attribution totals by subrole: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 CPU attribution records bridge/runtime/desktop/helper CPU totals by subrole"
+                   },
+                   {
+                       "name":  "CPU attribution max by role: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 CPU attribution records MUSU/node/WebView2/other max CPU by role"
+                   },
+                   {
+                       "name":  "CPU attribution max by subrole: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 CPU attribution records bridge/runtime/desktop/helper max CPU by subrole"
+                   },
+                   {
+                       "name":  "CPU attribution MUSU role: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 CPU attribution includes MUSU role"
+                   },
+                   {
+                       "name":  "CPU attribution bridge subrole: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 CPU attribution identifies the bridge runtime PID separately"
+                   },
+                   {
+                       "name":  "CPU attribution desktop subrole: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 CPU attribution identifies the desktop shell separately"
+                   },
+                   {
+                       "name":  "CPU attribution top processes: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 records top CPU processes"
+                   },
+                   {
+                       "name":  "CPU attribution top process fields: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 top CPU process rows include PID, role, subrole, and CPU fields"
+                   },
+                   {
+                       "name":  "measurement CPU roles present: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 records MUSU/node/WebView2/other max CPU fields"
+                   },
+                   {
+                       "name":  "measurement CPU subroles present: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 records bridge/runtime/desktop/helper max CPU fields"
+                   },
+                   {
+                       "name":  "role CPU startup-open/musu",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 role \u0027musu\u0027 CPU 0.05% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU startup-open/node",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 role \u0027node\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU startup-open/webview2",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 role \u0027webview2\u0027 CPU 0.81% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU startup-open/other",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 role \u0027other\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU startup-open/musu_runtime",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 subrole \u0027musu_runtime\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU startup-open/bridge_runtime",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 subrole \u0027bridge_runtime\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU startup-open/desktop_shell",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 subrole \u0027desktop_shell\u0027 CPU 0.05% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU startup-open/node_helper",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 subrole \u0027node_helper\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU startup-open/webview2_helper",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 subrole \u0027webview2_helper\u0027 CPU 0.81% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU startup-open/other",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 subrole \u0027other\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "hot process count: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 has no hot processes"
+                   },
+                   {
+                       "name":  "resource budget field: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 records resource budget violations field"
+                   },
+                   {
+                       "name":  "resource budget: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 has no resource budget violations"
+                   },
+                   {
+                       "name":  "process counts present: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 records process counts by role"
+                   },
+                   {
+                       "name":  "process subrole counts present: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 records process counts by bridge/runtime/desktop/helper subrole"
+                   },
+                   {
+                       "name":  "process count roles present: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 records MUSU/node/WebView2/other process count fields"
+                   },
+                   {
+                       "name":  "process count subroles present: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 records bridge/runtime/desktop/helper process count fields"
+                   },
+                   {
+                       "name":  "bridge runtime process count: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 records at least one bridge runtime process"
+                   },
+                   {
+                       "name":  "desktop shell process count: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 records a desktop shell process separately"
+                   },
+                   {
+                       "name":  "owned process budget: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 owned process count 8 \u003c= 16"
+                   },
+                   {
+                       "name":  "WebView2 process budget: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 WebView2 process count 6 \u003c= 8"
+                   },
+                   {
+                       "name":  "working set present: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 records total working set"
+                   },
+                   {
+                       "name":  "working set budget: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 working set 402.56MB \u003c= 1024MB"
+                   },
+                   {
+                       "name":  "private memory present: startup-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027startup-open\u0027 records total private memory"
+                   },
+                   {
+                       "name":  "scenario present: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 is present"
+                   },
+                   {
+                       "name":  "measurement present: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 has measurement"
+                   },
+                   {
+                       "name":  "measurement ok: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 reports ok=true"
+                   },
+                   {
+                       "name":  "measurement clean git: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 measured clean git"
+                   },
+                   {
+                       "name":  "measurement duration: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 sample duration is at least 60s"
+                   },
+                   {
+                       "name":  "process metadata available: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 captured process metadata for PID/parent/path attribution"
+                   },
+                   {
+                       "name":  "process metadata timeout: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 process metadata lookup did not time out"
+                   },
+                   {
+                       "name":  "helper process scope: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 helper scope is limited to MUSU process tree or repo-related helpers"
+                   },
+                   {
+                       "name":  "CPU attribution present: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 records PID/role CPU attribution"
+                   },
+                   {
+                       "name":  "CPU attribution schema: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 CPU attribution schema is valid"
+                   },
+                   {
+                       "name":  "CPU attribution scope: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 CPU attribution excludes unrelated helper processes"
+                   },
+                   {
+                       "name":  "CPU attribution sample count: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 CPU attribution sample count matches measurement"
+                   },
+                   {
+                       "name":  "CPU attribution role counts: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 CPU attribution records MUSU/node/WebView2/other role sample counts"
+                   },
+                   {
+                       "name":  "CPU attribution subrole counts: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 CPU attribution records bridge/runtime/desktop/helper subrole sample counts"
+                   },
+                   {
+                       "name":  "CPU attribution totals by role: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 CPU attribution records MUSU/node/WebView2/other CPU totals by role"
+                   },
+                   {
+                       "name":  "CPU attribution totals by subrole: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 CPU attribution records bridge/runtime/desktop/helper CPU totals by subrole"
+                   },
+                   {
+                       "name":  "CPU attribution max by role: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 CPU attribution records MUSU/node/WebView2/other max CPU by role"
+                   },
+                   {
+                       "name":  "CPU attribution max by subrole: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 CPU attribution records bridge/runtime/desktop/helper max CPU by subrole"
+                   },
+                   {
+                       "name":  "CPU attribution MUSU role: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 CPU attribution includes MUSU role"
+                   },
+                   {
+                       "name":  "CPU attribution bridge subrole: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 CPU attribution identifies the bridge runtime PID separately"
+                   },
+                   {
+                       "name":  "CPU attribution top processes: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 records top CPU processes"
+                   },
+                   {
+                       "name":  "CPU attribution top process fields: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 top CPU process rows include PID, role, subrole, and CPU fields"
+                   },
+                   {
+                       "name":  "measurement CPU roles present: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 records MUSU/node/WebView2/other max CPU fields"
+                   },
+                   {
+                       "name":  "measurement CPU subroles present: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 records bridge/runtime/desktop/helper max CPU fields"
+                   },
+                   {
+                       "name":  "role CPU runtime-started/musu",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 role \u0027musu\u0027 CPU 0.08% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU runtime-started/node",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 role \u0027node\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU runtime-started/webview2",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 role \u0027webview2\u0027 CPU 1.69% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU runtime-started/other",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 role \u0027other\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU runtime-started/musu_runtime",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 subrole \u0027musu_runtime\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU runtime-started/bridge_runtime",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 subrole \u0027bridge_runtime\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU runtime-started/desktop_shell",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 subrole \u0027desktop_shell\u0027 CPU 0.08% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU runtime-started/node_helper",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 subrole \u0027node_helper\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU runtime-started/webview2_helper",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 subrole \u0027webview2_helper\u0027 CPU 1.69% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU runtime-started/other",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 subrole \u0027other\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "hot process count: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 has no hot processes"
+                   },
+                   {
+                       "name":  "resource budget field: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 records resource budget violations field"
+                   },
+                   {
+                       "name":  "resource budget: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 has no resource budget violations"
+                   },
+                   {
+                       "name":  "process counts present: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 records process counts by role"
+                   },
+                   {
+                       "name":  "process subrole counts present: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 records process counts by bridge/runtime/desktop/helper subrole"
+                   },
+                   {
+                       "name":  "process count roles present: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 records MUSU/node/WebView2/other process count fields"
+                   },
+                   {
+                       "name":  "process count subroles present: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 records bridge/runtime/desktop/helper process count fields"
+                   },
+                   {
+                       "name":  "bridge runtime process count: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 records at least one bridge runtime process"
+                   },
+                   {
+                       "name":  "owned process budget: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 owned process count 8 \u003c= 16"
+                   },
+                   {
+                       "name":  "WebView2 process budget: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 WebView2 process count 6 \u003c= 8"
+                   },
+                   {
+                       "name":  "working set present: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 records total working set"
+                   },
+                   {
+                       "name":  "working set budget: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 working set 406.61MB \u003c= 1024MB"
+                   },
+                   {
+                       "name":  "private memory present: runtime-started",
+                       "status":  "pass",
+                       "message":  "scenario \u0027runtime-started\u0027 records total private memory"
+                   },
+                   {
+                       "name":  "scenario present: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 is present"
+                   },
+                   {
+                       "name":  "dashboard opened or absent in packaged runtime",
+                       "status":  "pass",
+                       "message":  "dashboard-open measured packaged runtime state because no dashboard URL was exposed"
+                   },
+                   {
+                       "name":  "measurement present: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 has measurement"
+                   },
+                   {
+                       "name":  "measurement ok: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 reports ok=true"
+                   },
+                   {
+                       "name":  "measurement clean git: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 measured clean git"
+                   },
+                   {
+                       "name":  "measurement duration: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 sample duration is at least 60s"
+                   },
+                   {
+                       "name":  "process metadata available: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 captured process metadata for PID/parent/path attribution"
+                   },
+                   {
+                       "name":  "process metadata timeout: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 process metadata lookup did not time out"
+                   },
+                   {
+                       "name":  "helper process scope: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 helper scope is limited to MUSU process tree or repo-related helpers"
+                   },
+                   {
+                       "name":  "CPU attribution present: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 records PID/role CPU attribution"
+                   },
+                   {
+                       "name":  "CPU attribution schema: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 CPU attribution schema is valid"
+                   },
+                   {
+                       "name":  "CPU attribution scope: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 CPU attribution excludes unrelated helper processes"
+                   },
+                   {
+                       "name":  "CPU attribution sample count: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 CPU attribution sample count matches measurement"
+                   },
+                   {
+                       "name":  "CPU attribution role counts: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 CPU attribution records MUSU/node/WebView2/other role sample counts"
+                   },
+                   {
+                       "name":  "CPU attribution subrole counts: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 CPU attribution records bridge/runtime/desktop/helper subrole sample counts"
+                   },
+                   {
+                       "name":  "CPU attribution totals by role: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 CPU attribution records MUSU/node/WebView2/other CPU totals by role"
+                   },
+                   {
+                       "name":  "CPU attribution totals by subrole: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 CPU attribution records bridge/runtime/desktop/helper CPU totals by subrole"
+                   },
+                   {
+                       "name":  "CPU attribution max by role: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 CPU attribution records MUSU/node/WebView2/other max CPU by role"
+                   },
+                   {
+                       "name":  "CPU attribution max by subrole: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 CPU attribution records bridge/runtime/desktop/helper max CPU by subrole"
+                   },
+                   {
+                       "name":  "CPU attribution MUSU role: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 CPU attribution includes MUSU role"
+                   },
+                   {
+                       "name":  "CPU attribution bridge subrole: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 CPU attribution identifies the bridge runtime PID separately"
+                   },
+                   {
+                       "name":  "CPU attribution top processes: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 records top CPU processes"
+                   },
+                   {
+                       "name":  "CPU attribution top process fields: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 top CPU process rows include PID, role, subrole, and CPU fields"
+                   },
+                   {
+                       "name":  "measurement CPU roles present: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 records MUSU/node/WebView2/other max CPU fields"
+                   },
+                   {
+                       "name":  "measurement CPU subroles present: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 records bridge/runtime/desktop/helper max CPU fields"
+                   },
+                   {
+                       "name":  "role CPU dashboard-open/musu",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 role \u0027musu\u0027 CPU 0.03% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU dashboard-open/node",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 role \u0027node\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU dashboard-open/webview2",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 role \u0027webview2\u0027 CPU 0.62% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU dashboard-open/other",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 role \u0027other\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU dashboard-open/musu_runtime",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 subrole \u0027musu_runtime\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU dashboard-open/bridge_runtime",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 subrole \u0027bridge_runtime\u0027 CPU 0.03% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU dashboard-open/desktop_shell",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 subrole \u0027desktop_shell\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU dashboard-open/node_helper",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 subrole \u0027node_helper\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU dashboard-open/webview2_helper",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 subrole \u0027webview2_helper\u0027 CPU 0.62% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU dashboard-open/other",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 subrole \u0027other\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "hot process count: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 has no hot processes"
+                   },
+                   {
+                       "name":  "resource budget field: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 records resource budget violations field"
+                   },
+                   {
+                       "name":  "resource budget: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 has no resource budget violations"
+                   },
+                   {
+                       "name":  "process counts present: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 records process counts by role"
+                   },
+                   {
+                       "name":  "process subrole counts present: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 records process counts by bridge/runtime/desktop/helper subrole"
+                   },
+                   {
+                       "name":  "process count roles present: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 records MUSU/node/WebView2/other process count fields"
+                   },
+                   {
+                       "name":  "process count subroles present: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 records bridge/runtime/desktop/helper process count fields"
+                   },
+                   {
+                       "name":  "bridge runtime process count: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 records at least one bridge runtime process"
+                   },
+                   {
+                       "name":  "owned process budget: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 owned process count 8 \u003c= 16"
+                   },
+                   {
+                       "name":  "WebView2 process budget: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 WebView2 process count 6 \u003c= 8"
+                   },
+                   {
+                       "name":  "working set present: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 records total working set"
+                   },
+                   {
+                       "name":  "working set budget: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 working set 408.56MB \u003c= 1024MB"
+                   },
+                   {
+                       "name":  "private memory present: dashboard-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027dashboard-open\u0027 records total private memory"
+                   },
+                   {
+                       "name":  "scenario present: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 is present"
+                   },
+                   {
+                       "name":  "measurement present: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 has measurement"
+                   },
+                   {
+                       "name":  "measurement ok: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 reports ok=true"
+                   },
+                   {
+                       "name":  "measurement clean git: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 measured clean git"
+                   },
+                   {
+                       "name":  "measurement duration: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 sample duration is at least 60s"
+                   },
+                   {
+                       "name":  "process metadata available: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 captured process metadata for PID/parent/path attribution"
+                   },
+                   {
+                       "name":  "process metadata timeout: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 process metadata lookup did not time out"
+                   },
+                   {
+                       "name":  "helper process scope: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 helper scope is limited to MUSU process tree or repo-related helpers"
+                   },
+                   {
+                       "name":  "CPU attribution present: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 records PID/role CPU attribution"
+                   },
+                   {
+                       "name":  "CPU attribution schema: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 CPU attribution schema is valid"
+                   },
+                   {
+                       "name":  "CPU attribution scope: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 CPU attribution excludes unrelated helper processes"
+                   },
+                   {
+                       "name":  "CPU attribution sample count: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 CPU attribution sample count matches measurement"
+                   },
+                   {
+                       "name":  "CPU attribution role counts: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 CPU attribution records MUSU/node/WebView2/other role sample counts"
+                   },
+                   {
+                       "name":  "CPU attribution subrole counts: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 CPU attribution records bridge/runtime/desktop/helper subrole sample counts"
+                   },
+                   {
+                       "name":  "CPU attribution totals by role: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 CPU attribution records MUSU/node/WebView2/other CPU totals by role"
+                   },
+                   {
+                       "name":  "CPU attribution totals by subrole: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 CPU attribution records bridge/runtime/desktop/helper CPU totals by subrole"
+                   },
+                   {
+                       "name":  "CPU attribution max by role: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 CPU attribution records MUSU/node/WebView2/other max CPU by role"
+                   },
+                   {
+                       "name":  "CPU attribution max by subrole: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 CPU attribution records bridge/runtime/desktop/helper max CPU by subrole"
+                   },
+                   {
+                       "name":  "CPU attribution MUSU role: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 CPU attribution includes MUSU role"
+                   },
+                   {
+                       "name":  "CPU attribution WebView2 role: desktop-open",
+                       "status":  "pass",
+                       "message":  "desktop-open CPU attribution includes owned WebView2 role"
+                   },
+                   {
+                       "name":  "CPU attribution bridge subrole: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 CPU attribution identifies the bridge runtime PID separately"
+                   },
+                   {
+                       "name":  "CPU attribution desktop subrole: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 CPU attribution identifies the desktop shell separately"
+                   },
+                   {
+                       "name":  "CPU attribution top processes: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 records top CPU processes"
+                   },
+                   {
+                       "name":  "CPU attribution top process fields: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 top CPU process rows include PID, role, subrole, and CPU fields"
+                   },
+                   {
+                       "name":  "measurement CPU roles present: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 records MUSU/node/WebView2/other max CPU fields"
+                   },
+                   {
+                       "name":  "measurement CPU subroles present: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 records bridge/runtime/desktop/helper max CPU fields"
+                   },
+                   {
+                       "name":  "role CPU desktop-open/musu",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 role \u0027musu\u0027 CPU 0.08% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU desktop-open/node",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 role \u0027node\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU desktop-open/webview2",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 role \u0027webview2\u0027 CPU 0.7% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU desktop-open/other",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 role \u0027other\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU desktop-open/musu_runtime",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 subrole \u0027musu_runtime\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU desktop-open/bridge_runtime",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 subrole \u0027bridge_runtime\u0027 CPU 0.08% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU desktop-open/desktop_shell",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 subrole \u0027desktop_shell\u0027 CPU 0.08% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU desktop-open/node_helper",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 subrole \u0027node_helper\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU desktop-open/webview2_helper",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 subrole \u0027webview2_helper\u0027 CPU 0.7% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU desktop-open/other",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 subrole \u0027other\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "hot process count: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 has no hot processes"
+                   },
+                   {
+                       "name":  "resource budget field: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 records resource budget violations field"
+                   },
+                   {
+                       "name":  "resource budget: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 has no resource budget violations"
+                   },
+                   {
+                       "name":  "process counts present: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 records process counts by role"
+                   },
+                   {
+                       "name":  "process subrole counts present: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 records process counts by bridge/runtime/desktop/helper subrole"
+                   },
+                   {
+                       "name":  "process count roles present: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 records MUSU/node/WebView2/other process count fields"
+                   },
+                   {
+                       "name":  "process count subroles present: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 records bridge/runtime/desktop/helper process count fields"
+                   },
+                   {
+                       "name":  "bridge runtime process count: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 records at least one bridge runtime process"
+                   },
+                   {
+                       "name":  "desktop shell process count: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 records a desktop shell process separately"
+                   },
+                   {
+                       "name":  "owned process budget: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 owned process count 8 \u003c= 16"
+                   },
+                   {
+                       "name":  "WebView2 process budget: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 WebView2 process count 6 \u003c= 8"
+                   },
+                   {
+                       "name":  "working set present: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 records total working set"
+                   },
+                   {
+                       "name":  "working set budget: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 working set 414.2MB \u003c= 1024MB"
+                   },
+                   {
+                       "name":  "private memory present: desktop-open",
+                       "status":  "pass",
+                       "message":  "scenario \u0027desktop-open\u0027 records total private memory"
+                   },
+                   {
+                       "name":  "desktop owned WebView2",
+                       "status":  "pass",
+                       "message":  "desktop-open has owned WebView2 processes"
+                   },
+                   {
+                       "name":  "scenario present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 is present"
+                   },
+                   {
+                       "name":  "measurement present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 has measurement"
+                   },
+                   {
+                       "name":  "measurement ok: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 reports ok=true"
+                   },
+                   {
+                       "name":  "measurement clean git: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 measured clean git"
+                   },
+                   {
+                       "name":  "measurement duration: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 sample duration is at least 60s"
+                   },
+                   {
+                       "name":  "process metadata available: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 captured process metadata for PID/parent/path attribution"
+                   },
+                   {
+                       "name":  "process metadata timeout: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 process metadata lookup did not time out"
+                   },
+                   {
+                       "name":  "helper process scope: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 helper scope is limited to MUSU process tree or repo-related helpers"
+                   },
+                   {
+                       "name":  "CPU attribution present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records PID/role CPU attribution"
+                   },
+                   {
+                       "name":  "CPU attribution schema: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution schema is valid"
+                   },
+                   {
+                       "name":  "CPU attribution scope: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution excludes unrelated helper processes"
+                   },
+                   {
+                       "name":  "CPU attribution sample count: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution sample count matches measurement"
+                   },
+                   {
+                       "name":  "CPU attribution role counts: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution records MUSU/node/WebView2/other role sample counts"
+                   },
+                   {
+                       "name":  "CPU attribution subrole counts: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution records bridge/runtime/desktop/helper subrole sample counts"
+                   },
+                   {
+                       "name":  "CPU attribution totals by role: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution records MUSU/node/WebView2/other CPU totals by role"
+                   },
+                   {
+                       "name":  "CPU attribution totals by subrole: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution records bridge/runtime/desktop/helper CPU totals by subrole"
+                   },
+                   {
+                       "name":  "CPU attribution max by role: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution records MUSU/node/WebView2/other max CPU by role"
+                   },
+                   {
+                       "name":  "CPU attribution max by subrole: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution records bridge/runtime/desktop/helper max CPU by subrole"
+                   },
+                   {
+                       "name":  "CPU attribution MUSU role: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution includes MUSU role"
+                   },
+                   {
+                       "name":  "CPU attribution bridge subrole: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution identifies the bridge runtime PID separately"
+                   },
+                   {
+                       "name":  "CPU attribution top processes: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records top CPU processes"
+                   },
+                   {
+                       "name":  "CPU attribution top process fields: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 top CPU process rows include PID, role, subrole, and CPU fields"
+                   },
+                   {
+                       "name":  "measurement CPU roles present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records MUSU/node/WebView2/other max CPU fields"
+                   },
+                   {
+                       "name":  "measurement CPU subroles present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records bridge/runtime/desktop/helper max CPU fields"
+                   },
+                   {
+                       "name":  "role CPU post-route/musu",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 role \u0027musu\u0027 CPU 0.03% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU post-route/node",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 role \u0027node\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU post-route/webview2",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 role \u0027webview2\u0027 CPU 0.65% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU post-route/other",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 role \u0027other\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU post-route/musu_runtime",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 subrole \u0027musu_runtime\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU post-route/bridge_runtime",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 subrole \u0027bridge_runtime\u0027 CPU 0.03% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU post-route/desktop_shell",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 subrole \u0027desktop_shell\u0027 CPU 0.03% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU post-route/node_helper",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 subrole \u0027node_helper\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU post-route/webview2_helper",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 subrole \u0027webview2_helper\u0027 CPU 0.65% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU post-route/other",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 subrole \u0027other\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "hot process count: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 has no hot processes"
+                   },
+                   {
+                       "name":  "resource budget field: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records resource budget violations field"
+                   },
+                   {
+                       "name":  "resource budget: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 has no resource budget violations"
+                   },
+                   {
+                       "name":  "process counts present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records process counts by role"
+                   },
+                   {
+                       "name":  "process subrole counts present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records process counts by bridge/runtime/desktop/helper subrole"
+                   },
+                   {
+                       "name":  "process count roles present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records MUSU/node/WebView2/other process count fields"
+                   },
+                   {
+                       "name":  "process count subroles present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records bridge/runtime/desktop/helper process count fields"
+                   },
+                   {
+                       "name":  "bridge runtime process count: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records at least one bridge runtime process"
+                   },
+                   {
+                       "name":  "owned process budget: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 owned process count 8 \u003c= 16"
+                   },
+                   {
+                       "name":  "WebView2 process budget: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 WebView2 process count 6 \u003c= 8"
+                   },
+                   {
+                       "name":  "working set present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records total working set"
+                   },
+                   {
+                       "name":  "working set budget: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 working set 411.95MB \u003c= 1024MB"
+                   },
+                   {
+                       "name":  "private memory present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records total private memory"
+                   },
+                   {
+                       "name":  "post-route route probe present",
+                       "status":  "pass",
+                       "message":  "post-route matrix includes a route probe"
+                   },
+                   {
+                       "name":  "post-route route probe",
+                       "status":  "pass",
+                       "message":  "post-route matrix includes a successful route probe"
+                   },
+                   {
+                       "name":  "post-route expected token present",
+                       "status":  "pass",
+                       "message":  "post-route route probe records an expected token"
+                   },
+                   {
+                       "name":  "post-route route command binds wait token",
+                       "status":  "pass",
+                       "message":  "post-route route command records the wait prompt token"
+                   },
+                   {
+                       "name":  "post-route route arguments bind wait token",
+                       "status":  "pass",
+                       "message":  "post-route route arguments record --wait with the expected token"
+                   },
+                   {
+                       "name":  "post-route successful output contains expected token",
+                       "status":  "pass",
+                       "message":  "post-route successful route output contains the expected token"
+                   },
+                   {
+                       "name":  "post-route route explain present",
+                       "status":  "pass",
+                       "message":  "post-route route probe includes route explain metadata"
+                   },
+                   {
+                       "name":  "post-route route explain schema",
+                       "status":  "pass",
+                       "message":  "post-route route explain schema is valid"
+                   },
+                   {
+                       "name":  "post-route route explain path priority",
+                       "status":  "pass",
+                       "message":  "post-route route explain records lan/tailscale/direct_quic/relay priority"
+                   },
+                   {
+                       "name":  "post-route route explain bridge path selection wired",
+                       "status":  "pass",
+                       "message":  "post-route route explain records bridge_path_selection_wired=true"
+                   },
+                   {
+                       "name":  "post-route route explain rendezvous wired",
+                       "status":  "pass",
+                       "message":  "post-route route explain records rendezvous_session_wired=true"
+                   },
+                   {
+                       "name":  "post-route route target present",
+                       "status":  "pass",
+                       "message":  "post-route route target is present"
+                   },
+                   {
+                       "name":  "post-route route command binds target",
+                       "status":  "pass",
+                       "message":  "post-route route command records the target route attempt"
+                   },
+                   {
+                       "name":  "post-route route arguments bind target",
+                       "status":  "pass",
+                       "message":  "post-route route arguments record --target hugh-main"
+                   },
+                   {
+                       "name":  "post-route route explain target",
+                       "status":  "pass",
+                       "message":  "post-route route explain requested target matches the route probe target"
+                   },
+                   {
+                       "name":  "post-route route target",
+                       "status":  "pass",
+                       "message":  "post-route route target matches hugh-main"
+                   },
+                   {
+                       "name":  "post-route route target not self",
+                       "status":  "pass",
+                       "message":  "post-route route target is not the operator machine"
+                   },
+                   {
+                       "name":  "post-route route target not local",
+                       "status":  "pass",
+                       "message":  "post-route route target is not localhost or loopback"
+                   },
+                   {
+                       "name":  "post-route route evidence path",
+                       "status":  "pass",
+                       "message":  "post-route route probe records route_evidence_path"
+                   },
+                   {
+                       "name":  "post-route route attempt evidence present",
+                       "status":  "pass",
+                       "message":  "post-route route probe includes parsed route attempt evidence"
+                   },
+                   {
+                       "name":  "post-route route attempt evidence schema",
+                       "status":  "pass",
+                       "message":  "post-route route attempt evidence schema is valid"
+                   },
+                   {
+                       "name":  "post-route route attempt result present",
+                       "status":  "pass",
+                       "message":  "post-route route attempt evidence records result"
+                   },
+                   {
+                       "name":  "post-route route attempt kind present",
+                       "status":  "pass",
+                       "message":  "post-route route attempt evidence records route_kind"
+                   },
+                   {
+                       "name":  "post-route route attempt candidate addr present",
+                       "status":  "pass",
+                       "message":  "post-route route attempt evidence records candidate_addr"
+                   },
+                   {
+                       "name":  "post-route route attempt peer identity field",
+                       "status":  "pass",
+                       "message":  "post-route route attempt evidence records peer_identity_verified"
+                   },
+                   {
+                       "name":  "post-route route attempt encryption present",
+                       "status":  "pass",
+                       "message":  "post-route route attempt evidence records encryption"
+                   },
+                   {
+                       "name":  "post-route route attempt target matches route target",
+                       "status":  "pass",
+                       "message":  "post-route route attempt evidence target matches route target"
+                   },
+                   {
+                       "name":  "post-route network probe present",
+                       "status":  "pass",
+                       "message":  "post-route route probe includes network probe for the selected candidate"
+                   },
+                   {
+                       "name":  "post-route network probe target",
+                       "status":  "pass",
+                       "message":  "post-route network probe target matches selected candidate host"
+                   },
+                   {
+                       "name":  "post-route network probe port",
+                       "status":  "pass",
+                       "message":  "post-route network probe port matches selected candidate port"
+                   }
+               ]
+}

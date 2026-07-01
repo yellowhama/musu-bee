@@ -3,7 +3,8 @@ param(
     [string]$OutputRoot,
     [ValidateSet("local-sideload-manual", "store-reviewed-immediate-registration")]
     [string]$StartupContract = "local-sideload-manual",
-    [switch]$IncludeDesktopShell
+    [switch]$IncludeDesktopShell,
+    [switch]$Json
 )
 
 Set-StrictMode -Version Latest
@@ -16,6 +17,7 @@ $repoRoot = Get-WindowsRepoRoot $MyInvocation.MyCommand.Path
 if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
     $OutputRoot = Join-Path $repoRoot ".local-build\multi-device-test-kit"
 }
+$OutputRoot = [System.IO.Path]::GetFullPath($OutputRoot)
 
 $version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
 $sourceGitState = Get-MusuSourceGitState -RepoRoot $repoRoot
@@ -63,6 +65,21 @@ $scriptFiles = @(
     "verify-runtime-cpu-scenario-matrix.ps1",
     "record-route-reachability-diagnostic.ps1",
     "verify-route-reachability-diagnostic.ps1",
+    "audit-release-relay-transport-design-gate.ps1",
+    "show-musu-pro-p2p-env-status.ps1",
+    "record-p2p-control-plane-evidence.ps1",
+    "verify-p2p-control-plane-evidence.ps1",
+    "run-private-mesh-release-proof.ps1",
+    "smoke-private-mesh-route-proof.ps1",
+    "verify-private-mesh-route-proof-evidence.ps1",
+    "verify-private-mesh-release-proof-bundle.ps1",
+    "archive-private-mesh-release-proof-bundle.ps1",
+    "import-private-mesh-release-proof-archive.ps1",
+    "verify-private-mesh-release-proof-archive.ps1",
+    "capture-v34-source-snapshot.ps1",
+    "record-v34-source-artifacts.ps1",
+    "record-v34-self-heal-proof.ps1",
+    "verify-v34-self-heal-proof.ps1",
     "audit-musu-process-ownership.ps1",
     "show-musu-process-attribution.ps1",
     "verify-process-attribution-summary.ps1",
@@ -73,7 +90,11 @@ $scriptFiles = @(
     "record-msix-install-evidence.ps1",
     "verify-multidevice-evidence.ps1",
     "record-multidevice-evidence.ps1",
-    "smoke-multidevice-beta.ps1"
+    "smoke-multidevice-beta.ps1",
+    "repair-fleet-node-public-url.ps1",
+    "verify-fleet-audit-contract.ps1",
+    "remove-cloud-node-registry-row.ps1",
+    "verify-musu-pro-install-channel.ps1"
 )
 
 foreach ($name in $scriptFiles) {
@@ -82,6 +103,14 @@ foreach ($name in $scriptFiles) {
 
 Copy-Item -LiteralPath $packagePath -Destination (Join-Path $kitMsixDir (Split-Path -Leaf $packagePath))
 Copy-Item -LiteralPath $certPath -Destination (Join-Path $kitMsixDir (Split-Path -Leaf $certPath))
+$appInstallerPath = Join-Path $repoRoot ".local-build\msix\output\musu.appinstaller"
+$hostedMsixPath = Join-Path $repoRoot ".local-build\msix\output\musu-desktop-x64.msix"
+if (Test-Path -LiteralPath $appInstallerPath) {
+    Copy-Item -LiteralPath $appInstallerPath -Destination (Join-Path $kitMsixDir "musu.appinstaller")
+}
+if (Test-Path -LiteralPath $hostedMsixPath) {
+    Copy-Item -LiteralPath $hostedMsixPath -Destination (Join-Path $kitMsixDir "musu-desktop-x64.msix")
+}
 Copy-Item -LiteralPath (Join-Path $repoRoot "VERSION") -Destination (Join-Path $kitRoot "VERSION")
 Copy-Item -LiteralPath (Join-Path $repoRoot "docs\MULTI_DEVICE_RELEASE_TEST_PLAN_1_15_0_RC1_2026_05_29.md") -Destination $kitDocsDir
 
@@ -126,6 +155,17 @@ No private signing key is included.
 
 Open PowerShell in this kit directory.
 
+Before using the public one-line installer on a second PC, verify that the live
+site and GitHub `desktop-latest` assets are all serving this kit's release:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\verify-musu-pro-install-channel.ps1 -Json
+```
+
+Do not run `irm https://musu.pro/install.ps1 | iex` while that command reports
+`ok=false`; use the packaged MSIX in this kit or wait for the release channel to
+be published.
+
 Recommended first pass before the primary peer name is known:
 
 ```powershell
@@ -144,6 +184,7 @@ The wrapper runs the same steps below, writes
 `.local-build\runtime-idle-cpu\*.evidence.json`,
 `.local-build\runtime-cpu-scenarios\*.runtime-cpu-scenario-matrix.json`,
 `.local-build\route-diagnostics\*.route-reachability-diagnostic.json`,
+`.local-build\private-mesh-physical-peer\*.physical-peer-evidence.json`,
 `.local-build\process-attribution\*.process-attribution-summary.json`,
 `.local-build\runtime-cleanup\*.runtime-cleanup.json`,
 `.local-build\second-pc-handoff\*.handoff.json`, and
@@ -212,6 +253,186 @@ prints the exact `measure-musu-runtime-cpu-scenarios.ps1 -RouteTarget ...` and
 `smoke-multidevice-beta.ps1` commands to use next. This catches the
 `peer not found` state before wasting a 60s post-route CPU matrix.
 
+## Private Mesh packaged release proof handoff
+
+The second-PC wrapper now captures target-side Private Mesh physical-peer
+evidence with:
+
+```powershell
+musu mesh physical-peer-evidence --output .local-build\private-mesh-physical-peer\<TARGET>.physical-peer-evidence.json --json
+```
+
+That JSON and its `.sha256` sidecar are included in
+`.local-build\second-pc-return\*.zip`. When this kit is run on `hugh-main`, copy
+the return zip back to the primary release repo and import it with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\import-second-pc-return.ps1 -ReturnZipPath .local-build\second-pc-return\<RETURN_ZIP> -Json
+```
+
+Then use the imported
+`.local-build\private-mesh-physical-peer\*.physical-peer-evidence.json` as the
+`-PhysicalPeerEvidencePath` input for the source-PC Private Mesh packaged
+release proof:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\run-private-mesh-release-proof.ps1 -TargetNode hugh-main -TargetIp <HUGH_MAIN_100_X_IP> -ExpectedControlServerUrl https://mesh.musu.pro -PhysicalPeerEvidencePath .local-build\private-mesh-physical-peer\<HUGH_MAIN>.physical-peer-evidence.json -DesktopRuntimeKind packaged_desktop -Archive -Json
+```
+
+Use `-SkipPrivateMeshPhysicalPeerEvidence` only for diagnosing non-mesh
+install/handoff failures. Use `-FailOnPrivateMeshPhysicalPeerEvidence` for the
+final proof run. Physical-peer evidence by itself is not the final release
+proof; the gate closes only after the packaged desktop release-proof archive
+verifies.
+
+## Relay transport failure-injection proof
+
+The relay transport release lane is separate from direct route proof and V34
+stale self-heal proof. To close it, block the direct path between the two
+physical PCs, prove the relay task succeeds, and record hosted control-plane
+evidence that contains the release relay transport and payload delivery proofs.
+
+The kit includes the hosted P2P/relay design gate, status, recorder, and
+verifier scripts. Run the design gate first; keep
+`RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` until it reports
+`runtime_marker_can_be_flipped=true` from real `quic_relay_tunnel` byte transit
+and bound `quic_tls_1_3` proof.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\audit-release-relay-transport-design-gate.ps1 -BaseUrl https://musu.pro -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\show-musu-pro-p2p-env-status.ps1 -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\verify-p2p-control-plane-evidence.ps1 -EvidencePath .local-build\p2p-control-plane\<P2P_EVIDENCE_JSON> -ExpectedVersion __VERSION__ -ExpectedBaseUrl https://musu.pro -RequireIntegrity -Json
+```
+
+Release-grade relay evidence must include `musu.relay_transport_proof.v1`,
+release `quic_relay_tunnel` / `quic_tls_1_3` transport metadata,
+`musu.route_evidence.v1` with relay proof attached, and
+`musu.relay_payload_delivery_proof.v1` from the actual relay payload path. The
+route evidence must not be a normal LAN/direct record; the proof must come from
+a direct-blocked two-PC run where `payload_transited_musu_infra=true`.
+
+Until that real QUIC/TLS relay runtime and direct-blocked physical evidence
+exist, this section is diagnostic only and `relay_transport_product_verified=false`.
+Only a verifier-passing evidence file with those proofs can make
+`relay_transport_product_verified=true`.
+
+## V34 stale self-heal proof
+
+The V34 release lane is separate from the normal multi-device smoke. It is not
+closed by fleet health, route reachability, or a successful direct route alone.
+Only record this proof after a real two-node stale scenario has been created:
+one stale registry row, stale local/manual peer state, and a stale first route
+candidate that is skipped before the reachable candidate. The task execution
+must happen exactly once. The recorder also requires two source artifacts so
+the proof is not just operator-entered booleans:
+
+- TTL source evidence JSON with schema `musu.v34_ttl_prune_source.v1`.
+- Boot reconcile source evidence JSON with schema
+  `musu.v34_boot_reconcile_source.v1`.
+- TTL before/after snapshots with schema `musu.v34_ttl_snapshot.v1`; the
+  recorder verifies stale-row counts, TTL seconds, stale-row timestamp, and the
+  post-prune hidden/excluded flags against the command parameters.
+- Boot before/after snapshots with schema `musu.v34_boot_snapshot.v1`; the
+  recorder verifies manual-peer counts, stale-peer removal, preserved LAN-only
+  peer, preserved current same-name candidate, and pruned count against the
+  command parameters.
+
+The kit includes the canonical snapshot capture helper, source artifact
+recorder, final proof recorder, and verifier. First capture the before/after
+snapshots from the physical `~/.musu` state:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\capture-v34-source-snapshot.ps1 -SnapshotKind ttl -Stage before -TargetNodeName PRIMARY-PC -HeartbeatTtlSec 60 -OutputPath .local-build\multi-device\V34_TTL_BEFORE.json -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\capture-v34-source-snapshot.ps1 -SnapshotKind boot -Stage before -OutputPath .local-build\multi-device\V34_BOOT_BEFORE.json -Json
+
+# After the stale registry row is hidden and boot reconcile has pruned the stale
+# same-name manual peer, capture the after state. Set BootPrunedManualPeerCount
+# to the actual before-minus-after stale manual peer count.
+powershell -ExecutionPolicy Bypass -File scripts\windows\capture-v34-source-snapshot.ps1 -SnapshotKind ttl -Stage after -TargetNodeName PRIMARY-PC -HeartbeatTtlSec 60 -OutputPath .local-build\multi-device\V34_TTL_AFTER.json -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\capture-v34-source-snapshot.ps1 -SnapshotKind boot -Stage after -BootPrunedManualPeerCount 1 -OutputPath .local-build\multi-device\V34_BOOT_AFTER.json -Json
+```
+
+Then record the source artifacts from those captured snapshots:
+
+Use the exact `stale_row_last_seen_at` value emitted in
+`V34_TTL_BEFORE.json` for `TtlStaleRowLastSeenAt`; PowerShell may normalize
+JSON timestamps to the local offset when reading `nodes.cache.json`.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\record-v34-source-artifacts.ps1 `
+  -TtlBeforeSnapshotPath .local-build\multi-device\V34_TTL_BEFORE.json `
+  -TtlAfterSnapshotPath .local-build\multi-device\V34_TTL_AFTER.json `
+  -BootBeforeSnapshotPath .local-build\multi-device\V34_BOOT_BEFORE.json `
+  -BootAfterSnapshotPath .local-build\multi-device\V34_BOOT_AFTER.json `
+  -TtlStaleRowInjected 1 `
+  -TtlRegistryCurrentExcludesStaleRows 1 `
+  -TtlExpiredRowsHidden 1 `
+  -TtlStaleRowCountBefore 1 `
+  -TtlStaleRowCountAfter 0 `
+  -TtlHeartbeatTtlSec 60 `
+  -TtlStaleRowLastSeenAt 2026-06-27T00:00:00Z `
+  -BootCacheAvailable 1 `
+  -BootStaleManualPeerRemoved 1 `
+  -BootLanOnlyManualPeerPreserved 1 `
+  -BootSameNameCurrentCandidatePreserved 1 `
+  -BootManualPeerCountBefore 3 `
+  -BootManualPeerCountAfter 2 `
+  -BootPrunedManualPeerCount 1 `
+  -Json
+```
+
+Then record the final V34 proof with those generated source artifacts:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\record-v34-self-heal-proof.ps1 `
+  -SourceNodeName SECOND-PC `
+  -TargetNodeName PRIMARY-PC `
+  -SelectedCandidateAddr PRIMARY_PC_IP:BRIDGE_PORT `
+  -RouteEvidencePath .local-build\multi-device\ROUTE_EVIDENCE.json `
+  -TtlSourceEvidencePath .local-build\multi-device\V34_TTL_SOURCE.json `
+  -BootSourceEvidencePath .local-build\multi-device\V34_BOOT_SOURCE.json `
+  -TtlStaleRowInjected 1 `
+  -TtlRegistryCurrentExcludesStaleRows 1 `
+  -TtlExpiredRowsHidden 1 `
+  -TtlStaleRowCountBefore 1 `
+  -TtlStaleRowCountAfter 0 `
+  -TtlHeartbeatTtlSec 60 `
+  -TtlStaleRowLastSeenAt 2026-06-27T00:00:00Z `
+  -BootCacheAvailable 1 `
+  -BootStaleManualPeerRemoved 1 `
+  -BootLanOnlyManualPeerPreserved 1 `
+  -BootSameNameCurrentCandidatePreserved 1 `
+  -BootManualPeerCountBefore 1 `
+  -BootManualPeerCountAfter 0 `
+  -BootPrunedManualPeerCount 1 `
+  -RoutePhysicalTwoNodeEvidence 1 `
+  -RouteStaleCandidateInjected 1 `
+  -RouteStaleCandidateWasFirst 1 `
+  -RouteSelectedReachableCandidateBeforeStale 1 `
+  -RouteDuplicateTaskExecutionPrevented 1 `
+  -RouteChecked 1 `
+  -RouteTaskPostCount 1 `
+  -Notes "physical V34 stale registry/cache/manual-peer proof" `
+  -Json
+```
+
+The embedded route evidence must be real `musu.route_evidence.v1`, use the same
+version, source node, target node, and candidate address as the V34 wrapper, and
+keep `payload_transited_musu_infra=false`. The verifier re-checks
+`route_evidence_candidate_matches_selected`, node-pair binding, SHA256-bound
+TTL/boot source artifacts, and the exactly-once task execution proof.
+
+Verify the produced `musu.v34_self_heal_proof.v1` JSON before returning it:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\verify-v34-self-heal-proof.ps1 -EvidencePath docs\evidence\v34-self-heal\__VERSION__\<PROOF_JSON> -ExpectedVersion __VERSION__ -Json
+```
+
+Until that verifier passes on physical two-PC evidence and the JSON is committed
+to the release repo, the product state remains
+`v34_stale_self_heal_verified=false`.
+
 Use `-AllowFailedRouteProbe` or `-AllowFailedRuntimeCpuRouteProbe` only to
 diagnose CPU after a failed remote route attempt. The normal release matrix
 without that flag still requires a successful post-route probe.
@@ -264,8 +485,10 @@ Manual fallback:
 powershell -ExecutionPolicy Bypass -File scripts\windows\check-msix-sideload-readiness.ps1
 powershell -ExecutionPolicy Bypass -File scripts\windows\install-and-verify-msix.ps1 -StartupContract __STARTUP_CONTRACT__ -ReplaceExisting
 powershell -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1 -StartupContract __STARTUP_CONTRACT__
+powershell -ExecutionPolicy Bypass -File scripts\windows\repair-fleet-node-public-url.ps1 -ExpectedNodeName THIS_PC_NAME -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\verify-fleet-audit-contract.ps1 -AllowRemoteRegistryWarnings -Json
 powershell -ExecutionPolicy Bypass -File scripts\windows\collect-second-pc-handoff.ps1
-Start-Process explorer.exe 'shell:AppsFolder\Yellowhama.MUSU_ygcjq669as2b6!MUSU'
+Start-Process explorer.exe 'shell:AppsFolder\blossompark.musu_f5h38pf4yt4gc!MUSU'
 powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-idle-cpu.ps1 -SampleSeconds 60 -Scenario desktop-open -RequireOwnedWebView2 -MaxOneCorePercent 5 -MaxOwnedProcessCount 16 -MaxOwnedWebView2ProcessCount 8 -MaxTotalWorkingSetMb 1024 -IncludeNode -IncludeWebView2 -FailOnHot -Json
 powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -Json
 powershell -ExecutionPolicy Bypass -File scripts\windows\measure-musu-runtime-cpu-scenarios.ps1 -Scenario startup-open,runtime-started,dashboard-open,desktop-open,post-route -SampleSeconds 60 -OpenDesktopApp -RunRouteProbe -RouteTarget PRIMARY-PC -AllowFailedRouteProbe -Json
@@ -289,6 +512,37 @@ The runtime CPU command writes `.local-build\runtime-idle-cpu\*.evidence.json`.
 The scenario matrix command writes `.local-build\runtime-cpu-scenarios\*.json`.
 The route reachability command writes
 `.local-build\route-diagnostics\*.route-reachability-diagnostic.json`.
+The fleet audit command verifies the pasted audit contract: no fabricated
+heartbeat freshness, no default exposure of remote loopback registry rows,
+direct-only online totals, raw bridge bind visibility, and restricted local
+secret ACLs. On the still-stale machine, replace `THIS_PC_NAME` with its MUSU
+node name, for example `hugh-main`, then run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\repair-fleet-node-public-url.ps1 -ExpectedNodeName hugh-main -Json
+powershell -ExecutionPolicy Bypass -File scripts\windows\verify-fleet-audit-contract.ps1 -AllowRemoteRegistryWarnings -Json
+```
+
+The strict verifier:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\verify-fleet-audit-contract.ps1 -Json
+```
+
+must pass only after all machines have republished non-loopback cloud URLs or
+the production cloud registry has been cleaned. If a stale row remains after the
+cloud DELETE route is deployed, remove it with:
+
+```powershell
+musu nodes --json --delete STALE_NODE_NAME
+```
+
+For older packages or direct script fallback:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\remove-cloud-node-registry-row.ps1 -NodeName STALE_NODE_NAME -Json
+```
+
 The wrapper cleanup command writes `.local-build\runtime-cleanup\*.json`.
 The process-attribution command writes
 `.local-build\process-ownership\*.json` unless an explicit output path is used.
@@ -352,13 +606,32 @@ Get-ChildItem -LiteralPath $kitRoot -Recurse -File |
 $zipPath = "$kitRoot.zip"
 Compress-Archive -Path (Join-Path $kitRoot "*") -DestinationPath $zipPath -Force
 
-[pscustomobject]@{
+$zipHash = Get-FileHash -Algorithm SHA256 -LiteralPath $zipPath
+
+$result = [pscustomobject]@{
+    schema = "musu.multidevice_test_kit_prepare.v1"
     ok = $true
+    generated_at = (Get-Date).ToString("o")
     version = $version
     startup_contract = $StartupContract
     kit_root = $kitRoot
     zip_path = $zipPath
+    zip_sha256 = $zipHash.Hash.ToLowerInvariant()
+    metadata_path = Join-Path $kitRoot "kit-build-metadata.json"
+    git = $kitMetadata.git
     package = Split-Path -Leaf $packagePath
     certificate = Split-Path -Leaf $certPath
     includes_desktop_shell = [bool]$IncludeDesktopShell
+}
+
+$resultJson = $result | ConvertTo-Json -Depth 8
+$latestOutputPath = Join-Path $OutputRoot "latest-prepare-output.json"
+$latestTempPath = "$latestOutputPath.tmp"
+$resultJson | Set-Content -LiteralPath $latestTempPath -Encoding UTF8
+Move-Item -LiteralPath $latestTempPath -Destination $latestOutputPath -Force
+
+if ($Json) {
+    $resultJson
+} else {
+    $result
 }

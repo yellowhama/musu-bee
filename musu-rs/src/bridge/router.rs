@@ -281,6 +281,12 @@ pub enum RouteDecision {
     Remote { peer: ResolvedPeer },
 }
 
+fn explicit_target_matches_local_node(target: &str, local_node_name: &str) -> bool {
+    let target = target.trim();
+    let local_node_name = local_node_name.trim();
+    !target.is_empty() && target == local_node_name
+}
+
 /// Routing hints for auto-routing decisions.
 ///
 /// When all fields are at their defaults the router falls back to `Local`
@@ -298,7 +304,7 @@ pub struct RouteHints {
 /// Decide where to execute a task.
 ///
 /// Priority:
-///   1. `explicit_target` specified → find matching peer, forward.
+///   1. `explicit_target` specified → local if it is this node; otherwise find matching peer, forward.
 ///   2. `hints` contain non-default preferences → capability-based routing.
 ///   3. Everything default → always local.
 pub fn route_task(
@@ -315,6 +321,14 @@ pub fn route_task(
 
     // ── 1. Explicit target takes priority ───────────────────────────────
     if let Some(target) = explicit_target {
+        if explicit_target_matches_local_node(target, &state.config.node_name) {
+            tracing::info!(
+                target = %target,
+                "explicit target is this node; executing locally"
+            );
+            return RouteDecision::Local;
+        }
+
         if let Some(peer) = select_peer_for_route(Some(target), hints, &peers) {
             if is_circuit_open(&peer.addr) {
                 tracing::warn!(peer = %peer.addr, "circuit breaker open but explicit target — attempting anyway");
@@ -423,6 +437,20 @@ mod tests {
         assert!(!hints.needs_gpu);
         assert!(hints.prefer_os.is_none());
         assert!(!hints.prefer_least_busy);
+    }
+
+    #[test]
+    fn explicit_target_matching_local_node_stays_local_before_peer_cache() {
+        assert!(explicit_target_matches_local_node("hugh-main", "hugh-main"));
+        assert!(explicit_target_matches_local_node(
+            " hugh-main ",
+            "hugh-main"
+        ));
+        assert!(!explicit_target_matches_local_node(
+            "hugh_second",
+            "hugh-main"
+        ));
+        assert!(!explicit_target_matches_local_node("", "hugh-main"));
     }
 
     #[test]

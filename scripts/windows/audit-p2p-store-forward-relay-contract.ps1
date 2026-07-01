@@ -61,6 +61,7 @@ $payloadRouteTestPath = "musu-bee\src\app\api\v1\p2p\relay\payload\route.test.ts
 $releasePayloadPreflightRoutePath = "musu-bee\src\app\api\v1\relay\payload\route.ts"
 $releasePayloadPreflightRouteTestPath = "musu-bee\src\app\api\v1\relay\payload\route.test.ts"
 $leaseRoutePath = "musu-bee\src\app\api\v1\p2p\relay\lease\route.ts"
+$leaseRouteTestPath = "musu-bee\src\app\api\v1\p2p\relay\lease\route.test.ts"
 $transportRoutePath = "musu-bee\src\app\api\v1\p2p\relay\transport\route.ts"
 $transportProofRoutePath = "musu-bee\src\app\api\v1\p2p\relay\transport-proof\route.ts"
 $transportProofRouteTestPath = "musu-bee\src\app\api\v1\p2p\relay\transport-proof\route.test.ts"
@@ -86,6 +87,7 @@ $statusScriptPath = "scripts\windows\show-musu-pro-p2p-env-status.ps1"
 $p2pEvidenceVerifierPath = "scripts\windows\verify-p2p-control-plane-evidence.ps1"
 $releaseEvidenceVerifierTestPath = "scripts\windows\test-release-evidence-verifiers.ps1"
 $packageJsonPath = "musu-bee\package.json"
+$p2pControlAuthPath = "musu-bee\src\lib\p2pControlAuth.ts"
 
 $policy = Get-RepoText $policyPath
 $releaseConnectPreflightRoute = Get-RepoText $releaseConnectPreflightRoutePath
@@ -97,6 +99,7 @@ $payloadRouteTest = Get-RepoText $payloadRouteTestPath
 $releasePayloadPreflightRoute = Get-RepoText $releasePayloadPreflightRoutePath
 $releasePayloadPreflightRouteTest = Get-RepoText $releasePayloadPreflightRouteTestPath
 $leaseRoute = Get-RepoText $leaseRoutePath
+$leaseRouteTest = Get-RepoText $leaseRouteTestPath
 $transportRoute = Get-RepoText $transportRoutePath
 $transportProofRoute = Get-RepoText $transportProofRoutePath
 $transportProofRouteTest = Get-RepoText $transportProofRouteTestPath
@@ -122,6 +125,7 @@ $statusScript = Get-RepoText $statusScriptPath
 $p2pEvidenceVerifier = Get-RepoText $p2pEvidenceVerifierPath
 $releaseEvidenceVerifierTest = Get-RepoText $releaseEvidenceVerifierTestPath
 $packageJson = Get-RepoText $packageJsonPath
+$p2pControlAuth = Get-RepoText $p2pControlAuthPath
 
 Add-Check `
     -Scope "policy" `
@@ -135,7 +139,7 @@ Add-Check `
     -Name "release connect preflight remains separate from payload transport" `
     -Passed (
         $policy.Contains("RELAY_CONNECT_ENDPOINT_IMPLEMENTED = true") -and
-        $policy.Contains("RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED = false") -and
+        $policy.Contains("RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED = true") -and
         $policy.Contains('RELEASE_GRADE_RELAY_TRANSPORT_KIND = "quic_relay_tunnel"') -and
         $policy.Contains('RELEASE_GRADE_TRANSPORT_REQUIRED = "quic_tls_1_3"') -and
         $policy.Contains("RELAY_TUNNEL_RUNTIME_IMPLEMENTED = false") -and
@@ -149,7 +153,63 @@ Add-Check `
         $policy.Contains('blockers.push("relay_transport_kind_not_release_grade")')
     ) `
     -Path $policyPath `
-    -Message "Relay connect preflight can be source-wired without allowing env flags or non-release transport kind to claim release-grade payload transport."
+    -Message "Relay connect and payload proof endpoints can be source-wired without allowing env flags, preview queues, or missing tunnel runtime to claim release-grade payload transport."
+
+Add-Check `
+    -Scope "web-auth" `
+    -Name "P2P control auth binds bearer token hashes to source nodes" `
+    -Passed (
+        Test-ContainsAll -Text $p2pControlAuth -Needles @(
+            "MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS",
+            "configuredP2pControlTokenNodeBindings",
+            "p2pControlTokenSha256",
+            "bound_source_node_id",
+            "p2pSourceNodeAuthMismatch",
+            "source_node_id_auth_mismatch"
+        )
+    ) `
+    -Path $p2pControlAuthPath `
+    -Message "P2P control auth supports hash-based source_node_id binding without storing raw node tokens."
+
+Add-Check `
+    -Scope "web-auth" `
+    -Name "source node auth binding is enforced on source-claiming control-plane writes" `
+    -Passed (
+        (Test-ContainsAll -Text $leaseRoute -Needles @(
+            "p2pSourceNodeAuthMismatch",
+            "declared_source_node_id"
+        )) -and
+        (Test-ContainsAll -Text $payloadRoute -Needles @(
+            "p2pSourceNodeAuthMismatch",
+            "declared_source_node_id"
+        )) -and
+        (Test-ContainsAll -Text $transportProofRoute -Needles @(
+            "p2pSourceNodeAuthMismatch",
+            "declared_source_node_id"
+        )) -and
+        (Test-ContainsAll -Text $routeEvidence -Needles @(
+            "p2pSourceNodeAuthMismatch",
+            "declared_source_node_id"
+        )) -and
+        (Test-ContainsAll -Text $rendezvousRoute -Needles @(
+            "p2pSourceNodeAuthMismatch",
+            "declared_source_node_id"
+        )) -and
+        (Test-ContainsAll -Text $roomRendezvousRoute -Needles @(
+            "p2pSourceNodeAuthMismatch",
+            "declared_source_node_id"
+        )) -and
+        (Test-ContainsAll -Text $releaseConnectPreflightRoute -Needles @(
+            "p2pSourceNodeAuthMismatch",
+            "declared_source_node_id"
+        )) -and
+        (Test-ContainsAll -Text $releasePayloadPreflightRoute -Needles @(
+            "p2pSourceNodeAuthMismatch",
+            "declared_source_node_id"
+        ))
+    ) `
+    -Path $p2pControlAuthPath `
+    -Message "Rendezvous, relay lease, relay payload, transport proof, route evidence, and release relay preflight writes fail closed when an authenticated node token is bound to a different source_node_id."
 
 Add-Check `
     -Scope "web-payload-queue" `
@@ -239,11 +299,14 @@ Add-Check `
 
 Add-Check `
     -Scope "web-release-payload-preflight" `
-    -Name "release payload preflight fails closed and does not use queue storage" `
+    -Name "release payload endpoint is proof-bound and does not use queue storage" `
     -Passed (
         (Test-ContainsAll -Text $releasePayloadPreflightRoute -Needles @(
             "musu.relay_payload_preflight.v1",
             "musu.relay_payload_preflight_request.v1",
+            "musu.relay_payload_release_request.v1",
+            "musu.relay_transport_proof.v1",
+            "musu.relay_payload_delivery_proof.v1",
             "}).strict()",
             'tunnel_id: z.string().min(1).max(128)',
             'payload_kind: z.literal("forwarded_task_envelope")',
@@ -252,15 +315,20 @@ Add-Check `
             "p2pControlPrincipal(req)",
             "queryRelayLeases",
             "releaseRelayLeaseBlockers",
+            "appendRelayTransportProof",
+            "createRelayTransportProof",
             "release_relay_lease_not_payload_ready",
             "release_payload_lease_ready",
+            "release_payload_proof_ready",
+            "release_payload_contract",
             "RELAY_PAYLOAD_PATH",
             "release_payload_metadata",
             "release_payload_endpoint_preflight_wired: true",
+            "release_payload_accepted: true",
             "release_payload_accepted: false",
+            "payload_transported: true",
             "payload_stored: false",
             "payload_transported: false",
-            "relay_payload_endpoint_not_wired",
             "FORBIDDEN_RELEASE_PAYLOAD_BYTE_FIELDS",
             "release_payload_bytes_not_accepted"
         )) -and
@@ -268,7 +336,7 @@ Add-Check `
         -not $releasePayloadPreflightRoute.Contains("markRelayPayloadDelivered")
     ) `
     -Path $releasePayloadPreflightRoutePath `
-    -Message "The distinct release payload endpoint validates auth and lease state, but remains fail-closed and never reuses the non-release-grade store-forward queue as release transport."
+    -Message "The distinct release payload endpoint validates auth, lease state, transport proof, and delivery proof without accepting raw payload bytes or reusing the non-release-grade store-forward queue as release transport."
 
 Add-Check `
     -Scope "web-release-payload-preflight" `
@@ -296,11 +364,68 @@ Add-Check `
             "relay_requires_direct_path_failure",
             "direct_route_attempt_required_before_relay",
             "relay_payload_endpoint_not_wired",
+            "transport_intent",
+            "store_forward_queue",
+            "release_tunnel",
+            "releaseTunnelLeaseBlockers",
+            "releaseGradeTunnelBlockers",
             "relay_default_data_path: false"
         )
     ) `
     -Path $leaseRoutePath `
     -Message "Relay lease policy remains fallback-only and cannot become default data path."
+
+Add-Check `
+    -Scope "web-lease-transport" `
+    -Name "release tunnel lease intent stays fail closed until runtime exists" `
+    -Passed (
+        (Test-ContainsAll -Text $leaseRoute -Needles @(
+            'transportIntent: RelayTransportIntent',
+            'parsed.data.transport_intent ?? "store_forward_queue"',
+            'intent === "release_tunnel"',
+            'relay_transport_not_wired',
+            'relay_tunnel_runtime_not_implemented'
+        )) -and
+        (Test-ContainsAll -Text $leaseRouteTest -Needles @(
+            'transport_intent: "release_tunnel"',
+            'release tunnel lease intent stays fail-closed until tunnel runtime exists',
+            'relay_transport_not_wired',
+            'relay_tunnel_runtime_not_implemented',
+            'rejects unknown relay transport intent'
+        ))
+    ) `
+    -Path $leaseRoutePath `
+    -Message "Release tunnel lease requests are explicit and remain blocked by release transport/runtime gates instead of falling through to store-forward leases."
+
+Add-Check `
+    -Scope "rust-lease-transport" `
+    -Name "Rust relay lease DTO carries explicit transport intent" `
+    -Passed (
+        (Test-ContainsAll -Text $cloud -Needles @(
+            "pub enum RelayTransportIntent",
+            "StoreForwardQueue",
+            "ReleaseTunnel",
+            "pub transport_intent: Option<RelayTransportIntent>",
+            'assert_eq!(value["transport_intent"], "store_forward_queue")',
+            'assert_eq!(value["transport_intent"], "release_tunnel")'
+        )) -and
+        (Test-ContainsAll -Text $rendezvous -Needles @(
+            "relay_transport_intent_for_direct_failure",
+            'std::env::var(name)',
+            "MUSU_P2P_RELAY_TRANSPORT_WIRED",
+            "crate::cloud::RelayTransportIntent::ReleaseTunnel",
+            "crate::cloud::RelayTransportIntent::StoreForwardQueue",
+            "relay_lease_request_for_direct_failure",
+            "relay_lease_request_records_failed_direct_paths_without_using_relay_as_default",
+            "relay_lease_request_uses_release_tunnel_intent_when_transport_flag_is_set"
+        )) -and
+        (Test-ContainsAll -Text $forward -Needles @(
+            "transport_intent: Some(crate::cloud::RelayTransportIntent::StoreForwardQueue)",
+            "queue_callback_via_relay"
+        ))
+    ) `
+    -Path $cloudPath `
+    -Message "Rust runtime lease requests default to preview store-forward, can explicitly request release_tunnel only when the local transport flag is set, and keep callback relay leases on store-forward until the release runtime lands."
 
 Add-Check `
     -Scope "web-lease-transport" `
@@ -797,18 +922,19 @@ Add-Check `
 
 Add-Check `
     -Scope "rust-target" `
-    -Name "target polling is default-off low duty" `
+    -Name "target polling is default-on opt-out low duty" `
     -Passed (
         Test-ContainsAll -Text $relayPayloadDrain -Needles @(
+            "default-on low-duty poller",
             "MUSU_ENABLE_RELAY_PAYLOAD_POLLER",
             "RELAY_PAYLOAD_POLLER_DEFAULT_INTERVAL_SEC: u64 = 60",
             "RELAY_PAYLOAD_POLLER_MIN_INTERVAL_SEC: u64 = 30",
             "cancellation_token.cancelled()",
-            "relay payload poller disabled"
+            "relay payload poller disabled via MUSU_ENABLE_RELAY_PAYLOAD_POLLER opt-out"
         )
     ) `
     -Path $relayPayloadDrainPath `
-    -Message "Target-side relay poller is disabled by default and has explicit low-duty sleep/backoff/cancellation."
+    -Message "Target-side relay poller is default-on with explicit env opt-out and bounded low-duty sleep/backoff/cancellation."
 
 Add-Check `
     -Scope "rust-target" `
@@ -872,6 +998,38 @@ Add-Check `
 
 Add-Check `
     -Scope "tests" `
+    -Name "source node auth binding regression coverage" `
+    -Passed (
+        (Test-ContainsAll -Text $leaseRouteTest -Needles @(
+            "rejects relay lease when bearer token is bound to another source node",
+            "source_node_id_auth_mismatch"
+        )) -and
+        (Test-ContainsAll -Text $payloadRouteTest -Needles @(
+            "rejects relay payload when bearer token is bound to another source node",
+            "source_node_id_auth_mismatch"
+        )) -and
+        (Test-ContainsAll -Text $rendezvousRouteTest -Needles @(
+            "rejects rendezvous creation when bearer token is bound to another source node",
+            "source_node_id_auth_mismatch"
+        )) -and
+        (Test-ContainsAll -Text $roomRendezvousRouteTest -Needles @(
+            "POST rejects room rendezvous creation when bearer token is bound to another source node",
+            "source_node_id_auth_mismatch"
+        )) -and
+        (Test-ContainsAll -Text $releaseConnectPreflightRouteTest -Needles @(
+            "rejects relay connect preflight when bearer token is bound to another source node",
+            "source_node_id_auth_mismatch"
+        )) -and
+        (Test-ContainsAll -Text $releasePayloadPreflightRouteTest -Needles @(
+            "rejects release payload preflight when bearer token is bound to another source node",
+            "source_node_id_auth_mismatch"
+        ))
+    ) `
+    -Path $payloadRouteTestPath `
+    -Message "P2P tests cover source_node_id auth binding failures on relay payload, rendezvous, and release relay preflight writes."
+
+Add-Check `
+    -Scope "tests" `
     -Name "web queue route regression coverage" `
     -Passed (
         $packageJson.Contains("src/app/api/v1/p2p/relay/payload/route.test.ts") -and
@@ -893,7 +1051,7 @@ Add-Check `
         (Test-ContainsAll -Text $releaseConnectPreflightRouteTest -Needles @(
             "requires P2P control auth before reporting relay connect preflight status",
             "reports relay connect preflight without claiming payload transport",
-            "verifies relay lease but rejects payload transit while payload endpoint is unwired",
+            "verifies relay lease but rejects payload transit while release tunnel runtime is unwired",
             "returns relay connect status fields for invalid JSON",
             "rejects relay connect payload bytes before lease lookup",
             "relay_connect_payload_bytes_not_accepted",
@@ -918,18 +1076,25 @@ Add-Check `
             "requires P2P control auth before reporting release relay payload preflight",
             "reports release payload preflight without treating the queue as release transport",
             "returns release payload preflight status fields for invalid JSON",
-            "rejects release payload bytes before lease lookup while endpoint is preflight-only",
+            "rejects release payload bytes before lease lookup while endpoint accepts proof metadata only",
             "release_payload_bytes_not_accepted",
             "rejects unknown release payload preflight fields",
             "rejects release payload preflight when relay lease no longer matches configured relay URL",
             "release_relay_lease_not_payload_ready",
             "release_relay_lease_relay_url_mismatch",
             "unexpected_release_field",
-            "verifies relay lease metadata but rejects release payload transport while endpoint is unwired",
+            "verifies relay lease metadata but rejects release payload transport while runtime is unwired",
+            "rejects lease-bound release payload proof metadata while release tunnel runtime is unwired",
+            "release_relay_tunnel_runtime_not_implemented",
+            "musu.relay_payload_release_request.v1",
+            "musu.relay_transport_proof.v1",
+            "musu.relay_payload_delivery_proof.v1",
             "lease_verified",
+            "release_payload_proof_ready",
             "release_payload_accepted",
             "payload_stored",
-            "payload_transported"
+            "payload_transported",
+            "assert.equal(proofs.length, 0)"
         ))
     ) `
     -Path $releasePayloadPreflightRouteTestPath `

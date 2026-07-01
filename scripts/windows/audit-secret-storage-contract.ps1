@@ -49,6 +49,7 @@ $cloudTokenText = Get-RepoText "musu-rs\src\cloud\token.rs"
 $bridgeTokenWebText = Get-RepoText "musu-bee\src\lib\bridge-token.ts"
 $hashHelperText = Get-RepoText "scripts\windows\show-p2p-control-token-hash.ps1"
 $configureP2pText = Get-RepoText "scripts\windows\configure-musu-pro-p2p-env.ps1"
+$deployWorkflowText = Get-RepoText ".github\workflows\deploy-musu-bee.yml"
 $idleCpuText = Get-RepoText "scripts\windows\measure-musu-idle-cpu.ps1"
 $matrixText = Get-RepoText "scripts\windows\measure-musu-runtime-cpu-scenarios.ps1"
 $productionText = Get-RepoText "docs\PRODUCTION.md"
@@ -102,6 +103,20 @@ Add-Check `
     -Passed ($configureP2pText.Contains("Secret values are never printed") -and $configureP2pText.Contains('ghArgs = @($Kind, "set", $Name, "--repo", $Repo)') -and $configureP2pText.Contains('$output = ($Value | gh @ghArgs 2>&1)') -and -not ($configureP2pText -match 'settings_requested[\s\S]*value\s*=')) `
     -Path "scripts\windows\configure-musu-pro-p2p-env.ps1" `
     -Message "P2P env configurator sends secret values to gh over stdin and does not include values in result output."
+
+Add-Check `
+    -Scope "workflow" `
+    -Name "P2P Vercel env sync uses REST upsert and sensitive env types" `
+    -Passed ($deployWorkflowText.Contains('https://api.vercel.com/v10/projects/') -and $deployWorkflowText.Contains('endpoint.searchParams.set("upsert", "true")') -and $deployWorkflowText.Contains('target: ["production"]') -and $deployWorkflowText.Contains('type: "sensitive"') -and $deployWorkflowText.Contains('MUSU_P2P_CONTROL_TOKEN_SHA256S') -and $deployWorkflowText.Contains('KV_REST_API_TOKEN') -and $deployWorkflowText.Contains('UPSTASH_REDIS_REST_TOKEN') -and $deployWorkflowText.Contains('MUSU_P2P_RELAY_ENTITLEMENT')) `
+    -Path ".github\workflows\deploy-musu-bee.yml" `
+    -Message "Production P2P control-plane env sync uses Vercel REST upsert and marks token/entitlement values as sensitive."
+
+Add-Check `
+    -Scope "workflow" `
+    -Name "P2P Vercel env sync does not use vercel env add or print response bodies" `
+    -Passed ((-not $deployWorkflowText.Contains('vercel env add')) -and $deployWorkflowText.Contains('failed with HTTP') -and (-not $deployWorkflowText.Contains('console.error(bodyText)')) -and (-not $deployWorkflowText.Contains('console.log(bodyText)'))) `
+    -Path ".github\workflows\deploy-musu-bee.yml" `
+    -Message "Production P2P env sync avoids the CLI env-add path and does not dump Vercel response bodies that may contain submitted values."
 
 Add-Check `
     -Scope "scripts" `

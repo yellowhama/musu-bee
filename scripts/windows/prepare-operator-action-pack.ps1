@@ -15,9 +15,29 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 . (Join-Path $scriptDir "release-config.ps1")
 
+function Convert-PublicVersionToPackageVersion {
+    param([Parameter(Mandatory = $true)][string]$PublicVersion)
+
+    if ($PublicVersion -match '^(\d+)\.(\d+)\.(\d+)-rc\.(\d+)$') {
+        return "$($Matches[1]).$($Matches[2]).$($Matches[3]).$($Matches[4])"
+    }
+
+    if ($PublicVersion -match '^(\d+)\.(\d+)\.(\d+)$') {
+        return "$($Matches[1]).$($Matches[2]).$($Matches[3]).0"
+    }
+
+    if ($PublicVersion -match '^\d+\.\d+\.\d+\.\d+$') {
+        return $PublicVersion
+    }
+
+    throw "Cannot convert public version '$PublicVersion' to a 4-segment package version."
+}
+
 if ([string]::IsNullOrWhiteSpace($Version)) {
     $Version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
 }
+$windowsPackageVersion = Convert-PublicVersionToPackageVersion -PublicVersion $Version
+$expectedStoreMsixName = "musu_{0}_x64_store-reviewed-immediate-registration.msix" -f $windowsPackageVersion
 if ([string]::IsNullOrWhiteSpace($SupportEmail)) {
     $SupportEmail = Get-MusuReleaseSupportEmail -RepoRoot $repoRoot
 }
@@ -243,9 +263,17 @@ spending a 60s post-route CPU sample.
     $secondPcTransferZip = Join-Path $secondPcDir "MUSU-second-PC-transfer-$safeVersion-$stamp.zip"
     Compress-Archive -LiteralPath $kitZip.FullName, $quickstartPath -DestinationPath $secondPcTransferZip -CompressionLevel Optimal
 
+    $storeReviewedMsix = @(Get-ChildItem -LiteralPath $StoreSubmissionBundleDir -File -Filter "*_store-reviewed-immediate-registration.msix" -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -eq $expectedStoreMsixName } |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1)
+    if (@($storeReviewedMsix).Count -eq 0) {
+        throw "Current Store-reviewed MSIX is missing from action pack bundle: expected $expectedStoreMsixName in $StoreSubmissionBundleDir"
+    }
+    Copy-Item -LiteralPath $storeReviewedMsix[0].FullName -Destination (Join-Path $storeDir $storeReviewedMsix[0].Name) -Force
+
     $storeFiles = @(
-        "musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix",
-        "Yellowhama.MUSU_cert.cer",
+        "blossompark.musu_cert.cer",
         "bundle.json",
         "submission-notes.txt",
         "partner-center-capability-justification.md",
@@ -269,15 +297,16 @@ spending a 60s post-route CPU sample.
         Copy-Item -LiteralPath (Join-Path $repoRoot $doc) -Destination (Join-Path $storeDir (Split-Path -Leaf $doc))
     }
 
-    $uploadMsix = Join-Path $storeDir "musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix"
+    $uploadMsix = Join-Path $storeDir $expectedStoreMsixName
     if (-not (Test-Path -LiteralPath $uploadMsix)) {
         throw "Store MSIX is missing from action pack: $uploadMsix"
     }
+    $uploadMsixLeaf = Split-Path -Leaf $uploadMsix
     $cleanNotes = @"
 MUSU Partner Center certification notes
 
 Package:
-- musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix
+- $uploadMsixLeaf
 
 Restricted capability justification summary:
 - This package uses desktop:StartupTask with rescap5:ImmediateRegistration="true".
@@ -299,11 +328,11 @@ Reviewer-facing product truth:
     $storeReadme = @"
 MUSU Partner Center submission copy
 Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss K')
-Version: $Version / Windows package version 1.15.0.0
+Version: $Version / Windows package version $windowsPackageVersion
 Source commit: $gitCommit
 
 Upload this package in Partner Center:
-- musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix
+- $uploadMsixLeaf
 - SHA256: $((Get-FileHash -LiteralPath $uploadMsix -Algorithm SHA256).Hash)
 
 Do not upload this whole folder/zip as the app package. Partner Center needs the MSIX above.
@@ -321,8 +350,10 @@ Restricted capability notes:
 - Paste/attach PARTNER_CENTER_CERTIFICATION_NOTES_CLEAN.txt and partner-center-capability-justification.md.
 - Keep multi-device wording beta-gated; do not claim public multi-device release readiness until second-PC evidence is recorded.
 
-After Partner Center approval, record evidence from the release repo:
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 -ProductName "MUSU" -ProductNameReservedAt "<partner-center-name-reserved-at>" -SubmissionId "<partner-center-submission-id>" -CertificationStatus "approved" -RestrictedCapabilityStatus "approved" -RecordedBy "<operator-name>" -Notes "Microsoft Store certification and restricted capability review approved" -Json
+After Partner Center approval, install the approved Microsoft Store package on a physical Windows machine, capture Store-signed install evidence, capture the installed desktop entrypoint audit, then record evidence from the release repo:
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1 -StartupContract store-reviewed-immediate-registration
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-msix-desktop-entrypoint.ps1 -StartupContract store-reviewed-immediate-registration -RequireInstalledPackage -Json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 -ProductName "MUSU" -ProductNameReservedAt "<partner-center-name-reserved-at>" -SubmissionId "<partner-center-submission-id>" -CertificationStatus "approved" -RestrictedCapabilityStatus "approved" -StoreSignedInstallEvidencePath "<store-signed-msix-install-evidence-json>" -StoreDesktopEntrypointEvidencePath "<store-desktop-entrypoint-evidence-json>" -StoreInstallObservedAt "<store-install-observed-at>" -StoreLaunchObservedAt "<store-launch-observed-at>" -RecordedBy "<operator-name>" -Notes "Microsoft Store certification, restricted capability review, and Store-signed install/launch evidence approved" -Json
 "@
     $storeReadme | Set-Content -LiteralPath (Join-Path $storeDir "PARTNER_CENTER_UPLOAD_README_CURRENT.txt") -Encoding UTF8
     $partnerCenterZip = Join-Path $storeDir "MUSU-$safeVersion-store-submission-$stamp.zip"

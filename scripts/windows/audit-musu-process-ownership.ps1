@@ -246,17 +246,46 @@ function Test-DescendantOfAnyRoot([int]$ProcessId, $RootIds, $ParentByPid) {
     return $false
 }
 
+function Resolve-LocalHttpHealthAddr([string]$Addr) {
+    if ([string]::IsNullOrWhiteSpace($Addr)) {
+        return ""
+    }
+
+    $trimmed = $Addr.Trim()
+    $port = ""
+    if ($trimmed -match '^\[([^\]]+)\]:(\d+)$') {
+        $hostPart = $Matches[1]
+        $port = $Matches[2]
+    }
+    elseif ($trimmed -match '^([^:]+):(\d+)$') {
+        $hostPart = $Matches[1]
+        $port = $Matches[2]
+    }
+    else {
+        return $trimmed
+    }
+
+    if ($hostPart -in @("0.0.0.0", "::", "[::]", "*", "+")) {
+        return "127.0.0.1:$port"
+    }
+
+    return $trimmed
+}
+
 function Test-HttpHealth([string]$Addr) {
     if ([string]::IsNullOrWhiteSpace($Addr)) {
         return [pscustomobject]@{ ok = $false; detail = "missing addr"; status_code = $null }
     }
 
+    $healthAddr = Resolve-LocalHttpHealthAddr $Addr
+
     try {
-        $response = Invoke-WebRequest -Uri ("http://{0}/health" -f $Addr) -UseBasicParsing -TimeoutSec 3
+        $response = Invoke-WebRequest -Uri ("http://{0}/health" -f $healthAddr) -UseBasicParsing -TimeoutSec 3
         return [pscustomobject]@{
             ok = ($response.StatusCode -eq 200)
-            detail = "HTTP $($response.StatusCode)"
+            detail = "HTTP $($response.StatusCode) via $healthAddr"
             status_code = $response.StatusCode
+            checked_addr = $healthAddr
         }
     }
     catch {
@@ -264,6 +293,7 @@ function Test-HttpHealth([string]$Addr) {
             ok = $false
             detail = $_.Exception.Message
             status_code = $null
+            checked_addr = $healthAddr
         }
     }
 }

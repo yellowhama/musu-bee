@@ -4,8 +4,10 @@
 //! Proves W-1 (reverse relay callback) + W-2 (sender state reconciliation)
 //! actually work end-to-end with NO direct peer path: forward task → relay KV
 //! → drain → execute → reverse callback → drain → finalize. This is the
-//! product thesis "relay works without Tailscale" as an executable regression
-//! guard.
+//! preview relay fallback works without a direct peer path as an executable
+//! regression guard. This is not release-grade relay transport proof; the
+//! preview queue stays `http_store_forward_preview`, non-release-grade, and
+//! non-default data path.
 //!
 //! ## Architecture (plan §A, user-approved)
 //!
@@ -103,9 +105,9 @@ mod mock_cloud {
                 "payload_bytes": self.payload_bytes,
                 "payload_sha256": self.payload_sha256,
                 "status": self.status,
-                "relay_default_data_path": true,
+                "relay_default_data_path": false,
                 "release_grade": false,
-                "transport_kind": "store_forward_queue",
+                "transport_kind": "http_store_forward_preview",
                 "created_at": FAR_FUTURE,
                 "expires_at": FAR_FUTURE,
             });
@@ -235,7 +237,7 @@ mod mock_cloud {
             "owner_scoped": true,
             "relay_control_plane_wired": true,
             "relay_transport_wired": true,
-            "relay_default_data_path": true,
+            "relay_default_data_path": false,
             "policy": "connect_pro_fallback_only",
             "blockers": [],
             "lease": {
@@ -246,7 +248,7 @@ mod mock_cloud {
                 "relay_url": "wss://relay.musu.pro/connect",
                 "route_kind": "relay",
                 "payload_transited_musu_infra": true,
-                "default_data_path": true,
+                "default_data_path": false,
                 "policy": "connect_pro_fallback_only",
                 "created_at": FAR_FUTURE,
                 "expires_at": FAR_FUTURE,
@@ -294,10 +296,10 @@ mod mock_cloud {
             "stored": true,
             "owner_scoped": true,
             "relay_payload_queue_endpoint_wired": true,
-            "relay_default_data_path": true,
+            "relay_default_data_path": false,
             "payload_transit_requires_lease": true,
             "release_grade": false,
-            "release_grade_blockers": [],
+            "release_grade_blockers": ["relay_payload_queue_not_quic_tls_transport"],
             "relay_payload_store_configured": true,
             "relay_payload_store_backend": "mock",
             "relay_payload_store_release_grade": false,
@@ -336,7 +338,7 @@ mod mock_cloud {
             "accepted": true,
             "claimed": claimed,
             "relay_payload_queue_endpoint_wired": true,
-            "relay_default_data_path": true,
+            "relay_default_data_path": false,
             "release_grade": false,
             "relay_payload_store_configured": true,
             "relay_payload_store_backend": "mock",
@@ -369,8 +371,8 @@ mod mock_cloud {
                     "relay_url": "wss://relay.musu.pro/connect",
                     "tunnel_id": p.tunnel_id,
                     "payload_kind": p.payload_kind,
-                    "transport_kind": "store_forward_queue",
-                    "relay_default_data_path": true,
+                    "transport_kind": "http_store_forward_preview",
+                    "relay_default_data_path": false,
                     "release_grade": false,
                     "payload_sha256": p.payload_sha256,
                     "payload_bytes": p.payload_bytes,
@@ -389,7 +391,7 @@ mod mock_cloud {
             "owner_scoped": true,
             "accepted": true,
             "delivered": delivered_record.is_some(),
-            "relay_default_data_path": true,
+            "relay_default_data_path": false,
             "release_grade": false,
             "relay_payload_store_configured": true,
             "relay_payload_store_backend": "mock",

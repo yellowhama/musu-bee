@@ -66,7 +66,7 @@ hardware-gated E2Es.</p>
 <h2>The 3-state model (now on all surfaces)</h2>
 <div class="card">
   <p><span class="dot d-online"></span><b>online</b> — direct probe succeeded (<code>healthy</code>).<br>
-  <span class="dot d-relay"></span><b>relay</b> — direct probe failed but registry heartbeat fresh (≤300s); still targetable over the relay.<br>
+  <span class="dot d-relay"></span><b>relay</b> — direct probe failed but registry heartbeat fresh (≤300s); display-only, not counted online or work-targetable until relay transport is proven.<br>
   <span class="dot d-offline"></span><b>offline</b> — direct probe failed AND no fresh heartbeat.</p>
   <p class="sub">THREE render surfaces (web page / CLI / cockpit shell) derive this from the same
   <code>healthy</code> + <code>reachable_via</code> wire fields. The web side is now a single

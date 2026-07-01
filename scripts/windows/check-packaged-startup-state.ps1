@@ -52,7 +52,10 @@ if (-not (Test-Path -LiteralPath $aliasPath)) {
 
 Write-Step "Querying packaged musu runtime state through the WindowsApps alias"
 $status = Get-PackageStatus -AliasPath $aliasPath
-$pkg = Get-AppxPackage -Name Yellowhama.MUSU -ErrorAction SilentlyContinue | Select-Object -First 1
+$pkg = Get-AppxPackage -Name blossompark.musu -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $pkg) {
+    $pkg = Get-AppxPackage -Name Yellowhama.MUSU -ErrorAction SilentlyContinue | Select-Object -First 1
+}
 $packageFamilyName = if ($pkg) { $pkg.PackageFamilyName } else { $null }
 $applicationId = "MUSU"
 $persisted = Get-PersistedStartupRegistration -PackageFamilyName $packageFamilyName -TaskId ([string]$status.startup_task_id)
@@ -73,7 +76,10 @@ if ($AssertReady) {
         Invoke-PackagedAppActivation -PackageFamilyName $packageFamilyName -ApplicationId $applicationId
         Start-Sleep -Seconds 3
         $status = Get-PackageStatus -AliasPath $aliasPath
-        $pkg = Get-AppxPackage -Name Yellowhama.MUSU -ErrorAction SilentlyContinue | Select-Object -First 1
+        $pkg = Get-AppxPackage -Name blossompark.musu -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $pkg) {
+            $pkg = Get-AppxPackage -Name Yellowhama.MUSU -ErrorAction SilentlyContinue | Select-Object -First 1
+        }
         $packageFamilyName = if ($pkg) { $pkg.PackageFamilyName } else { $null }
         $persisted = Get-PersistedStartupRegistration -PackageFamilyName $packageFamilyName -TaskId ([string]$status.startup_task_id)
         $status | Format-List

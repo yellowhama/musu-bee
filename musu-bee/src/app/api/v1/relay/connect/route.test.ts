@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -17,6 +18,7 @@ const ENV_KEYS = [
   "KV_REST_API_TOKEN",
   "KV_REST_API_URL",
   "MUSU_P2P_CONTROL_TOKEN",
+  "MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS",
   "MUSU_P2P_CONTROL_TOKEN_SHA256",
   "MUSU_P2P_CONTROL_TOKEN_SHA256S",
   "UPSTASH_REDIS_REST_TOKEN",
@@ -27,6 +29,10 @@ const ENV_KEYS = [
   "MUSU_P2P_RELAY_TRANSPORT_WIRED",
   "MUSU_P2P_RELAY_URL",
 ] as const;
+
+function sha256(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
 
 async function loadModule(caseName: string): Promise<Module> {
   return (await import(`./route?case=${caseName}-${Date.now()}`)) as Module;
@@ -165,7 +171,7 @@ test("reports relay connect preflight without claiming payload transport", async
     assert.equal(body.release_grade_transport_required, "quic_tls_1_3");
     assert.equal(body.relay_transport_wired, false);
     assert.equal(body.relay_connect_endpoint_wired, true);
-    assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_endpoint_wired, true);
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_default_data_path, false);
     assert.equal(body.payload_transit_requires_lease, true);
@@ -177,13 +183,13 @@ test("reports relay connect preflight without claiming payload transport", async
     assert.match(body.blockers.join(","), /relay_transport_not_wired/);
     assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
     assert.doesNotMatch(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
-    assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
     assert.doesNotMatch(body.blockers.join(","), /relay_disabled/);
     assert.doesNotMatch(body.blockers.join(","), /relay_url_not_configured/);
   });
 });
 
-test("verifies relay lease but rejects payload transit while payload endpoint is unwired", async () => {
+test("verifies relay lease but rejects payload transit while release tunnel runtime is unwired", async () => {
   await withRelayEnv(async () => {
     enableRelayPolicyEnv();
     const lease = await seedLease();
@@ -213,11 +219,11 @@ test("verifies relay lease but rejects payload transit while payload endpoint is
 
     assert.equal(body.ok, false);
     assert.equal(body.method, "POST");
-    assert.equal(body.error, "relay_payload_endpoint_not_wired");
+    assert.equal(body.error, "relay_transport_not_wired");
     assert.equal(body.relay_connect_accepted, false);
     assert.equal(body.lease_verified, true);
     assert.equal(body.relay_connect_endpoint_wired, true);
-    assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_endpoint_wired, true);
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_transport_wired, false);
     assert.equal(body.relay_control_plane_wired, true);
@@ -225,7 +231,40 @@ test("verifies relay lease but rejects payload transit while payload endpoint is
     assert.equal(body.relay_transport_proof, undefined);
     assert.doesNotMatch(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
     assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
-    assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
+  });
+});
+
+test("rejects relay connect preflight when bearer token is bound to another source node", async () => {
+  await withRelayEnv(async () => {
+    enableRelayPolicyEnv();
+    process.env.MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS = `sha256:${sha256("test-token")}=source-a`;
+    const { POST } = await loadModule("post-source-node-auth-binding");
+    const res = await POST(connectReq("POST", "test-token", {
+      lease_id: "lease-1",
+      session_id: "session-1",
+      source_node_id: "source-z",
+      target_node_id: "target-b",
+    }));
+    assert.equal(res.status, 403);
+    const body = (await res.json()) as {
+      ok: boolean;
+      relay_connect_accepted: boolean;
+      payload_transported: boolean;
+      lease_verified: boolean;
+      source_node_auth_bound: boolean;
+      error: string;
+      bound_source_node_id: string;
+      declared_source_node_id: string;
+    };
+    assert.equal(body.ok, false);
+    assert.equal(body.relay_connect_accepted, false);
+    assert.equal(body.payload_transported, false);
+    assert.equal(body.lease_verified, false);
+    assert.equal(body.source_node_auth_bound, true);
+    assert.equal(body.error, "source_node_id_auth_mismatch");
+    assert.equal(body.bound_source_node_id, "source-a");
+    assert.equal(body.declared_source_node_id, "source-z");
   });
 });
 
@@ -302,10 +341,10 @@ test("returns relay connect status fields for invalid JSON", async () => {
     assert.equal(body.payload_transported, false);
     assert.equal(body.lease_verified, false);
     assert.equal(body.relay_connect_endpoint_wired, true);
-    assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_endpoint_wired, true);
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_transport_wired, false);
-    assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
   });
 });
 
@@ -338,9 +377,9 @@ test("rejects relay connect payload bytes before lease lookup", async () => {
     assert.equal(body.relay_connect_accepted, false);
     assert.equal(body.payload_transported, false);
     assert.deepEqual(body.forbidden_fields, ["payload_base64"]);
-    assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_endpoint_wired, true);
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
-    assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
   });
 });
 
@@ -375,7 +414,7 @@ test("rejects unknown relay connect preflight fields", async () => {
     assert.equal(body.relay_connect_accepted, false);
     assert.equal(body.payload_transported, false);
     assert.equal(body.lease_verified, false);
-    assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_endpoint_wired, true);
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.match(JSON.stringify(body.issues), /unexpected_release_field/);
   });

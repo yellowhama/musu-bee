@@ -3,8 +3,10 @@ import { afterEach, beforeEach, test } from "node:test";
 
 import {
   __setNodeRegistryKvClientForTest,
+  deleteNodeByName,
   isStoredNode,
   listNodes,
+  nodeRegistryHeartbeatTtlSeconds,
   nodeRegistryId,
   publicRegistryNode,
   registerNode,
@@ -89,6 +91,14 @@ function fakeNodeRegistryKv() {
           return JSON.stringify({ ok: true, node }) as T;
         }
 
+        if (script.includes("musu_node_registry_delete_v1")) {
+          const nodeName = args[0]!;
+          const current = readArray(key);
+          const next = current.filter((item) => item.node_name !== nodeName);
+          store.set(key, JSON.stringify(next));
+          return JSON.stringify({ ok: true, deleted: next.length !== current.length }) as T;
+        }
+
         throw new Error(`unexpected script: ${script.slice(0, 64)}`);
       },
     },
@@ -108,6 +118,7 @@ afterEach(() => {
   __setNodeRegistryKvClientForTest(null);
   delete process.env.KV_REST_API_URL;
   delete process.env.KV_REST_API_TOKEN;
+  delete process.env.MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC;
 });
 
 test("register then list shows the node with RegistryNode shape", async () => {
@@ -261,6 +272,138 @@ test("getOwnerNodes/listNodes scope by owner_key (KV mispartition can't leak)", 
   );
 });
 
+test("listNodes hides legacy rows with unusable public_url", async () => {
+  const fake = fakeNodeRegistryKv();
+  __setNodeRegistryKvClientForTest(fake.client);
+
+  const valid = await registerNode({
+    owner_key: OWNER_A,
+    node_name: "alpha",
+    public_url: "https://alpha.example.com",
+  });
+  const legacyLoopback: StoredNode = {
+    ...valid,
+    id: nodeRegistryId(OWNER_A, "legacy-loopback"),
+    node_name: "legacy-loopback",
+    public_url: "http://[::ffff:7f00:1]:8070",
+    last_seen: new Date().toISOString(),
+    expires_at: new Date(Date.now() + 60_000).toISOString(),
+  };
+  fake.store.set(
+    "musu:node-registry:v1:" + encodeURIComponent(OWNER_A),
+    JSON.stringify([legacyLoopback, valid])
+  );
+
+  const nodes = await listNodes(OWNER_A);
+  assert.equal(nodes.length, 1);
+  assert.equal(nodes[0]!.node_name, "alpha");
+  assert.ok(!nodes.some((node) => node.node_name === "legacy-loopback"));
+});
+
+test("listNodes hides rows whose last_seen exceeds the heartbeat presence TTL", async () => {
+  const fake = fakeNodeRegistryKv();
+  __setNodeRegistryKvClientForTest(fake.client);
+  process.env.MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC = "60";
+
+  await registerNode({
+    owner_key: OWNER_A,
+    node_name: "alpha",
+    public_url: "https://alpha.example.com",
+  });
+
+  const ownerAKey = "musu:node-registry:v1:" + encodeURIComponent(OWNER_A);
+  const raw = JSON.parse(fake.store.get(ownerAKey) ?? "[]") as StoredNode[];
+  const stored = raw[0]!;
+  fake.store.set(
+    ownerAKey,
+    JSON.stringify([
+      {
+        ...stored,
+        last_seen: new Date(Date.now() - 120_000).toISOString(),
+        expires_at: new Date(Date.now() + 60 * 60_000).toISOString(),
+      },
+    ])
+  );
+
+  const nodes = await listNodes(OWNER_A);
+  assert.equal(nodes.length, 0, "stale heartbeat row is hidden from current presence");
+  assert.equal(
+    await deleteNodeByName(OWNER_A, "alpha"),
+    true,
+    "hidden stale rows remain operator-cleanupable by node_name"
+  );
+});
+
+test("nodeRegistryHeartbeatTtlSeconds defaults and clamps the presence window", () => {
+  delete process.env.MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC;
+  assert.equal(nodeRegistryHeartbeatTtlSeconds(), 15 * 60);
+
+  process.env.MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC = "1";
+  assert.equal(nodeRegistryHeartbeatTtlSeconds(), 60);
+
+  process.env.MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC = String(48 * 60 * 60);
+  assert.equal(nodeRegistryHeartbeatTtlSeconds(), 24 * 60 * 60);
+});
+
+test("deleteNodeByName removes a legacy unusable row inside owner scope", async () => {
+  const fake = fakeNodeRegistryKv();
+  __setNodeRegistryKvClientForTest(fake.client);
+
+  const valid = await registerNode({
+    owner_key: OWNER_A,
+    node_name: "alpha",
+    public_url: "https://alpha.example.com",
+  });
+  const legacyLoopback: StoredNode = {
+    ...valid,
+    id: nodeRegistryId(OWNER_A, "legacy-loopback"),
+    node_name: "legacy-loopback",
+    public_url: "http://127.0.0.1:8070",
+    last_seen: new Date().toISOString(),
+    expires_at: new Date(Date.now() + 60_000).toISOString(),
+  };
+  fake.store.set(
+    "musu:node-registry:v1:" + encodeURIComponent(OWNER_A),
+    JSON.stringify([legacyLoopback, valid])
+  );
+
+  assert.equal(await deleteNodeByName(OWNER_A, "legacy-loopback"), true);
+  assert.equal(await deleteNodeByName(OWNER_A, "legacy-loopback"), false);
+
+  const raw = JSON.parse(
+    fake.store.get("musu:node-registry:v1:" + encodeURIComponent(OWNER_A)) ?? "[]"
+  ) as StoredNode[];
+  assert.deepEqual(
+    raw.map((node) => node.node_name),
+    ["alpha"],
+    "delete can remove legacy rows that listNodes would hide"
+  );
+});
+
+test("deleteNodeByName cannot delete another owner's same-named row", async () => {
+  const fake = fakeNodeRegistryKv();
+  __setNodeRegistryKvClientForTest(fake.client);
+
+  await registerNode({
+    owner_key: OWNER_A,
+    node_name: "shared",
+    public_url: "https://a.example.com",
+  });
+  await registerNode({
+    owner_key: OWNER_B,
+    node_name: "shared",
+    public_url: "https://b.example.com",
+  });
+
+  assert.equal(await deleteNodeByName(OWNER_A, "shared"), true);
+
+  const aNodes = await listNodes(OWNER_A);
+  const bNodes = await listNodes(OWNER_B);
+  assert.equal(aNodes.length, 0);
+  assert.equal(bNodes.length, 1);
+  assert.equal(bNodes[0]!.node_name, "shared");
+});
+
 test("two different owner_keys are isolated", async () => {
   const fake = fakeNodeRegistryKv();
   __setNodeRegistryKvClientForTest(fake.client);
@@ -350,4 +493,28 @@ test("missing node_name or public_url throws", async () => {
     registerNode({ owner_key: OWNER_A, node_name: "alpha", public_url: "" }),
     /public_url_required/
   );
+});
+
+test("registerNode rejects public_url that cannot identify a remote peer", async () => {
+  const fake = fakeNodeRegistryKv();
+  __setNodeRegistryKvClientForTest(fake.client);
+
+  for (const public_url of [
+    "ws://192.168.1.10:8070",
+    "http://127.0.0.1:8070",
+    "http://127.1:8070",
+    "http://localhost:8070",
+    "http://0.0.0.0:8070",
+    "http://[::1]:8070",
+    "http://[::]:8070",
+    "http://[::ffff:127.0.0.1]:8070",
+    "http://[::ffff:0.0.0.0]:8070",
+    "http://192.168.1.10:0",
+  ]) {
+    await assert.rejects(
+      registerNode({ owner_key: OWNER_A, node_name: "alpha", public_url }),
+      /public_url_invalid/,
+      `${public_url} must not be stored`
+    );
+  }
 });

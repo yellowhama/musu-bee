@@ -236,7 +236,7 @@ try {
         Add-CheckFromCondition "readme second pc return archive" ($readme -like "*.local-build\second-pc-return\*.zip*") "README includes second-PC return archive handoff" "README missing second-PC return archive handoff"
         Add-CheckFromCondition "readme second pc importer" ($readme -like "*import-second-pc-return.ps1*" -and $readme -like "*-RecordMsixInstall*") "README includes second-PC return importer" "README missing second-PC return importer"
         Add-CheckFromCondition "readme complete runner msix params" ($readme -like "*complete-final-operator-gates.ps1*" -and $readme -like "*-MsixInstallEvidencePath*") "README final command can record MSIX install evidence" "README final command does not include MSIX install evidence parameters"
-        Add-CheckFromCondition "readme complete runner store params" ($readme -like "*complete-final-operator-gates.ps1*" -and $readme -like "*-StoreProductNameReservedAt*" -and $readme -like "*-StoreSubmissionId*") "README final command can record Store release evidence with product name reservation timestamp" "README final command does not include Store release evidence parameters"
+        Add-CheckFromCondition "readme complete runner store params" ($readme -like "*complete-final-operator-gates.ps1*" -and $readme -like "*-StoreProductNameReservedAt*" -and $readme -like "*-StoreSubmissionId*" -and $readme -like "*-StoreSignedInstallEvidencePath*" -and $readme -like "*-StoreDesktopEntrypointEvidencePath*" -and $readme -like "*-StoreInstallObservedAt*" -and $readme -like "*-StoreLaunchObservedAt*") "README final command can record Store release evidence with product name reservation timestamp and Store-signed install/launch proof" "README final command does not include Store release evidence parameters"
         Add-CheckFromCondition "readme complete runner fail gate" ($readme -like "*complete-final-operator-gates.ps1*" -and $readme -like "*-FailOnNotReady*") "README final command fails when final go/no-go is not ready" "README final command does not include -FailOnNotReady"
         Add-CheckFromCondition "readme go no-go gate" ($readme -like "*write-release-go-no-go.ps1*") "README includes final go/no-go command" "README missing final go/no-go command"
     }
@@ -586,7 +586,7 @@ try {
                     "VERSION",
                     "SHA256SUMS.txt",
                     ".local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix",
-                    ".local-build\msix\output\Yellowhama.MUSU_cert.cer",
+                    ".local-build\msix\output\blossompark.musu_cert.cer",
                     "scripts\windows\install-and-verify-msix.ps1",
                     "scripts\windows\capture-msix-install-evidence.ps1",
                     "scripts\windows\measure-musu-idle-cpu.ps1",

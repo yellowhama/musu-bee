@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -18,6 +19,7 @@ const ENV_KEYS = [
   "UPSTASH_REDIS_REST_TOKEN",
   "UPSTASH_REDIS_REST_URL",
   "MUSU_P2P_CONTROL_TOKEN",
+  "MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS",
   "MUSU_P2P_CONTROL_TOKEN_SHA256",
   "MUSU_P2P_CONTROL_TOKEN_SHA256S",
   "MUSU_P2P_RENDEZVOUS_STORE_PATH",
@@ -25,6 +27,10 @@ const ENV_KEYS = [
   "MUSU_ROUTE_EVIDENCE_TOKEN",
   "MUSU_TOKEN",
 ] as const;
+
+function sha256(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
 
 function req(body: unknown, token: string | null = "test-token"): NextRequest {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -179,6 +185,37 @@ test("POST creates a room-scoped rendezvous and preserves web context", async ()
       work_order_id: "wo-room-1",
       origin: "musu.pro",
     });
+  });
+});
+
+test("POST rejects room rendezvous creation when bearer token is bound to another source node", async () => {
+  await withRoomRendezvousEnv(async ({ POST }) => {
+    process.env.MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS = `sha256:${sha256("test-token")}=pc-a`;
+
+    const res = await POST(
+      req({
+        source_node_id: "pc-c",
+        target_node_id: "pc-b",
+      }),
+      ctx("release-room")
+    );
+    assert.equal(res.status, 403);
+    const body = (await res.json()) as {
+      ok: boolean;
+      accepted: boolean;
+      room_id: string;
+      source_node_auth_bound: boolean;
+      error: string;
+      bound_source_node_id: string;
+      declared_source_node_id: string;
+    };
+    assert.equal(body.ok, false);
+    assert.equal(body.accepted, false);
+    assert.equal(body.room_id, "release-room");
+    assert.equal(body.source_node_auth_bound, true);
+    assert.equal(body.error, "source_node_id_auth_mismatch");
+    assert.equal(body.bound_source_node_id, "pc-a");
+    assert.equal(body.declared_source_node_id, "pc-c");
   });
 });
 

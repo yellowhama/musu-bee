@@ -324,11 +324,27 @@ impl TaskRunnerHandle {
     /// Cancel signal for a specific task. Returns true if found+signalled.
     pub fn cancel(&self, task_id: &str) -> bool {
         if let Some(entry) = self.inner.registry.get(task_id) {
+            // `notify_waiters` only wakes tasks that are already parked on
+            // `notified()`. Cancellation must behave like a latched signal:
+            // if it arrives while an adapter is processing stdout, the next
+            // cancel check still has to observe it.
+            entry.cancel.notify_one();
             entry.cancel.notify_waiters();
             true
         } else {
             false
         }
+    }
+
+    /// Cancel a live task and immediately close its DB row if it is still
+    /// pending/running. The runner will still observe the latched cancel and
+    /// perform normal cleanup, but the fleet/read APIs no longer report the
+    /// task as active if the adapter wedges before finalization.
+    pub async fn cancel_and_terminalize(&self, task_id: &str) -> Option<bool> {
+        if !self.cancel(task_id) {
+            return None;
+        }
+        Some(mark_cancelled_by_operator(&self.inner, task_id).await)
     }
 
     /// Spawn a task. Returns immediately (Q1 spawn-then-track) once the
@@ -446,9 +462,149 @@ fn fire_callback(
                 }
             }
             _ => {
-                tracing::warn!(
-                    "no reverse-relay context for failed callback; result undelivered"
-                );
+                tracing::warn!("no reverse-relay context for failed callback; result undelivered");
+            }
+        }
+    });
+}
+
+#[derive(Debug, Clone)]
+struct KnowledgeIngestConfig {
+    url: String,
+    token: String,
+    tenant_id: String,
+    workspace_id: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+struct KnowledgeSourcePayload {
+    tenant_id: String,
+    workspace_id: String,
+    title: String,
+    content: String,
+}
+
+fn knowledge_ingest_config() -> Option<KnowledgeIngestConfig> {
+    let enabled = std::env::var("MUSU_KNOWLEDGE_INGEST")
+        .map(|value| matches!(value.trim(), "1" | "true" | "TRUE" | "yes" | "YES"))
+        .unwrap_or(false);
+    let url = std::env::var("MUSU_KNOWLEDGE_INGEST_URL")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "http://127.0.0.1:8080/v1/sources".to_string());
+    let token = std::env::var("MUSU_KNOWLEDGE_TOKEN")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .or_else(|| {
+            let path = std::env::var("MUSU_KNOWLEDGE_TOKEN_FILE").ok()?;
+            std::fs::read_to_string(path)
+                .ok()
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty())
+        });
+
+    if !enabled && token.is_none() && std::env::var("MUSU_KNOWLEDGE_INGEST_URL").is_err() {
+        return None;
+    }
+
+    let Some(token) = token else {
+        tracing::warn!("MUSU knowledge ingest requested but no token is configured");
+        return None;
+    };
+
+    Some(KnowledgeIngestConfig {
+        url,
+        token,
+        tenant_id: std::env::var("MUSU_KNOWLEDGE_TENANT")
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| "local".to_string()),
+        workspace_id: std::env::var("MUSU_KNOWLEDGE_WORKSPACE")
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| "musu".to_string()),
+    })
+}
+
+fn build_knowledge_task_source(
+    spec: &TaskSpec,
+    status: TaskStatus,
+    output: Option<&str>,
+    error: Option<&str>,
+    exit_code: Option<i32>,
+    duration_sec: Option<f64>,
+    tenant_id: String,
+    workspace_id: String,
+) -> KnowledgeSourcePayload {
+    let title = format!(
+        "MUSU task {} {}",
+        spec.task_id,
+        truncate_chars(&spec.prompt.replace('\n', " "), 72)
+    );
+    let content = format!(
+        "# MUSU task {}\n\n- status: {}\n- channel: {}\n- sender_id: {}\n- company_id: {}\n- exit_code: {}\n- duration_sec: {}\n\n## Prompt\n{}\n\n## Output\n{}\n\n## Error\n{}\n",
+        spec.task_id,
+        status.as_str(),
+        spec.channel,
+        spec.sender_id,
+        spec.company_id.as_deref().unwrap_or(""),
+        exit_code.map(|value| value.to_string()).unwrap_or_default(),
+        duration_sec.map(|value| format!("{value:.3}")).unwrap_or_default(),
+        spec.prompt,
+        output.unwrap_or(""),
+        error.unwrap_or("")
+    );
+    KnowledgeSourcePayload {
+        tenant_id,
+        workspace_id,
+        title,
+        content,
+    }
+}
+
+fn truncate_chars(value: &str, max_chars: usize) -> String {
+    value.chars().take(max_chars).collect()
+}
+
+fn dispatch_knowledge_ingest(
+    spec: &TaskSpec,
+    status: TaskStatus,
+    output: Option<&str>,
+    error: Option<&str>,
+    exit_code: Option<i32>,
+    duration_sec: Option<f64>,
+) {
+    let Some(config) = knowledge_ingest_config() else {
+        return;
+    };
+    let payload = build_knowledge_task_source(
+        spec,
+        status,
+        output,
+        error,
+        exit_code,
+        duration_sec,
+        config.tenant_id,
+        config.workspace_id,
+    );
+    tokio::spawn(async move {
+        let client = reqwest::Client::new();
+        match client
+            .post(&config.url)
+            .bearer_auth(config.token)
+            .json(&payload)
+            .timeout(std::time::Duration::from_secs(5))
+            .send()
+            .await
+        {
+            Ok(resp) if resp.status().is_success() => {
+                tracing::debug!(url = %config.url, "task result ingested into MUSU knowledge sidecar");
+            }
+            Ok(resp) => {
+                tracing::warn!(url = %config.url, status = %resp.status(), "MUSU knowledge ingest rejected task result");
+            }
+            Err(err) => {
+                tracing::warn!(url = %config.url, err = %err, "MUSU knowledge ingest failed");
             }
         }
     });
@@ -997,6 +1153,50 @@ async fn update_status_started(pool: &SqlitePool, task_id: &str, started_at: i64
     .save();
 }
 
+async fn mark_cancelled_by_operator(inner: &Inner, task_id: &str) -> bool {
+    let now = chrono::Utc::now().timestamp();
+    let result = sqlx::query(
+        "UPDATE route_executions
+            SET status = 'cancelled',
+                error = 'cancel signal delivered',
+                updated_at = ?
+          WHERE task_id = ?
+            AND status IN ('pending', 'running')",
+    )
+    .bind(now)
+    .bind(task_id)
+    .execute(&inner.pool)
+    .await;
+
+    let terminalized = match result {
+        Ok(res) => res.rows_affected() > 0,
+        Err(e) => {
+            tracing::warn!(error = %e, task_id, "cancel terminalize update failed");
+            false
+        }
+    };
+
+    if terminalized {
+        TaskUpdate {
+            task_id,
+            status: "cancelled",
+            error: Some("cancel signal delivered"),
+            ..Default::default()
+        }
+        .save();
+        inner
+            .sse
+            .publish(TaskEvent::update(task_id, "cancelled").with_result(
+                None,
+                Some("cancel signal delivered"),
+                None,
+                None,
+            ));
+    }
+
+    terminalized
+}
+
 #[allow(clippy::too_many_arguments)]
 async fn finalize(
     inner: &Inner,
@@ -1057,6 +1257,10 @@ async fn finalize(
 
     // V27-F1: send result callback if this was a forwarded task.
     fire_callback(spec, status, output, error, exit_code, duration_sec);
+
+    // Knowledge chip bonding: terminal task results are copied into the local
+    // Musu Brain sidecar when the desktop lifecycle supplies its token/env.
+    dispatch_knowledge_ingest(spec, status, output, error, exit_code, duration_sec);
 
     // GC: If this was a forwarded task with a callback, clean up the temporary workspace
     if spec.callback_url.is_some() {
@@ -1643,6 +1847,46 @@ printf '{"type":"result","result":"ok","is_error":false}\n'"#
     }
 
     #[tokio::test]
+    async fn cancel_terminalizes_db_row_immediately() {
+        // This covers the operational stale-running risk: DELETE can succeed
+        // even if the live task never reaches its own finalizer.
+        let body = if cfg!(target_os = "windows") {
+            r#"ping -n 31 127.0.0.1 > NUL
+echo {"type":"result","result":"ok","is_error":false}"#
+        } else {
+            r#"sleep 30
+printf '{"type":"result","result":"ok","is_error":false}\n'"#
+        };
+        let (runner, pool, _tmp) = runner_with_fake_claude(body).await;
+        let task_id = "t-cancel-terminalize".to_string();
+        insert_row(&pool, &task_id, "pending").await;
+        runner
+            .spawn_task(TaskSpec {
+                task_id: task_id.clone(),
+                company_id: None,
+                channel: "ch-cancel-terminalize".into(),
+                sender_id: "s".into(),
+                prompt: "hello".into(),
+                expected_output: None,
+                cwd: std::env::temp_dir(),
+                model: None,
+                timeout_sec: Some(120),
+                adapter_type: "claude".into(),
+                callback_url: None,
+                source_task_id: None,
+                callback_token: None,
+                callback_target_node_id: None,
+                callback_session_id: None,
+            })
+            .await
+            .unwrap();
+
+        assert!(wait_status(&pool, &task_id, "running", Duration::from_secs(5)).await);
+        assert_eq!(runner.cancel_and_terminalize(&task_id).await, Some(true));
+        assert_eq!(row_status(&pool, &task_id).await, "cancelled");
+    }
+
+    #[tokio::test]
     async fn global_concurrency_cap_blocks_then_admits() {
         // Force tight cap: 1 global, 1 per-channel.
         std::env::set_var("MUSU_TASK_MAX_GLOBAL", "1");
@@ -1774,5 +2018,46 @@ printf '{"type":"result","result":"ok","is_error":false}\n'"#
             baseline,
             "registry must return to baseline after all tasks finish"
         );
+    }
+
+    #[test]
+    fn knowledge_task_source_uses_scoped_markdown_payload() {
+        let spec = TaskSpec {
+            task_id: "task-1".to_string(),
+            company_id: Some("company-1".to_string()),
+            channel: "ceo".to_string(),
+            sender_id: "hugh".to_string(),
+            prompt: "summarize current fleet work".to_string(),
+            expected_output: None,
+            cwd: std::env::temp_dir(),
+            model: None,
+            timeout_sec: None,
+            adapter_type: "claude".to_string(),
+            callback_url: None,
+            source_task_id: None,
+            callback_token: None,
+            callback_target_node_id: None,
+            callback_session_id: None,
+        };
+
+        let payload = build_knowledge_task_source(
+            &spec,
+            TaskStatus::Done,
+            Some("done"),
+            None,
+            Some(0),
+            Some(1.25),
+            "local".to_string(),
+            "musu".to_string(),
+        );
+
+        assert_eq!(payload.tenant_id, "local");
+        assert_eq!(payload.workspace_id, "musu");
+        assert!(payload.title.contains("task-1"));
+        assert!(payload.content.contains("- status: done"));
+        assert!(payload.content.contains("## Prompt"));
+        assert!(payload.content.contains("summarize current fleet work"));
+        assert!(payload.content.contains("## Output"));
+        assert!(payload.content.contains("done"));
     }
 }

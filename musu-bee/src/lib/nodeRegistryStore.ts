@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs";
+import { isIP } from "node:net";
 import os from "node:os";
 import path from "node:path";
 
@@ -80,6 +81,7 @@ type NodeRegistryKvClient = KvScriptClient & {
 
 const KV_NODE_REGISTRY_PREFIX = "musu:node-registry:v1:";
 const DEFAULT_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days, refreshed on each register
+const DEFAULT_HEARTBEAT_TTL_SECONDS = 15 * 60; // current-presence window
 const DEFAULT_MAX_NODES_PER_OWNER = 1000;
 const MAX_NODE_NAME_CHARS = 128;
 const MAX_URL_CHARS = 512;
@@ -106,9 +108,10 @@ async function kvGet<T>(key: string): Promise<T | null> {
 // Atomic Lua mirroring roomWorkOrderStore: Redis runs each EVAL single-threaded,
 // so concurrent registers for the same owner serialize and cannot lose updates
 // or duplicate a node_name. Storage is one JSON-encoded array per owner under
-// ownerKey() with an EX expiry. Freshness uses the same `now <= expires_at`
+// ownerKey() with an EX expiry. Retention uses the same `now <= expires_at`
 // string comparison as nodeFresh(); ISO-8601 UTC `Z` timestamps are fixed-width
-// and compare correctly as strings.
+// and compare correctly as strings. Current presence is stricter: listNodes()
+// also gates on last_seen via nodeHeartbeatFresh().
 //
 // UPSERT: drop any existing row with the same node_name, prepend the new row,
 // keep only still-fresh rows up to max_records, and refresh the key TTL.
@@ -170,6 +173,46 @@ redis.call("SET", key, cjson.encode(next_nodes), "EX", ex_seconds)
 return cjson.encode({ ok = true, node = node })
 `;
 
+const KV_DELETE_NODE_SCRIPT = `
+-- musu_node_registry_delete_v1
+local key = KEYS[1]
+local node_name = ARGV[1]
+
+local raw = redis.call("GET", key)
+if not raw then
+  return cjson.encode({ ok = true, deleted = false })
+end
+
+local current = {}
+local ok, decoded = pcall(cjson.decode, raw)
+if ok and type(decoded) == "table" then
+  current = decoded
+end
+
+local next_nodes = {}
+local deleted = false
+for _, item in ipairs(current) do
+  if type(item) == "table" and item.node_name == node_name then
+    deleted = true
+  else
+    table.insert(next_nodes, item)
+  end
+end
+
+if #next_nodes == 0 then
+  redis.call("DEL", key)
+else
+  local ttl = redis.call("TTL", key)
+  if ttl and ttl > 0 then
+    redis.call("SET", key, cjson.encode(next_nodes), "EX", ttl)
+  else
+    redis.call("SET", key, cjson.encode(next_nodes))
+  end
+end
+
+return cjson.encode({ ok = true, deleted = deleted })
+`;
+
 function shouldUseKv(): boolean {
   ensureP2pKvRestEnvAliases();
   return hasP2pKvCredentials();
@@ -206,6 +249,18 @@ export function nodeRegistryTtlSeconds(): number {
   return Math.min(Math.max(parsed, 60), 30 * 24 * 60 * 60);
 }
 
+export function nodeRegistryHeartbeatTtlSeconds(): number {
+  const parsed = Number.parseInt(
+    process.env.MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC ?? "",
+    10
+  );
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_HEARTBEAT_TTL_SECONDS;
+  }
+  // Floor 60s, ceil 24h. This is presence freshness, not storage retention.
+  return Math.min(Math.max(parsed, 60), 24 * 60 * 60);
+}
+
 function maxNodesPerOwner(): number {
   const parsed = Number.parseInt(process.env.MUSU_NODE_REGISTRY_MAX_RECORDS ?? "", 10);
   if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -240,6 +295,94 @@ export function normalizePublicUrl(value: unknown): string | null {
     return null;
   }
   return Array.from(trimmed).slice(0, MAX_URL_CHARS).join("");
+}
+
+export function registryPublicUrlIssue(value: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return "public_url must be a valid URL";
+  }
+
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    return "public_url must use http:// or https://";
+  }
+  if (url.port === "0") {
+    return "public_url port must not be 0";
+  }
+  if (!isUsableRemoteHost(url.hostname)) {
+    return "public_url host must be reachable by other PCs, not loopback/wildcard";
+  }
+  return null;
+}
+
+function isUsableRemoteHost(host: string): boolean {
+  const normalized = host.trim().replace(/^\[/, "").replace(/\]$/, "").replace(/\.$/, "");
+  if (!normalized || normalized.toLowerCase() === "localhost") {
+    return false;
+  }
+
+  const ipVersion = isIP(normalized);
+  if (ipVersion === 4) {
+    return isUsableIpv4Host(normalized);
+  }
+  if (ipVersion === 6) {
+    const mappedIpv4 = ipv4MappedHost(normalized);
+    if (mappedIpv4) {
+      return isUsableIpv4Host(mappedIpv4);
+    }
+    const lower = normalized.toLowerCase();
+    return (
+      lower !== "::" &&
+      lower !== "::1" &&
+      lower !== "0:0:0:0:0:0:0:0" &&
+      lower !== "0:0:0:0:0:0:0:1"
+    );
+  }
+
+  return true;
+}
+
+function isUsableIpv4Host(host: string): boolean {
+  const octets = host.split(".").map((part) => Number.parseInt(part, 10));
+  return octets.length === 4 && octets[0] !== 0 && octets[0] !== 127;
+}
+
+function ipv4MappedHost(host: string): string | null {
+  const lower = host.toLowerCase();
+  const prefix = "::ffff:";
+  if (!lower.startsWith(prefix)) {
+    return null;
+  }
+
+  const suffix = lower.slice(prefix.length);
+  if (isIP(suffix) === 4) {
+    return suffix;
+  }
+
+  const parts = suffix.split(":");
+  if (parts.length !== 2) {
+    return null;
+  }
+  const high = Number.parseInt(parts[0]!, 16);
+  const low = Number.parseInt(parts[1]!, 16);
+  if (
+    !Number.isInteger(high) ||
+    !Number.isInteger(low) ||
+    high < 0 ||
+    high > 0xffff ||
+    low < 0 ||
+    low > 0xffff
+  ) {
+    return null;
+  }
+  return [
+    (high >> 8) & 0xff,
+    high & 0xff,
+    (low >> 8) & 0xff,
+    low & 0xff,
+  ].join(".");
 }
 
 function normalizeOptionalField(value: unknown): string | null {
@@ -329,6 +472,23 @@ export function isStoredNode(value: unknown): value is StoredNode {
 function nodeFresh(node: StoredNode): boolean {
   const millis = Date.parse(node.expires_at);
   return Number.isFinite(millis) && millis >= Date.now();
+}
+
+function nodeHeartbeatFresh(node: StoredNode): boolean {
+  const millis = Date.parse(node.last_seen);
+  if (!Number.isFinite(millis)) {
+    return false;
+  }
+  const now = Date.now();
+  const maxFutureSkewMs = 60_000;
+  return (
+    millis <= now + maxFutureSkewMs &&
+    now - millis <= nodeRegistryHeartbeatTtlSeconds() * 1000
+  );
+}
+
+function nodeHasUsablePublicUrl(node: StoredNode): boolean {
+  return registryPublicUrlIssue(node.public_url) === null;
 }
 
 export function publicRegistryNode(node: StoredNode): RegistryNode {
@@ -435,6 +595,10 @@ export function buildStoredNode(input: RegisterNodeInput, existing?: StoredNode 
   if (!publicUrl) {
     throw new Error("public_url_required");
   }
+  const publicUrlIssue = registryPublicUrlIssue(publicUrl);
+  if (publicUrlIssue) {
+    throw new Error(`public_url_invalid: ${publicUrlIssue}`);
+  }
   const ttl = nodeRegistryTtlSeconds();
   const now = new Date();
   const nowIso = now.toISOString();
@@ -490,7 +654,9 @@ export async function registerNode(input: RegisterNodeInput): Promise<StoredNode
 
   return withLocalLock(async () => {
     const state = fileGet();
-    const current = (state.nodes_by_owner[input.owner_key] ?? []).filter(nodeFresh);
+    const current = (state.nodes_by_owner[input.owner_key] ?? [])
+      .filter(nodeFresh)
+      .filter(nodeHasUsablePublicUrl);
     const existing = current.find(
       (node) => node.node_name === normalizeNodeName(input.node_name)
     );
@@ -504,6 +670,42 @@ export async function registerNode(input: RegisterNodeInput): Promise<StoredNode
       },
     });
     return node;
+  });
+}
+
+export async function deleteNodeByName(owner: string, nodeNameValue: unknown): Promise<boolean> {
+  assertStoreConfigured();
+
+  const nodeName = normalizeNodeName(nodeNameValue);
+  if (!nodeName) {
+    throw new Error("node_name_required");
+  }
+
+  if (shouldUseKv()) {
+    const result = await kvEvalJson<{ ok: true; deleted?: unknown }>(
+      KV_DELETE_NODE_SCRIPT,
+      [ownerKey(owner)],
+      [nodeName]
+    );
+    return result.deleted === true;
+  }
+
+  return withLocalLock(async () => {
+    const state = fileGet();
+    const current = state.nodes_by_owner[owner] ?? [];
+    const next = current.filter((node) => node.node_name !== nodeName);
+    const deleted = next.length !== current.length;
+    if (!deleted) {
+      return false;
+    }
+    fileSet({
+      schema: "musu.node_registry_store.v1",
+      nodes_by_owner: {
+        ...state.nodes_by_owner,
+        [owner]: next,
+      },
+    });
+    return true;
   });
 }
 
@@ -533,5 +735,7 @@ export async function listNodes(owner: string): Promise<StoredNode[]> {
   assertStoreConfigured();
   return (await getOwnerNodes(owner))
     .filter((node) => node.owner_key === owner)
-    .filter(nodeFresh);
+    .filter(nodeFresh)
+    .filter(nodeHeartbeatFresh)
+    .filter(nodeHasUsablePublicUrl);
 }

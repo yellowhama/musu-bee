@@ -23,6 +23,21 @@ const APPINSTALLER_URL: &str =
 /// that waits for cockpit exit before installing. See `check_for_updates`.
 const DESKTOP_MSIX_URL: &str =
     "https://github.com/yellowhama/musu-bee/releases/download/desktop-latest/musu-desktop-x64.msix";
+const KNOWLEDGE_BASE_URL: &str = "http://127.0.0.1:8080";
+const KNOWLEDGE_ADDR: &str = "127.0.0.1:8080";
+const KNOWLEDGE_TENANT_ID: &str = "local";
+const KNOWLEDGE_WORKSPACE_ID: &str = "musu";
+const KNOWLEDGE_ROOT_ENV: &str = "MUSU_KNOWLEDGE_ROOT";
+const BRAIN_ROOT_ENV: &str = "MUSUBRAIN_ROOT";
+const KNOWLEDGE_AUTOSTART_STATUS_SCHEMA: &str = "musu.knowledge_sidecar_autostart.v1";
+const KNOWLEDGE_AUTOSTART_STATUS_FILE: &str = "sidecar-autostart-status.json";
+const KNOWLEDGE_AUTOSTART_STDOUT_LOG_FILE: &str = "sidecar-stdout.log";
+const KNOWLEDGE_AUTOSTART_STDERR_LOG_FILE: &str = "sidecar-stderr.log";
+const KNOWLEDGE_AUTOSTART_LOCK_FILE: &str = "sidecar-start.lock";
+const KNOWLEDGE_READY_TIMEOUT_SECS: u64 = 10;
+const KNOWLEDGE_READY_POLL_INITIAL_MS: u64 = 250;
+const KNOWLEDGE_READY_POLL_MAX_MS: u64 = 2_000;
+const KNOWLEDGE_START_LOCK_STALE_SECS: u64 = 30;
 
 /// Installed package identity name (NOT the family name) — the stable key the
 /// update helper passes to `Get-AppxPackage -Name` to resolve the freshly
@@ -93,6 +108,7 @@ pub fn run() {
             // S-tier: system tray — makes MUSU a RESIDENT control center, not a
             // window you close. Left-click restores; the menu has Show + Quit.
             build_tray(app.handle())?;
+            spawn_knowledge_sidecar_autostart();
             spawn_runtime_autostart();
             Ok(())
         })
@@ -213,6 +229,10 @@ struct DesktopStatus {
     bridge_status: String,
     bridge_url: Option<String>,
     bridge_detail: String,
+    knowledge_status: String,
+    knowledge_detail: String,
+    knowledge_health_url: Option<String>,
+    knowledge_token_present: bool,
     dashboard_status: String,
     dashboard_url: Option<String>,
     dashboard_detail: String,
@@ -505,9 +525,14 @@ impl Drop for RuntimeStartGuard<'_> {
 }
 
 static RUNTIME_START_GATE: std::sync::OnceLock<RuntimeStartGate> = std::sync::OnceLock::new();
+static KNOWLEDGE_START_GATE: std::sync::OnceLock<RuntimeStartGate> = std::sync::OnceLock::new();
 
 fn runtime_start_gate() -> &'static RuntimeStartGate {
     RUNTIME_START_GATE.get_or_init(RuntimeStartGate::default)
+}
+
+fn knowledge_start_gate() -> &'static RuntimeStartGate {
+    KNOWLEDGE_START_GATE.get_or_init(RuntimeStartGate::default)
 }
 
 fn can_start_runtime(
@@ -536,6 +561,9 @@ fn bridge_status_label(
 fn desktop_status() -> DesktopStatus {
     let version = env!("CARGO_PKG_VERSION").to_string();
     let home = musu_home();
+    // The desktop can stay alive while the hidden knowledge sidecar exits.
+    // A manual status refresh is a safe, user-visible self-heal trigger.
+    spawn_knowledge_sidecar_autostart();
     let bridge_registry = bridge_registry_status(&home);
     let runtime_start_in_progress = runtime_start_gate().is_in_progress();
     let doctor_summary = doctor_status_summary(&musu_command_path(), bridge_registry.pid);
@@ -566,6 +594,10 @@ fn desktop_status() -> DesktopStatus {
         .to_string(),
         bridge_url: bridge_registry.url,
         bridge_detail: bridge_probe.detail,
+        knowledge_status: doctor_summary.knowledge_status,
+        knowledge_detail: doctor_summary.knowledge_detail,
+        knowledge_health_url: doctor_summary.knowledge_health_url,
+        knowledge_token_present: doctor_summary.knowledge_token_present,
         dashboard_status: if dashboard_probe.ok { "ok" } else { "offline" }.to_string(),
         dashboard_url: dashboard_probe.url,
         dashboard_detail: dashboard_probe.detail,
@@ -864,6 +896,7 @@ fn no_window(cmd: &mut std::process::Command) -> &mut std::process::Command {
 fn spawn_musu_startup_open() -> Result<(), String> {
     let command = musu_command_path();
     let mut cmd = std::process::Command::new(&command);
+    apply_knowledge_env(&mut cmd);
     cmd.args(["startup", "open"])
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
@@ -872,6 +905,20 @@ fn spawn_musu_startup_open() -> Result<(), String> {
         .spawn()
         .map(|_child| ())
         .map_err(|err| format!("failed to spawn {} startup open: {err}", command.display()))
+}
+
+fn apply_knowledge_env(cmd: &mut std::process::Command) {
+    let root = knowledge_root();
+    cmd.env("MUSU_KNOWLEDGE_INGEST", "1")
+        .env(KNOWLEDGE_ROOT_ENV, &root)
+        .env(BRAIN_ROOT_ENV, &root)
+        .env(
+            "MUSU_KNOWLEDGE_INGEST_URL",
+            format!("{KNOWLEDGE_BASE_URL}/v1/sources"),
+        )
+        .env("MUSU_KNOWLEDGE_TENANT", KNOWLEDGE_TENANT_ID)
+        .env("MUSU_KNOWLEDGE_WORKSPACE", KNOWLEDGE_WORKSPACE_ID)
+        .env("MUSU_KNOWLEDGE_TOKEN_FILE", knowledge_token_file_path());
 }
 
 /// One machine in the fleet, as the cockpit renders it. A flattened, GUI-facing
@@ -967,13 +1014,13 @@ fn private_mesh_verify_target(target_ip: String) -> Result<PrivateMeshVerifyDesk
 /// `musu mesh bootstrap --server-url <url> --json` and projects its report into
 /// a desktop-friendly result the Add PC panel renders.
 #[tauri::command]
-fn private_mesh_bootstrap(
-    server_url: String,
-) -> Result<PrivateMeshBootstrapDesktopResult, String> {
+fn private_mesh_bootstrap(server_url: String) -> Result<PrivateMeshBootstrapDesktopResult, String> {
     let server_url = server_url.trim().to_string();
     // Minimal validation so the cockpit never shells out a malformed URL.
     if !(server_url.starts_with("https://") || server_url.starts_with("http://")) {
-        return Err("server_url must start with https:// (or http:// for a local test mesh)".to_string());
+        return Err(
+            "server_url must start with https:// (or http:// for a local test mesh)".to_string(),
+        );
     }
     if server_url.contains(char::is_whitespace) {
         return Err("server_url must not contain whitespace".to_string());
@@ -1087,8 +1134,9 @@ fn private_mesh_create_join_key() -> Result<PrivateMeshCreateJoinKeyDesktopResul
         });
     }
 
-    let report: serde_json::Value = serde_json::from_str(result.stdout.trim())
-        .map_err(|err| format!("failed to parse `musu mesh create-join-key --json` output: {err}"))?;
+    let report: serde_json::Value = serde_json::from_str(result.stdout.trim()).map_err(|err| {
+        format!("failed to parse `musu mesh create-join-key --json` output: {err}")
+    })?;
     let str_field = |key: &str| {
         report
             .get(key)
@@ -1150,8 +1198,9 @@ fn private_mesh_start_control_host() -> Result<PrivateMeshStartControlHostDeskto
         });
     }
 
-    let report: serde_json::Value = serde_json::from_str(result.stdout.trim())
-        .map_err(|err| format!("failed to parse `musu mesh start-control-host --json` output: {err}"))?;
+    let report: serde_json::Value = serde_json::from_str(result.stdout.trim()).map_err(|err| {
+        format!("failed to parse `musu mesh start-control-host --json` output: {err}")
+    })?;
     let ok = report.get("ok").and_then(|v| v.as_bool()).unwrap_or(false);
     Ok(PrivateMeshStartControlHostDesktopResult {
         ok,
@@ -1177,7 +1226,9 @@ fn private_mesh_start_control_host() -> Result<PrivateMeshStartControlHostDeskto
 fn private_mesh_join(pass_path: String) -> Result<PrivateMeshJoinDesktopResult, String> {
     let pass_path = pass_path.trim().to_string();
     if pass_path.is_empty() {
-        return Err("Paste the path to the device-add pass file copied from the control host.".to_string());
+        return Err(
+            "Paste the path to the device-add pass file copied from the control host.".to_string(),
+        );
     }
     if !std::path::Path::new(&pass_path).is_file() {
         return Ok(PrivateMeshJoinDesktopResult {
@@ -1213,7 +1264,11 @@ fn private_mesh_join(pass_path: String) -> Result<PrivateMeshJoinDesktopResult, 
     let combined = combine_command_output(&result.stdout, &result.stderr);
     Ok(PrivateMeshJoinDesktopResult {
         ok: result.status_success,
-        error: if result.status_success { None } else { Some(combined.clone()) },
+        error: if result.status_success {
+            None
+        } else {
+            Some(combined.clone())
+        },
         output: combined,
     })
 }
@@ -1251,7 +1306,11 @@ fn private_mesh_join_account() -> Result<PrivateMeshJoinDesktopResult, String> {
     let combined = combine_command_output(&result.stdout, &result.stderr);
     Ok(PrivateMeshJoinDesktopResult {
         ok: result.status_success,
-        error: if result.status_success { None } else { Some(combined.clone()) },
+        error: if result.status_success {
+            None
+        } else {
+            Some(combined.clone())
+        },
         output: combined,
     })
 }
@@ -1264,15 +1323,20 @@ fn private_mesh_join_account() -> Result<PrivateMeshJoinDesktopResult, String> {
 #[tauri::command]
 fn private_mesh_leave() -> Result<PrivateMeshJoinDesktopResult, String> {
     let command = musu_command_path();
-    let result = run_command_with_timeout(&command, &["mesh", "leave", "--json"], ADD_PC_JOIN_TIMEOUT)
-        .map_err(|err| format!("failed to run {} mesh leave: {err}", command.display()))?;
+    let result =
+        run_command_with_timeout(&command, &["mesh", "leave", "--json"], ADD_PC_JOIN_TIMEOUT)
+            .map_err(|err| format!("failed to run {} mesh leave: {err}", command.display()))?;
     if result.timed_out {
         return Err(format!("{} mesh leave timed out", command.display()));
     }
     let combined = combine_command_output(&result.stdout, &result.stderr);
     Ok(PrivateMeshJoinDesktopResult {
         ok: result.status_success,
-        error: if result.status_success { None } else { Some(combined.clone()) },
+        error: if result.status_success {
+            None
+        } else {
+            Some(combined.clone())
+        },
         output: combined,
     })
 }
@@ -1283,15 +1347,23 @@ fn private_mesh_leave() -> Result<PrivateMeshJoinDesktopResult, String> {
 #[tauri::command]
 fn mesh_node_list() -> Result<PrivateMeshJoinDesktopResult, String> {
     let command = musu_command_path();
-    let result = run_command_with_timeout(&command, &["mesh", "node", "list", "--json"], ADD_PC_JOIN_TIMEOUT)
-        .map_err(|err| format!("failed to run {} mesh node list: {err}", command.display()))?;
+    let result = run_command_with_timeout(
+        &command,
+        &["mesh", "node", "list", "--json"],
+        ADD_PC_JOIN_TIMEOUT,
+    )
+    .map_err(|err| format!("failed to run {} mesh node list: {err}", command.display()))?;
     if result.timed_out {
         return Err(format!("{} mesh node list timed out", command.display()));
     }
     let combined = combine_command_output(&result.stdout, &result.stderr);
     Ok(PrivateMeshJoinDesktopResult {
         ok: result.status_success,
-        error: if result.status_success { None } else { Some(combined.clone()) },
+        error: if result.status_success {
+            None
+        } else {
+            Some(combined.clone())
+        },
         output: combined,
     })
 }
@@ -1300,21 +1372,42 @@ fn mesh_node_list() -> Result<PrivateMeshJoinDesktopResult, String> {
 /// The server re-asserts the node still belongs to this account before renaming
 /// (never re-resolves by name/IP — WS-2c Critic HIGH-1/HIGH-2).
 #[tauri::command]
-fn mesh_node_rename(node_id: String, new_name: String) -> Result<PrivateMeshJoinDesktopResult, String> {
+fn mesh_node_rename(
+    node_id: String,
+    new_name: String,
+) -> Result<PrivateMeshJoinDesktopResult, String> {
     let command = musu_command_path();
     let result = run_command_with_timeout(
         &command,
-        &["mesh", "node", "rename", "--node-id", &node_id, "--new-name", &new_name, "--json"],
+        &[
+            "mesh",
+            "node",
+            "rename",
+            "--node-id",
+            &node_id,
+            "--new-name",
+            &new_name,
+            "--json",
+        ],
         ADD_PC_JOIN_TIMEOUT,
     )
-    .map_err(|err| format!("failed to run {} mesh node rename: {err}", command.display()))?;
+    .map_err(|err| {
+        format!(
+            "failed to run {} mesh node rename: {err}",
+            command.display()
+        )
+    })?;
     if result.timed_out {
         return Err(format!("{} mesh node rename timed out", command.display()));
     }
     let combined = combine_command_output(&result.stdout, &result.stderr);
     Ok(PrivateMeshJoinDesktopResult {
         ok: result.status_success,
-        error: if result.status_success { None } else { Some(combined.clone()) },
+        error: if result.status_success {
+            None
+        } else {
+            Some(combined.clone())
+        },
         output: combined,
     })
 }
@@ -1339,21 +1432,34 @@ fn mesh_node_remove(
         "--expected-name".into(),
         expected_name,
     ];
-    if let Some(ip) = caller_ip.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+    if let Some(ip) = caller_ip
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
         args.push("--caller-ip".into());
         args.push(ip.to_string());
     }
     args.push("--json".into());
     let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let result = run_command_with_timeout(&command, &arg_refs, ADD_PC_JOIN_TIMEOUT)
-        .map_err(|err| format!("failed to run {} mesh node remove: {err}", command.display()))?;
+    let result =
+        run_command_with_timeout(&command, &arg_refs, ADD_PC_JOIN_TIMEOUT).map_err(|err| {
+            format!(
+                "failed to run {} mesh node remove: {err}",
+                command.display()
+            )
+        })?;
     if result.timed_out {
         return Err(format!("{} mesh node remove timed out", command.display()));
     }
     let combined = combine_command_output(&result.stdout, &result.stderr);
     Ok(PrivateMeshJoinDesktopResult {
         ok: result.status_success,
-        error: if result.status_success { None } else { Some(combined.clone()) },
+        error: if result.status_success {
+            None
+        } else {
+            Some(combined.clone())
+        },
         output: combined,
     })
 }
@@ -1462,14 +1568,22 @@ fn resolve_uninstall_helper_script() -> Option<std::path::PathBuf> {
     // (dual-audit security MEDIUM, 2026-06-23).
     let mut candidates = vec![
         dir.join(UNINSTALL_HELPER_SCRIPT),
-        dir.join("scripts").join("windows").join(UNINSTALL_HELPER_SCRIPT),
+        dir.join("scripts")
+            .join("windows")
+            .join(UNINSTALL_HELPER_SCRIPT),
     ];
     // dev/source tree only: musu-bee/src-tauri/target/<profile>/<exe> →
     // repo-root/scripts/windows. Gated to debug builds so the user-writable
     // target/ dir is never an elevated-script source in a release MSIX.
     #[cfg(debug_assertions)]
     candidates.push(
-        dir.join("..").join("..").join("..").join("..").join("scripts").join("windows").join(UNINSTALL_HELPER_SCRIPT),
+        dir.join("..")
+            .join("..")
+            .join("..")
+            .join("..")
+            .join("scripts")
+            .join("windows")
+            .join(UNINSTALL_HELPER_SCRIPT),
     );
     candidates.into_iter().find(|p| p.exists())
 }
@@ -1698,7 +1812,18 @@ fn open_external_url(url: String) -> Result<CommandResult, String> {
     // (ShellExecuteW / opener crate) instead of relaxing this.
     let valid = url.starts_with("https://")
         && url.len() <= 2048
-        && !url.contains(|c: char| c.is_control() || c == '"' || c == '\'' || c == ' ' || c == '&' || c == '|' || c == '^' || c == '<' || c == '>' || c == '%');
+        && !url.contains(|c: char| {
+            c.is_control()
+                || c == '"'
+                || c == '\''
+                || c == ' '
+                || c == '&'
+                || c == '|'
+                || c == '^'
+                || c == '<'
+                || c == '>'
+                || c == '%'
+        });
     if !valid {
         return Err("refusing to open a non-https or malformed URL".to_string());
     }
@@ -2180,8 +2305,14 @@ fn this_pc_programs() -> Result<ThisPcPrograms, String> {
         Err(_) => return Ok(ThisPcPrograms::default()),
     };
     Ok(ThisPcPrograms {
-        ollama_running: json.get("ollama_running").and_then(|v| v.as_bool()).unwrap_or(false),
-        comfyui_running: json.get("comfyui_running").and_then(|v| v.as_bool()).unwrap_or(false),
+        ollama_running: json
+            .get("ollama_running")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
+        comfyui_running: json
+            .get("comfyui_running")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
         default_adapter: json
             .get("current_default_adapter")
             .and_then(|v| v.as_str())
@@ -2529,6 +2660,29 @@ fn parse_doctor_status_summary(
         ("Offline".to_string(), account_note)
     };
 
+    let knowledge_raw_status =
+        json_string(&value, &["knowledge", "status"]).unwrap_or_else(|| "unknown".to_string());
+    let knowledge_status = match knowledge_raw_status.as_str() {
+        "ok" => "Ready".to_string(),
+        "warn" => "Warning".to_string(),
+        "fail" => "Fail".to_string(),
+        _ => "Unknown".to_string(),
+    };
+    let knowledge_note = json_string(&value, &["knowledge", "note"])
+        .unwrap_or_else(|| "Hidden brain sidecar diagnostics are unavailable.".to_string());
+    let knowledge_health_url = json_string(&value, &["knowledge", "health_url"]);
+    let knowledge_token_present =
+        json_bool(&value, &["knowledge", "token_present"]).unwrap_or(false);
+    let knowledge_detail = match &knowledge_health_url {
+        Some(url) => format!("{url}. {knowledge_note}"),
+        None => knowledge_note.clone(),
+    };
+    if knowledge_status != "Ready" {
+        warnings.push(format!(
+            "Hidden brain sidecar status is {knowledge_status}: {knowledge_note}"
+        ));
+    }
+
     let (runtime_profile_status, runtime_profile_detail) = if active_runtime_loop_candidate_count
         > 0
     {
@@ -2553,6 +2707,10 @@ fn parse_doctor_status_summary(
         package_detail,
         auth_status,
         auth_detail,
+        knowledge_status,
+        knowledge_detail,
+        knowledge_health_url,
+        knowledge_token_present,
         runtime_profile_status,
         runtime_profile_detail,
         process_ownership_status: process_summary.status,
@@ -5449,6 +5607,10 @@ struct DoctorStatusSummary {
     package_detail: String,
     auth_status: String,
     auth_detail: String,
+    knowledge_status: String,
+    knowledge_detail: String,
+    knowledge_health_url: Option<String>,
+    knowledge_token_present: bool,
     runtime_profile_status: String,
     runtime_profile_detail: String,
     process_ownership_status: String,
@@ -5471,6 +5633,10 @@ impl DoctorStatusSummary {
             package_detail: detail.clone(),
             auth_status: "Unknown".to_string(),
             auth_detail: detail.clone(),
+            knowledge_status: "Unknown".to_string(),
+            knowledge_detail: detail.clone(),
+            knowledge_health_url: None,
+            knowledge_token_present: false,
             runtime_profile_status: "Unknown".to_string(),
             runtime_profile_detail: detail.clone(),
             process_ownership_status: process_summary.status,
@@ -5856,6 +6022,777 @@ fn spawn_runtime_autostart() {
         });
 }
 
+fn spawn_knowledge_sidecar_autostart() {
+    let _ = std::thread::Builder::new()
+        .name("musu-knowledge-autostart".to_string())
+        .spawn(|| {
+            run_knowledge_sidecar_autostart();
+        });
+}
+
+#[derive(serde::Serialize)]
+struct KnowledgeSidecarAutostartStatus {
+    schema: &'static str,
+    generated_at: String,
+    result: String,
+    stage: String,
+    command: String,
+    root: String,
+    addr: String,
+    health_url: String,
+    pid: Option<u32>,
+    readiness_ok: bool,
+    elapsed_ms: u128,
+    stdout_log: Option<String>,
+    stderr_log: Option<String>,
+    detail: String,
+}
+
+struct KnowledgeSidecarReadiness {
+    ready: bool,
+    exited: bool,
+    detail: String,
+}
+
+struct KnowledgeStartFileLock {
+    path: std::path::PathBuf,
+}
+
+impl Drop for KnowledgeStartFileLock {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.path);
+    }
+}
+
+fn run_knowledge_sidecar_autostart() {
+    let started_at = std::time::Instant::now();
+    let command = knowledge_sidecar_command_path();
+    let root = knowledge_root();
+
+    if probe_http(KNOWLEDGE_BASE_URL, "/health").ok {
+        write_knowledge_sidecar_autostart_status_best_effort(KnowledgeSidecarAutostartStatus {
+            schema: KNOWLEDGE_AUTOSTART_STATUS_SCHEMA,
+            generated_at: chrono::Utc::now().to_rfc3339(),
+            result: "already_healthy".to_string(),
+            stage: "probe".to_string(),
+            command: command.display().to_string(),
+            root: root.display().to_string(),
+            addr: KNOWLEDGE_ADDR.to_string(),
+            health_url: format!("{KNOWLEDGE_BASE_URL}/health"),
+            pid: None,
+            readiness_ok: true,
+            elapsed_ms: started_at.elapsed().as_millis(),
+            stdout_log: None,
+            stderr_log: None,
+            detail: "Hidden brain sidecar health endpoint was already reachable.".to_string(),
+        });
+        return;
+    }
+
+    let Some(_guard) = knowledge_start_gate().try_acquire() else {
+        write_knowledge_sidecar_autostart_status_best_effort(KnowledgeSidecarAutostartStatus {
+            schema: KNOWLEDGE_AUTOSTART_STATUS_SCHEMA,
+            generated_at: chrono::Utc::now().to_rfc3339(),
+            result: "start_in_progress".to_string(),
+            stage: "gate".to_string(),
+            command: command.display().to_string(),
+            root: root.display().to_string(),
+            addr: KNOWLEDGE_ADDR.to_string(),
+            health_url: format!("{KNOWLEDGE_BASE_URL}/health"),
+            pid: None,
+            readiness_ok: false,
+            elapsed_ms: started_at.elapsed().as_millis(),
+            stdout_log: None,
+            stderr_log: None,
+            detail: "Another hidden brain sidecar autostart attempt is already in flight."
+                .to_string(),
+        });
+        return;
+    };
+
+    let _file_lock = match try_acquire_knowledge_start_file_lock() {
+        Ok(Some(lock)) => lock,
+        Ok(None) => {
+            let readiness = wait_for_existing_knowledge_sidecar_start();
+            let result = if readiness.ready {
+                "already_healthy"
+            } else {
+                "start_in_progress"
+            };
+            write_knowledge_sidecar_autostart_status_best_effort(KnowledgeSidecarAutostartStatus {
+                schema: KNOWLEDGE_AUTOSTART_STATUS_SCHEMA,
+                generated_at: chrono::Utc::now().to_rfc3339(),
+                result: result.to_string(),
+                stage: "lock".to_string(),
+                command: command.display().to_string(),
+                root: root.display().to_string(),
+                addr: KNOWLEDGE_ADDR.to_string(),
+                health_url: format!("{KNOWLEDGE_BASE_URL}/health"),
+                pid: None,
+                readiness_ok: readiness.ready,
+                elapsed_ms: started_at.elapsed().as_millis(),
+                stdout_log: None,
+                stderr_log: None,
+                detail: readiness.detail,
+            });
+            return;
+        }
+        Err(err) => {
+            write_knowledge_sidecar_autostart_status_best_effort(KnowledgeSidecarAutostartStatus {
+                schema: KNOWLEDGE_AUTOSTART_STATUS_SCHEMA,
+                generated_at: chrono::Utc::now().to_rfc3339(),
+                result: "lock_failed".to_string(),
+                stage: "lock".to_string(),
+                command: command.display().to_string(),
+                root: root.display().to_string(),
+                addr: KNOWLEDGE_ADDR.to_string(),
+                health_url: format!("{KNOWLEDGE_BASE_URL}/health"),
+                pid: None,
+                readiness_ok: false,
+                elapsed_ms: started_at.elapsed().as_millis(),
+                stdout_log: None,
+                stderr_log: None,
+                detail: err,
+            });
+            return;
+        }
+    };
+
+    if probe_http(KNOWLEDGE_BASE_URL, "/health").ok {
+        write_knowledge_sidecar_autostart_status_best_effort(KnowledgeSidecarAutostartStatus {
+            schema: KNOWLEDGE_AUTOSTART_STATUS_SCHEMA,
+            generated_at: chrono::Utc::now().to_rfc3339(),
+            result: "already_healthy".to_string(),
+            stage: "post_gate_probe".to_string(),
+            command: command.display().to_string(),
+            root: root.display().to_string(),
+            addr: KNOWLEDGE_ADDR.to_string(),
+            health_url: format!("{KNOWLEDGE_BASE_URL}/health"),
+            pid: None,
+            readiness_ok: true,
+            elapsed_ms: started_at.elapsed().as_millis(),
+            stdout_log: None,
+            stderr_log: None,
+            detail: "Hidden brain sidecar became healthy before a new spawn was needed."
+                .to_string(),
+        });
+        return;
+    }
+
+    if let Err(err) = ensure_knowledge_workspace_and_token(&command, &root) {
+        eprintln!("MUSU knowledge sidecar autostart skipped: {err}");
+        write_knowledge_sidecar_autostart_status_best_effort(KnowledgeSidecarAutostartStatus {
+            schema: KNOWLEDGE_AUTOSTART_STATUS_SCHEMA,
+            generated_at: chrono::Utc::now().to_rfc3339(),
+            result: "workspace_failed".to_string(),
+            stage: "workspace".to_string(),
+            command: command.display().to_string(),
+            root: root.display().to_string(),
+            addr: KNOWLEDGE_ADDR.to_string(),
+            health_url: format!("{KNOWLEDGE_BASE_URL}/health"),
+            pid: None,
+            readiness_ok: false,
+            elapsed_ms: started_at.elapsed().as_millis(),
+            stdout_log: None,
+            stderr_log: None,
+            detail: err,
+        });
+        return;
+    }
+
+    let stdout_log = knowledge_sidecar_stdout_log_path();
+    let stderr_log = knowledge_sidecar_stderr_log_path();
+    let mut log_warnings = Vec::new();
+
+    let mut child = match spawn_knowledge_sidecar_process(
+        &command,
+        &root,
+        &stdout_log,
+        &stderr_log,
+        &mut log_warnings,
+    ) {
+        Ok(child) => child,
+        Err(err) => {
+            let detail = format!(
+                "Failed to spawn hidden brain sidecar from {}: {err}",
+                command.display()
+            );
+            eprintln!("MUSU knowledge sidecar autostart failed: {detail}");
+            write_knowledge_sidecar_autostart_status_best_effort(KnowledgeSidecarAutostartStatus {
+                schema: KNOWLEDGE_AUTOSTART_STATUS_SCHEMA,
+                generated_at: chrono::Utc::now().to_rfc3339(),
+                result: "spawn_failed".to_string(),
+                stage: "spawn".to_string(),
+                command: command.display().to_string(),
+                root: root.display().to_string(),
+                addr: KNOWLEDGE_ADDR.to_string(),
+                health_url: format!("{KNOWLEDGE_BASE_URL}/health"),
+                pid: None,
+                readiness_ok: false,
+                elapsed_ms: started_at.elapsed().as_millis(),
+                stdout_log: Some(stdout_log.display().to_string()),
+                stderr_log: Some(stderr_log.display().to_string()),
+                detail,
+            });
+            return;
+        }
+    };
+
+    let mut pid = child.id();
+    let mut readiness = wait_for_knowledge_sidecar_ready(&mut child);
+    let mut retry_detail = String::new();
+    if !readiness.ready && readiness.exited {
+        let initial_pid = pid;
+        let initial_detail = readiness.detail.clone();
+        let winner_readiness = wait_for_existing_knowledge_sidecar_start();
+        if winner_readiness.ready {
+            readiness = winner_readiness;
+            retry_detail = format!(
+                "Initial hidden brain sidecar process {initial_pid} exited before readiness ({initial_detail}); "
+            );
+        } else {
+            match spawn_knowledge_sidecar_process(
+                &command,
+                &root,
+                &stdout_log,
+                &stderr_log,
+                &mut log_warnings,
+            ) {
+                Ok(mut retry_child) => {
+                    pid = retry_child.id();
+                    readiness = wait_for_knowledge_sidecar_ready(&mut retry_child);
+                    retry_detail = format!(
+                        "Initial hidden brain sidecar process {initial_pid} exited before readiness ({initial_detail}); retry process {pid} was started after no competing healthy sidecar appeared. "
+                    );
+                }
+                Err(err) => {
+                    readiness = KnowledgeSidecarReadiness {
+                        ready: false,
+                        exited: false,
+                        detail: format!(
+                            "Initial hidden brain sidecar process {initial_pid} exited before readiness ({initial_detail}); retry spawn failed: {err}"
+                        ),
+                    };
+                    retry_detail.clear();
+                }
+            }
+        }
+    }
+
+    let mut detail = if retry_detail.is_empty() {
+        readiness.detail
+    } else {
+        format!("{retry_detail}{}", readiness.detail)
+    };
+    if !log_warnings.is_empty() {
+        detail.push_str(" Log warning: ");
+        detail.push_str(&log_warnings.join("; "));
+    }
+    let result = if readiness.ready {
+        "started"
+    } else if readiness.exited {
+        "exited_before_ready"
+    } else {
+        "readiness_timeout"
+    };
+
+    write_knowledge_sidecar_autostart_status_best_effort(KnowledgeSidecarAutostartStatus {
+        schema: KNOWLEDGE_AUTOSTART_STATUS_SCHEMA,
+        generated_at: chrono::Utc::now().to_rfc3339(),
+        result: result.to_string(),
+        stage: "readiness".to_string(),
+        command: command.display().to_string(),
+        root: root.display().to_string(),
+        addr: KNOWLEDGE_ADDR.to_string(),
+        health_url: format!("{KNOWLEDGE_BASE_URL}/health"),
+        pid: Some(pid),
+        readiness_ok: readiness.ready,
+        elapsed_ms: started_at.elapsed().as_millis(),
+        stdout_log: Some(stdout_log.display().to_string()),
+        stderr_log: Some(stderr_log.display().to_string()),
+        detail,
+    });
+}
+
+fn spawn_knowledge_sidecar_process(
+    command: &std::path::Path,
+    root: &std::path::Path,
+    stdout_log: &std::path::Path,
+    stderr_log: &std::path::Path,
+    log_warnings: &mut Vec<String>,
+) -> Result<std::process::Child, String> {
+    let stdout = match open_knowledge_sidecar_log(stdout_log) {
+        Ok(file) => std::process::Stdio::from(file),
+        Err(err) => {
+            log_warnings.push(err);
+            std::process::Stdio::null()
+        }
+    };
+    let stderr = match open_knowledge_sidecar_log(stderr_log) {
+        Ok(file) => std::process::Stdio::from(file),
+        Err(err) => {
+            log_warnings.push(err);
+            std::process::Stdio::null()
+        }
+    };
+
+    let root_arg = root.to_string_lossy().to_string();
+    let mut cmd = std::process::Command::new(command);
+    cmd.args([
+        "server",
+        "-root",
+        root_arg.as_str(),
+        "-addr",
+        KNOWLEDGE_ADDR,
+    ])
+    .env("MUSU_HOME", musu_home())
+    .env(KNOWLEDGE_ROOT_ENV, root)
+    .env(BRAIN_ROOT_ENV, root)
+    .stdin(std::process::Stdio::null())
+    .stdout(stdout)
+    .stderr(stderr);
+
+    no_window(&mut cmd).spawn().map_err(|err| err.to_string())
+}
+
+fn try_acquire_knowledge_start_file_lock() -> Result<Option<KnowledgeStartFileLock>, String> {
+    let path = knowledge_sidecar_start_lock_path();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|err| {
+            format!(
+                "failed to create knowledge sidecar lock dir {}: {err}",
+                parent.display()
+            )
+        })?;
+    }
+
+    match create_knowledge_start_file_lock(&path) {
+        Ok(lock) => Ok(Some(lock)),
+        Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => {
+            if knowledge_start_file_lock_is_stale(&path) {
+                let _ = std::fs::remove_file(&path);
+                return match create_knowledge_start_file_lock(&path) {
+                    Ok(lock) => Ok(Some(lock)),
+                    Err(retry_err) if retry_err.kind() == std::io::ErrorKind::AlreadyExists => {
+                        Ok(None)
+                    }
+                    Err(retry_err) => Err(format!(
+                        "failed to acquire stale knowledge sidecar start lock {}: {retry_err}",
+                        path.display()
+                    )),
+                };
+            }
+            Ok(None)
+        }
+        Err(err) => Err(format!(
+            "failed to acquire knowledge sidecar start lock {}: {err}",
+            path.display()
+        )),
+    }
+}
+
+fn create_knowledge_start_file_lock(
+    path: &std::path::Path,
+) -> Result<KnowledgeStartFileLock, std::io::Error> {
+    use std::io::Write as _;
+
+    let mut file = std::fs::OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(path)?;
+    writeln!(
+        file,
+        "pid={}\ncreated_at={}",
+        std::process::id(),
+        chrono::Utc::now().to_rfc3339()
+    )?;
+    Ok(KnowledgeStartFileLock {
+        path: path.to_path_buf(),
+    })
+}
+
+fn knowledge_start_file_lock_is_stale(path: &std::path::Path) -> bool {
+    let Ok(metadata) = std::fs::metadata(path) else {
+        return true;
+    };
+    let Ok(modified) = metadata.modified() else {
+        return false;
+    };
+    modified
+        .elapsed()
+        .map(|elapsed| elapsed > std::time::Duration::from_secs(KNOWLEDGE_START_LOCK_STALE_SECS))
+        .unwrap_or(false)
+}
+
+fn wait_for_existing_knowledge_sidecar_start() -> KnowledgeSidecarReadiness {
+    let deadline =
+        std::time::Instant::now() + std::time::Duration::from_secs(KNOWLEDGE_READY_TIMEOUT_SECS);
+    let mut attempt = 0_u32;
+    loop {
+        if probe_http(KNOWLEDGE_BASE_URL, "/health").ok {
+            return KnowledgeSidecarReadiness {
+                ready: true,
+                exited: false,
+                detail: "Hidden brain sidecar became healthy while another autostart attempt held the cross-process start lock.".to_string(),
+            };
+        }
+
+        let now = std::time::Instant::now();
+        if now >= deadline {
+            return KnowledgeSidecarReadiness {
+                ready: false,
+                exited: false,
+                detail: format!(
+                    "Another hidden brain sidecar autostart attempt held the cross-process start lock, but health did not become reachable within {KNOWLEDGE_READY_TIMEOUT_SECS}s."
+                ),
+            };
+        }
+
+        let delay =
+            knowledge_ready_poll_delay(attempt).min(deadline.saturating_duration_since(now));
+        attempt = attempt.saturating_add(1);
+        std::thread::sleep(delay);
+    }
+}
+
+fn wait_for_knowledge_sidecar_ready(child: &mut std::process::Child) -> KnowledgeSidecarReadiness {
+    let deadline =
+        std::time::Instant::now() + std::time::Duration::from_secs(KNOWLEDGE_READY_TIMEOUT_SECS);
+    let mut attempt = 0_u32;
+    loop {
+        if probe_http(KNOWLEDGE_BASE_URL, "/health").ok {
+            return KnowledgeSidecarReadiness {
+                ready: true,
+                exited: false,
+                detail: "Hidden brain sidecar became healthy after spawn.".to_string(),
+            };
+        }
+
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                return KnowledgeSidecarReadiness {
+                    ready: false,
+                    exited: true,
+                    detail: format!(
+                        "Hidden brain sidecar exited before health became reachable: {status}"
+                    ),
+                };
+            }
+            Ok(None) => {}
+            Err(err) => {
+                return KnowledgeSidecarReadiness {
+                    ready: false,
+                    exited: false,
+                    detail: format!("Failed to inspect hidden brain sidecar process: {err}"),
+                };
+            }
+        }
+
+        let now = std::time::Instant::now();
+        if now >= deadline {
+            return KnowledgeSidecarReadiness {
+                ready: false,
+                exited: false,
+                detail: format!(
+                    "Hidden brain sidecar did not become healthy within {KNOWLEDGE_READY_TIMEOUT_SECS}s."
+                ),
+            };
+        }
+
+        let delay =
+            knowledge_ready_poll_delay(attempt).min(deadline.saturating_duration_since(now));
+        attempt = attempt.saturating_add(1);
+        std::thread::sleep(delay);
+    }
+}
+
+fn knowledge_ready_poll_delay(attempt: u32) -> std::time::Duration {
+    let multiplier = 1_u64 << attempt.min(3);
+    std::time::Duration::from_millis(
+        KNOWLEDGE_READY_POLL_INITIAL_MS
+            .saturating_mul(multiplier)
+            .min(KNOWLEDGE_READY_POLL_MAX_MS),
+    )
+}
+
+fn write_knowledge_sidecar_autostart_status_best_effort(status: KnowledgeSidecarAutostartStatus) {
+    if let Err(err) = write_knowledge_sidecar_autostart_status(&status) {
+        eprintln!("MUSU knowledge sidecar autostart status write failed: {err}");
+    }
+}
+
+fn write_knowledge_sidecar_autostart_status(
+    status: &KnowledgeSidecarAutostartStatus,
+) -> Result<(), String> {
+    let path = knowledge_sidecar_autostart_status_path();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|err| {
+            format!(
+                "failed to create knowledge sidecar status dir {}: {err}",
+                parent.display()
+            )
+        })?;
+    }
+    let text = serde_json::to_string_pretty(status)
+        .map_err(|err| format!("failed to serialize knowledge sidecar status: {err}"))?;
+    std::fs::write(&path, text).map_err(|err| {
+        format!(
+            "failed to write knowledge sidecar status {}: {err}",
+            path.display()
+        )
+    })
+}
+
+fn open_knowledge_sidecar_log(path: &std::path::Path) -> Result<std::fs::File, String> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|err| {
+            format!(
+                "failed to create knowledge sidecar log dir {}: {err}",
+                parent.display()
+            )
+        })?;
+    }
+    std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+        .map_err(|err| {
+            format!(
+                "failed to open knowledge sidecar log {}: {err}",
+                path.display()
+            )
+        })
+}
+
+fn knowledge_runtime_dir() -> std::path::PathBuf {
+    knowledge_root().join("runtime")
+}
+
+fn knowledge_sidecar_autostart_status_path() -> std::path::PathBuf {
+    knowledge_runtime_dir().join(KNOWLEDGE_AUTOSTART_STATUS_FILE)
+}
+
+fn knowledge_sidecar_stdout_log_path() -> std::path::PathBuf {
+    knowledge_runtime_dir().join(KNOWLEDGE_AUTOSTART_STDOUT_LOG_FILE)
+}
+
+fn knowledge_sidecar_stderr_log_path() -> std::path::PathBuf {
+    knowledge_runtime_dir().join(KNOWLEDGE_AUTOSTART_STDERR_LOG_FILE)
+}
+
+fn knowledge_sidecar_start_lock_path() -> std::path::PathBuf {
+    knowledge_runtime_dir().join(KNOWLEDGE_AUTOSTART_LOCK_FILE)
+}
+
+fn ensure_knowledge_workspace_and_token(
+    command: &std::path::Path,
+    root: &std::path::Path,
+) -> Result<(), String> {
+    std::fs::create_dir_all(root)
+        .map_err(|err| format!("failed to create knowledge root {}: {err}", root.display()))?;
+    let root_arg = root.to_string_lossy().to_string();
+    let workspace_manifest = root
+        .join("workspaces")
+        .join(KNOWLEDGE_TENANT_ID)
+        .join(KNOWLEDGE_WORKSPACE_ID)
+        .join("workspace.json");
+    if !workspace_manifest.exists() {
+        let result = run_command_with_timeout(
+            command,
+            &[
+                "init",
+                "-root",
+                root_arg.as_str(),
+                "-tenant",
+                KNOWLEDGE_TENANT_ID,
+                "-workspace",
+                KNOWLEDGE_WORKSPACE_ID,
+                "-name",
+                "MUSU",
+            ],
+            std::time::Duration::from_secs(10),
+        )?;
+        if !result.status_success {
+            return Err(format!("musu-brain init failed: {}", result.status_detail));
+        }
+    }
+
+    let token_path = knowledge_token_file_path();
+    if std::fs::read_to_string(&token_path)
+        .ok()
+        .map(|token| !token.trim().is_empty())
+        .unwrap_or(false)
+    {
+        restrict_knowledge_token_permissions(&token_path)?;
+        return Ok(());
+    }
+    if let Some(parent) = token_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|err| {
+            format!(
+                "failed to create knowledge token dir {}: {err}",
+                parent.display()
+            )
+        })?;
+    }
+
+    let result = run_command_with_timeout(
+        command,
+        &[
+            "auth",
+            "issue",
+            "-root",
+            root_arg.as_str(),
+            "-name",
+            "musu-ingest",
+            "-tenant",
+            KNOWLEDGE_TENANT_ID,
+            "-workspace",
+            KNOWLEDGE_WORKSPACE_ID,
+            "-ttl",
+            "0",
+        ],
+        std::time::Duration::from_secs(10),
+    )?;
+    if !result.status_success {
+        return Err(format!(
+            "musu-brain auth issue failed: {}",
+            result.status_detail
+        ));
+    }
+    let token = parse_knowledge_token(&result.stdout)
+        .ok_or_else(|| "musu-brain auth issue did not return a token".to_string())?;
+    write_restricted_knowledge_token(&token_path, &token)?;
+    Ok(())
+}
+
+fn write_restricted_knowledge_token(path: &std::path::Path, token: &str) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        use std::io::Write as _;
+
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(path)
+            .map_err(|err| {
+                format!(
+                    "failed to open knowledge token file {}: {err}",
+                    path.display()
+                )
+            })?;
+        restrict_knowledge_token_permissions(path)?;
+        file.write_all(token.as_bytes()).map_err(|err| {
+            format!(
+                "failed to write knowledge token file {}: {err}",
+                path.display()
+            )
+        })?;
+        return Ok(());
+    }
+
+    #[cfg(not(windows))]
+    {
+        std::fs::write(path, token).map_err(|err| {
+            format!(
+                "failed to write knowledge token file {}: {err}",
+                path.display()
+            )
+        })?;
+        restrict_knowledge_token_permissions(path)
+    }
+}
+
+fn restrict_knowledge_token_permissions(path: &std::path::Path) -> Result<(), String> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)).map_err(|err| {
+            format!(
+                "failed to chmod 600 knowledge token file {}: {err}",
+                path.display()
+            )
+        })?;
+    }
+
+    #[cfg(windows)]
+    {
+        restrict_acl_to_current_user(path)?;
+    }
+
+    Ok(())
+}
+
+#[cfg(windows)]
+fn restrict_acl_to_current_user(path: &std::path::Path) -> Result<(), String> {
+    let user = windows_acl_principal()?;
+    let output = std::process::Command::new("icacls")
+        .arg(path)
+        .arg("/inheritance:r")
+        .arg("/grant:r")
+        .arg(format!("{user}:F"))
+        .output()
+        .map_err(|err| format!("failed to spawn icacls for {}: {err}", path.display()))?;
+    if !output.status.success() {
+        let err = String::from_utf8_lossy(&output.stderr);
+        return Err(format!(
+            "icacls failed for knowledge token file {}: {}",
+            path.display(),
+            err.trim()
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn windows_acl_principal() -> Result<String, String> {
+    let user = std::env::var("USERNAME").map_err(|_| "USERNAME env var missing".to_string())?;
+    let domain = std::env::var("USERDOMAIN").unwrap_or_default();
+    if domain.is_empty() || user.contains('\\') || domain.eq_ignore_ascii_case(&user) {
+        Ok(user)
+    } else {
+        Ok(format!("{domain}\\{user}"))
+    }
+}
+
+fn parse_knowledge_token(stdout: &str) -> Option<String> {
+    stdout.lines().find_map(|line| {
+        line.trim()
+            .strip_prefix("token:")
+            .map(str::trim)
+            .filter(|token| !token.is_empty())
+            .map(ToOwned::to_owned)
+    })
+}
+
+fn knowledge_root() -> std::path::PathBuf {
+    musu_home().join("brain")
+}
+
+fn knowledge_token_file_path() -> std::path::PathBuf {
+    knowledge_runtime_dir().join("musu-ingest.token")
+}
+
+fn knowledge_sidecar_command_path() -> std::path::PathBuf {
+    match std::env::current_exe() {
+        Ok(current_exe) => {
+            sibling_exe_for_current_exe(&current_exe, knowledge_sidecar_exe_name(), |path| {
+                path.exists()
+            })
+            .unwrap_or_else(|| std::path::PathBuf::from(knowledge_sidecar_exe_name()))
+        }
+        Err(_) => std::path::PathBuf::from(knowledge_sidecar_exe_name()),
+    }
+}
+
+fn knowledge_sidecar_exe_name() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "musu-brain.exe"
+    } else {
+        "musu-brain"
+    }
+}
+
 fn bridge_is_healthy(home: &std::path::Path) -> bool {
     let registry = bridge_registry_status(home);
     registry
@@ -6003,17 +6940,22 @@ mod tests {
         attach_route_evidence_integrity, bridge_is_healthy,
         bridge_registry_status_with_pid_checker, bridge_status_label, can_start_runtime,
         developer_dashboard_surface_enabled_for, fleet_nodes_from_bridge_dashboard,
-        is_packaged_desktop_runtime_path, is_tailnet_ipv4, latest_physical_peer_evidence_from_home,
+        is_packaged_desktop_runtime_path, is_tailnet_ipv4, knowledge_ready_poll_delay,
+        knowledge_root, knowledge_runtime_dir, knowledge_sidecar_autostart_status_path,
+        knowledge_sidecar_start_lock_path, knowledge_sidecar_stderr_log_path,
+        knowledge_sidecar_stdout_log_path, latest_physical_peer_evidence_from_home,
         latest_release_evidence_from_home, local_os_hostname, musu_command_path_for_current_exe,
-        parse_doctor_status_summary, parse_private_mesh_desktop_status,
+        parse_appinstaller_version, parse_doctor_status_summary, parse_private_mesh_desktop_status,
         parse_private_mesh_release_proof_result, parse_private_mesh_verify_result,
         parse_queued_task_id, read_physical_peer_evidence_summary,
         release_evidence_folder_for_path, release_proof_command_args, run_command_with_timeout,
-        parse_appinstaller_version, sha256_hex, startup_marker_path, summarize_process_ownership,
-        update_helper_script, update_is_available, update_release_evidence_trust,
-        verify_sidecar_for_file, version_to_tuple, write_json_sidecar_for_file,
-        DESKTOP_MSIX_URL, PACKAGE_IDENTITY_NAME,
-        PrivateMeshReleaseProofDesktopResult, ProcessEntry, RuntimeStartGate,
+        sha256_hex, startup_marker_path, summarize_process_ownership,
+        try_acquire_knowledge_start_file_lock, update_helper_script, update_is_available,
+        update_release_evidence_trust, verify_sidecar_for_file, version_to_tuple,
+        write_json_sidecar_for_file, write_knowledge_sidecar_autostart_status,
+        write_restricted_knowledge_token, KnowledgeSidecarAutostartStatus,
+        PrivateMeshReleaseProofDesktopResult, ProcessEntry, RuntimeStartGate, DESKTOP_MSIX_URL,
+        KNOWLEDGE_AUTOSTART_STATUS_SCHEMA, PACKAGE_IDENTITY_NAME,
         PRIVATE_MESH_RELEASE_BUNDLE_CONTRACT,
     };
 
@@ -6044,14 +6986,20 @@ mod tests {
             "must wait on the passed cockpit PID: {script}"
         );
         // 2. Downloads the hosted .msix (protocol-free — no ms-appinstaller:).
-        assert!(script.contains(DESKTOP_MSIX_URL), "must fetch the hosted .msix");
+        assert!(
+            script.contains(DESKTOP_MSIX_URL),
+            "must fetch the hosted .msix"
+        );
         assert!(
             !script.contains("ms-appinstaller:"),
             "must NOT use the OS-disabled ms-appinstaller protocol"
         );
         // 3. Installs directly via Add-AppxPackage (per-user, unelevated) with
         //    OS-managed replacement of the running package (V31 fix).
-        assert!(script.contains("Add-AppxPackage"), "must install the .msix directly");
+        assert!(
+            script.contains("Add-AppxPackage"),
+            "must install the .msix directly"
+        );
         // 4. Resolves the package by its stable identity name and relaunches via
         //    the shell AUMID (user session), not by exe path / elevated.
         assert!(
@@ -6066,9 +7014,18 @@ mod tests {
         //    success AND failure), AUMID is captured BEFORE install (so a failed
         //    install still relaunches the old version), and a transcript log is
         //    left as a breadcrumb. Download is bounded so it can't hang forever.
-        assert!(script.contains("finally"), "relaunch must be in finally (always fires)");
-        assert!(script.contains("Start-Transcript"), "must log for post-failure diagnosis");
-        assert!(script.contains("-TimeoutSec 120"), "download must be bounded");
+        assert!(
+            script.contains("finally"),
+            "relaunch must be in finally (always fires)"
+        );
+        assert!(
+            script.contains("Start-Transcript"),
+            "must log for post-failure diagnosis"
+        );
+        assert!(
+            script.contains("-TimeoutSec 120"),
+            "download must be bounded"
+        );
         // 6. V31 fix for the recurring 0x80073D02: a manual kill-loop over a fixed
         //    process-name list missed lock-holders (adapter children, AV, explorer)
         //    and the install failed on hugh-main. We now let the OS shut down EVERY
@@ -6141,7 +7098,10 @@ mod tests {
     Uri="https://example/musu.appinstaller" Version="1.15.0.12">
   <MainPackage Name="musu" Version="9.9.9.9" Publisher="CN=x" />
 </AppInstaller>"#;
-        assert_eq!(parse_appinstaller_version(xml).as_deref(), Some("1.15.0.12"));
+        assert_eq!(
+            parse_appinstaller_version(xml).as_deref(),
+            Some("1.15.0.12")
+        );
     }
 
     #[test]
@@ -7910,6 +8870,142 @@ mod tests {
                 .any(|entry| entry.as_str() == Some("binaries/musu")),
             "Tauri package must include the MUSU runtime sidecar"
         );
+        assert!(
+            external_bin
+                .iter()
+                .any(|entry| entry.as_str() == Some("binaries/musu-brain")),
+            "Tauri package must include the MUSU Brain knowledge sidecar"
+        );
+    }
+
+    #[test]
+    fn parses_knowledge_auth_token_without_logging_context() {
+        let stdout = "token: test-token-value\nscope: local/musu\nexpires: never\n";
+        assert_eq!(
+            crate::parse_knowledge_token(stdout).as_deref(),
+            Some("test-token-value")
+        );
+    }
+
+    #[test]
+    fn writes_knowledge_token_without_losing_secret_value() {
+        let home = make_temp_home("knowledge-token-write");
+        let token_path = home.join("brain").join("runtime").join("musu-ingest.token");
+        std::fs::create_dir_all(token_path.parent().unwrap()).unwrap();
+
+        write_restricted_knowledge_token(&token_path, "secret-token-value")
+            .expect("knowledge token write should succeed");
+
+        let stored = std::fs::read_to_string(&token_path).expect("token file should be readable");
+        assert_eq!(stored, "secret-token-value");
+    }
+
+    #[test]
+    fn knowledge_root_contract_uses_musu_profile_brain() {
+        let home = make_temp_home("knowledge-root-contract");
+        std::env::set_var("MUSU_HOME", &home);
+        let root = knowledge_root();
+        std::env::remove_var("MUSU_HOME");
+
+        assert_eq!(root, home.join("brain"));
+        assert!(
+            !root.to_string_lossy().contains(".musubrain"),
+            "MUSU product root must not fall back to standalone brain defaults"
+        );
+    }
+
+    #[test]
+    fn knowledge_runtime_contract_keeps_sidecar_state_under_musu_brain_runtime() {
+        let home = make_temp_home("knowledge-runtime-contract");
+        std::env::set_var("MUSU_HOME", &home);
+        let runtime_dir = knowledge_runtime_dir();
+        let status_path = knowledge_sidecar_autostart_status_path();
+        let stdout_log = knowledge_sidecar_stdout_log_path();
+        let stderr_log = knowledge_sidecar_stderr_log_path();
+        let start_lock = knowledge_sidecar_start_lock_path();
+        std::env::remove_var("MUSU_HOME");
+
+        assert_eq!(runtime_dir, home.join("brain").join("runtime"));
+        assert_eq!(
+            status_path,
+            runtime_dir.join("sidecar-autostart-status.json")
+        );
+        assert_eq!(stdout_log, runtime_dir.join("sidecar-stdout.log"));
+        assert_eq!(stderr_log, runtime_dir.join("sidecar-stderr.log"));
+        assert_eq!(start_lock, runtime_dir.join("sidecar-start.lock"));
+        assert!(
+            !runtime_dir.to_string_lossy().contains("LocalState"),
+            "brain runtime diagnostics must survive MSIX package uninstall/reinstall"
+        );
+    }
+
+    #[test]
+    fn knowledge_start_file_lock_blocks_reentry_until_guard_drop() {
+        let home = make_temp_home("knowledge-start-lock");
+        std::env::set_var("MUSU_HOME", &home);
+
+        let first = try_acquire_knowledge_start_file_lock()
+            .expect("first knowledge start lock acquisition should not fail");
+        assert!(first.is_some());
+        assert!(
+            try_acquire_knowledge_start_file_lock()
+                .expect("second knowledge start lock acquisition should not fail")
+                .is_none(),
+            "a held knowledge start lock must block concurrent autostart"
+        );
+        drop(first);
+        assert!(try_acquire_knowledge_start_file_lock()
+            .expect("knowledge start lock should be acquirable after guard drop")
+            .is_some());
+
+        std::env::remove_var("MUSU_HOME");
+        let _ = std::fs::remove_dir_all(home);
+    }
+
+    #[test]
+    fn knowledge_autostart_status_is_persisted_without_token_material() {
+        let home = make_temp_home("knowledge-autostart-status");
+        std::env::set_var("MUSU_HOME", &home);
+        let status = KnowledgeSidecarAutostartStatus {
+            schema: KNOWLEDGE_AUTOSTART_STATUS_SCHEMA,
+            generated_at: chrono::Utc::now().to_rfc3339(),
+            result: "started".to_string(),
+            stage: "readiness".to_string(),
+            command: "musu-brain.exe".to_string(),
+            root: knowledge_root().display().to_string(),
+            addr: "127.0.0.1:8080".to_string(),
+            health_url: "http://127.0.0.1:8080/health".to_string(),
+            pid: Some(1234),
+            readiness_ok: true,
+            elapsed_ms: 42,
+            stdout_log: Some(knowledge_sidecar_stdout_log_path().display().to_string()),
+            stderr_log: Some(knowledge_sidecar_stderr_log_path().display().to_string()),
+            detail: "healthy".to_string(),
+        };
+
+        write_knowledge_sidecar_autostart_status(&status)
+            .expect("autostart status should be persisted");
+        let status_path = knowledge_sidecar_autostart_status_path();
+        std::env::remove_var("MUSU_HOME");
+
+        let body = std::fs::read_to_string(&status_path).expect("status file should be readable");
+        let parsed: serde_json::Value =
+            serde_json::from_str(&body).expect("status file should be valid JSON");
+
+        assert_eq!(
+            parsed.get("schema").and_then(|value| value.as_str()),
+            Some(KNOWLEDGE_AUTOSTART_STATUS_SCHEMA)
+        );
+        assert_eq!(
+            parsed.get("result").and_then(|value| value.as_str()),
+            Some("started")
+        );
+        assert_eq!(
+            parsed.get("readiness_ok").and_then(|value| value.as_bool()),
+            Some(true)
+        );
+        assert!(!body.contains("secret-token-value"));
+        assert!(!body.contains("musu-ingest.token"));
     }
 
     #[test]
@@ -7965,6 +9061,22 @@ mod tests {
     }
 
     #[test]
+    fn knowledge_ready_poll_delay_backs_off_with_cap() {
+        assert_eq!(
+            knowledge_ready_poll_delay(0),
+            std::time::Duration::from_millis(250)
+        );
+        assert_eq!(
+            knowledge_ready_poll_delay(1),
+            std::time::Duration::from_millis(500)
+        );
+        assert_eq!(
+            knowledge_ready_poll_delay(10),
+            std::time::Duration::from_millis(2_000)
+        );
+    }
+
+    #[test]
     fn can_start_runtime_requires_offline_bridge_and_no_pending_start() {
         assert!(can_start_runtime(false, false, false));
         assert!(!can_start_runtime(true, false, false));
@@ -7994,6 +9106,12 @@ mod tests {
                     "logged_in": false,
                     "bridge_token_present": true,
                     "note": "Partial auth state: either account login or local bridge token is missing."
+                },
+                "knowledge": {
+                    "status": "ok",
+                    "health_url": "http://127.0.0.1:8080/health",
+                    "token_present": true,
+                    "note": "Hidden brain sidecar is reachable."
                 },
                 "background": {
                     "active_runtime_loop_candidate_count": 0,
@@ -8034,6 +9152,12 @@ mod tests {
                     "bridge_token_present": true,
                     "note": "Account token is present."
                 },
+                "knowledge": {
+                    "status": "ok",
+                    "health_url": "http://127.0.0.1:8080/health",
+                    "token_present": true,
+                    "note": "Hidden brain sidecar is reachable."
+                },
                 "background": {
                     "active_runtime_loop_candidate_count": 2,
                     "active_runtime_loop_candidate_keys": ["cloud_heartbeat", "relay_target_polling"],
@@ -8066,6 +9190,49 @@ mod tests {
             "{}",
             summary.runtime_profile_detail
         );
+    }
+
+    #[test]
+    fn doctor_status_summary_surfaces_hidden_brain_sidecar_warning() {
+        let summary = parse_doctor_status_summary(
+            r#"{
+                "distribution": "store-msix",
+                "binary": {
+                    "current_exe": "C:\\Program Files\\WindowsApps\\Yellowhama.MUSU\\musu.exe",
+                    "note": "Packaged runtime is active."
+                },
+                "account": {
+                    "logged_in": true,
+                    "bridge_token_present": true,
+                    "note": "Account token is present."
+                },
+                "knowledge": {
+                    "status": "warn",
+                    "health_url": "http://127.0.0.1:8080/health",
+                    "token_present": true,
+                    "note": "Hidden brain sidecar is not reachable, but the ingest token exists."
+                },
+                "background": {
+                    "active_runtime_loop_candidate_count": 0,
+                    "active_runtime_loop_candidate_keys": [],
+                    "runtime_loop_candidates": [],
+                    "note": "Background work is in the low-duty default profile."
+                }
+            }"#,
+            Some(32192),
+        )
+        .expect("doctor JSON should parse");
+
+        assert_eq!(summary.knowledge_status, "Warning");
+        assert!(summary.knowledge_token_present);
+        assert_eq!(
+            summary.knowledge_health_url.as_deref(),
+            Some("http://127.0.0.1:8080/health")
+        );
+        assert!(summary
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Hidden brain sidecar status is Warning")));
     }
 
     #[test]

@@ -121,7 +121,7 @@ export default function FleetDashboardPage() {
             MUSU
           </h2>
           <div style={{ fontSize: 12, color: "var(--fg3)", marginTop: 4 }}>
-            {data ? `${data.online_nodes} / ${data.total_nodes} Nodes Online` : "Loading..."}
+            {data ? `${data.online_nodes} / ${data.total_nodes} Direct Online` : "Loading..."}
           </div>
         </div>
 

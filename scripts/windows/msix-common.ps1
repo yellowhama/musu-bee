@@ -184,6 +184,10 @@ function Get-MsixStartupContract([xml]$Manifest) {
         "//uap3:Extension[@Category='windows.appExecutionAlias']//desktop:ExecutionAlias[@Alias='musu.exe']",
         $ns
     )
+    $brainFullTrust = $Manifest.SelectSingleNode(
+        "//desktop:Extension[@Category='windows.fullTrustProcess' and @Executable='musu-brain.exe']//desktop:FullTrustProcess",
+        $ns
+    )
     $customCapability = $Manifest.SelectSingleNode(
         "//uap4:CustomCapability[@Name='Microsoft.nonUserConfigurableStartupTasks_8wekyb3d8bbwe']",
         $ns
@@ -200,6 +204,8 @@ function Get-MsixStartupContract([xml]$Manifest) {
         Version                                    = if ($identity) { $identity.Attributes["Version"].Value } else { $null }
         HasAlias                                   = [bool]$alias
         AliasName                                  = if ($alias) { $alias.GetAttribute("Alias") } else { $null }
+        HasBrainFullTrustProcess                   = [bool]$brainFullTrust
+        BrainExecutable                            = if ($brainFullTrust) { $brainFullTrust.ParentNode.GetAttribute("Executable") } else { $null }
         HasStartupTask                             = [bool]$startupTask
         StartupTaskId                              = if ($startupTask) { $startupTask.GetAttribute("TaskId") } else { $null }
         StartupEnabled                             = if ($startupTask) { $startupTask.GetAttribute("Enabled") } else { $null }
@@ -217,6 +223,8 @@ function Test-MsixStartupContractEquivalent($Left, $Right) {
     return (
         $Left.HasAlias -eq $Right.HasAlias -and
         $Left.AliasName -eq $Right.AliasName -and
+        $Left.HasBrainFullTrustProcess -eq $Right.HasBrainFullTrustProcess -and
+        $Left.BrainExecutable -eq $Right.BrainExecutable -and
         $Left.HasStartupTask -eq $Right.HasStartupTask -and
         $Left.StartupTaskId -eq $Right.StartupTaskId -and
         $Left.StartupEnabled -eq $Right.StartupEnabled -and

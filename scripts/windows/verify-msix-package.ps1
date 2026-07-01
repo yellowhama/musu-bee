@@ -5,6 +5,7 @@ param(
     [string]$MusuHome,
     [string]$ExpectedApplicationExecutable = "musu-desktop.exe",
     [string]$RuntimeExecutable = "musu.exe",
+    [string]$BrainExecutable = "musu-brain.exe",
     [string]$StartupExecutable = "musu-startup.exe",
     [ValidateSet("release", "debug")]
     [string]$Configuration = "debug",
@@ -52,6 +53,7 @@ $entries = $package.Entries
 
 Assert-True ($entries -contains $ExpectedApplicationExecutable) "MSIX package missing $ExpectedApplicationExecutable"
 Assert-True ($entries -contains $RuntimeExecutable) "MSIX package missing $RuntimeExecutable"
+Assert-True ($entries -contains $BrainExecutable) "MSIX package missing $BrainExecutable"
 Assert-True ($entries -contains $StartupExecutable) "MSIX package missing $StartupExecutable"
 
 $ns = New-Object System.Xml.XmlNamespaceManager($manifest.NameTable)
@@ -81,6 +83,17 @@ $aliasNode = $manifest.SelectSingleNode(
 Assert-True ($null -ne $aliasExtension) "MSIX manifest missing appExecutionAlias extension"
 Assert-True ($aliasExtension.GetAttribute("Executable") -ieq $RuntimeExecutable) "MSIX alias executable is '$($aliasExtension.GetAttribute("Executable"))', expected '$RuntimeExecutable'"
 Assert-True ($null -ne $aliasNode) "MSIX manifest missing appExecutionAlias for $RuntimeExecutable"
+
+$brainExtension = $manifest.SelectSingleNode(
+    "//desktop:Extension[@Category='windows.fullTrustProcess' and @Executable='$BrainExecutable']",
+    $ns
+)
+$brainProcess = $manifest.SelectSingleNode(
+    "//desktop:Extension[@Category='windows.fullTrustProcess' and @Executable='$BrainExecutable']//desktop:FullTrustProcess",
+    $ns
+)
+Assert-True ($null -ne $brainExtension) "MSIX manifest missing fullTrustProcess extension for $BrainExecutable"
+Assert-True ($null -ne $brainProcess) "MSIX manifest missing FullTrustProcess declaration for $BrainExecutable"
 
 $startupExtension = $manifest.SelectSingleNode(
     "//desktop:Extension[@Category='windows.startupTask']",
@@ -124,8 +137,10 @@ Write-Step "MSIX manifest and contents look correct"
     ApplicationExecutable = $applicationNode.GetAttribute("Executable")
     IncludesDesktop = $true
     IncludesMusu    = $true
+    IncludesBrain   = $true
     IncludesStartup = $true
     AliasExecutable = $aliasExtension.GetAttribute("Executable")
+    BrainExecutable = $brainExtension.GetAttribute("Executable")
     StartupExecutable = $startupExtension.GetAttribute("Executable")
     StartupTaskId   = $startupNode.TaskId
     StartupEnabled  = $startupNode.Enabled
@@ -139,4 +154,7 @@ if (-not $SkipSmoke) {
     powershell -ExecutionPolicy Bypass -File (Join-Path $scriptDir "smoke-packaged-startup.ps1") `
         -StartupExe $StartupExe `
         -MusuHome $MusuHome
+    if ($LASTEXITCODE -ne 0) {
+        throw "packaged startup smoke failed with exit code $LASTEXITCODE"
+    }
 }

@@ -3,10 +3,15 @@ import { createHash } from "node:crypto";
 import test from "node:test";
 import { NextRequest } from "next/server";
 
-import { authorizeP2pControl, p2pControlPrincipal } from "./p2pControlAuth";
+import {
+  authorizeP2pControl,
+  p2pControlPrincipal,
+  p2pSourceNodeAuthMismatch,
+} from "./p2pControlAuth";
 
 const ENV_KEYS = [
   "MUSU_P2P_CONTROL_TOKEN",
+  "MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS",
   "MUSU_P2P_CONTROL_TOKEN_SHA256",
   "MUSU_P2P_CONTROL_TOKEN_SHA256S",
   "MUSU_ROUTE_EVIDENCE_TOKEN",
@@ -60,6 +65,26 @@ test("accepts SHA-256 allowlisted runtime bearer token without storing raw token
       p2pControlPrincipal(req("runtime-account-token")).owner_key,
       `token-sha256:${sha256("runtime-account-token")}`
     );
+  });
+});
+
+test("binds source node identity to SHA-256 bearer token when configured", async () => {
+  await withP2pAuthEnv(() => {
+    const tokenHash = sha256("runtime-node-token");
+    process.env.MUSU_P2P_CONTROL_TOKEN_SHA256S = `sha256:${tokenHash}`;
+    process.env.MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS = `sha256:${tokenHash}=pc-a`;
+
+    const request = req("runtime-node-token");
+    assert.equal(authorizeP2pControl(request), null);
+    const principal = p2pControlPrincipal(request);
+    assert.equal(principal.owner_key, `token-sha256:${tokenHash}`);
+    assert.equal(principal.token_sha256, tokenHash);
+    assert.equal(principal.bound_source_node_id, "pc-a");
+    assert.equal(p2pSourceNodeAuthMismatch(principal, "pc-a"), null);
+    assert.deepEqual(p2pSourceNodeAuthMismatch(principal, "pc-b"), {
+      error: "source_node_id_auth_mismatch",
+      bound_source_node_id: "pc-a",
+    });
   });
 });
 

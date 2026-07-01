@@ -5,7 +5,8 @@ param(
     [ValidateSet("x64", "x86", "arm64", "neutral")]
     [string]$Architecture = "x64",
     [string]$BundleDir,
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+    [switch]$NoBump
 )
 
 Set-StrictMode -Version Latest
@@ -25,16 +26,19 @@ function Invoke-CapturedPowerShell {
 
     $hasNativePreference = Test-Path -LiteralPath "variable:PSNativeCommandUseErrorActionPreference"
     $previousNativePreference = $null
+    $previousErrorActionPreference = $ErrorActionPreference
     if ($hasNativePreference) {
         $previousNativePreference = $PSNativeCommandUseErrorActionPreference
         $PSNativeCommandUseErrorActionPreference = $false
     }
+    $ErrorActionPreference = "Continue"
 
     try {
         $output = & powershell @ArgumentList 2>&1
         $exitCode = $LASTEXITCODE
     }
     finally {
+        $ErrorActionPreference = $previousErrorActionPreference
         if ($hasNativePreference) {
             $PSNativeCommandUseErrorActionPreference = $previousNativePreference
         }
@@ -65,6 +69,9 @@ if (-not $SkipBuild) {
         "-Architecture", $Architecture,
         "-StartupContract", $startupContract
     )
+    if ($NoBump) {
+        $buildArgs += "-NoBump"
+    }
     $buildResult = Invoke-CapturedPowerShell -ArgumentList $buildArgs
     if ($buildResult.ExitCode -ne 0) {
         throw "build-msix.ps1 failed for Store-reviewed contract.`n$($buildResult.Output)"

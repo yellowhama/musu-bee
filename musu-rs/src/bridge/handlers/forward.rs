@@ -143,14 +143,27 @@ fn peer_public_key_fingerprint(peer: &ResolvedPeer) -> Option<String> {
         .filter(|value| value.starts_with("sha256:"))
 }
 
-fn forward_url_for_peer(peer: &ResolvedPeer) -> String {
+fn base_url_for_peer(peer: &ResolvedPeer) -> String {
     let addr = peer.addr.trim().trim_end_matches('/');
-    let base = if addr.starts_with("http://") || addr.starts_with("https://") {
+    if addr.starts_with("http://") || addr.starts_with("https://") {
         addr.to_string()
     } else {
         format!("{}://{}", peer_transport_scheme(peer), addr)
-    };
-    format!("{}/api/tasks/forward", base.trim_end_matches('/'))
+    }
+}
+
+fn forward_url_for_peer(peer: &ResolvedPeer) -> String {
+    format!(
+        "{}/api/tasks/forward",
+        base_url_for_peer(peer).trim_end_matches('/')
+    )
+}
+
+fn route_preflight_url_for_peer(peer: &ResolvedPeer) -> String {
+    format!(
+        "{}/api/fleet/node-status",
+        base_url_for_peer(peer).trim_end_matches('/')
+    )
 }
 
 const AUDIT_FRAGMENT_MAX_CHARS: usize = 160;
@@ -413,6 +426,7 @@ pub async fn queue_callback_via_relay(
         source_node_id: source_node_id.to_string(),
         target_node_id: target_node_id.to_string(),
         requested_capability: Some("task_callback".to_string()),
+        transport_intent: Some(crate::cloud::RelayTransportIntent::StoreForwardQueue),
         attempted_route_kinds: vec![crate::cloud::RouteKind::Lan],
         direct_path_failed: true,
         failure_class: Some("callback_direct_post_failed".to_string()),
@@ -978,6 +992,120 @@ async fn forward_to_peer_attempt(
     })
 }
 
+const ROUTE_CANDIDATE_PREFLIGHT_TIMEOUT_MS: u64 = 1_200;
+const ROUTE_CANDIDATE_PREFLIGHT_MAX: usize = 4;
+
+async fn probe_forward_route_candidate(
+    client: &reqwest::Client,
+    peer: &ResolvedPeer,
+    token: &str,
+) -> bool {
+    let url = route_preflight_url_for_peer(peer);
+    let expected_tls_fingerprint = (peer_transport_scheme(peer) == "https")
+        .then(|| peer_public_key_fingerprint(peer))
+        .flatten();
+    let pinned_client = if let Some(fingerprint) = expected_tls_fingerprint.as_deref() {
+        match crate::bridge::tls_pin::fingerprint_pinned_client(fingerprint) {
+            Ok(client) => Some(client),
+            Err(err) => {
+                tracing::warn!(
+                    peer = %peer.addr,
+                    err = %err,
+                    "route candidate preflight skipped; TLS pin client unavailable"
+                );
+                return false;
+            }
+        }
+    } else {
+        None
+    };
+    let request_client = pinned_client.as_ref().unwrap_or(client);
+
+    match request_client
+        .get(&url)
+        .bearer_auth(token)
+        .timeout(std::time::Duration::from_millis(
+            ROUTE_CANDIDATE_PREFLIGHT_TIMEOUT_MS,
+        ))
+        .send()
+        .await
+    {
+        Ok(resp) if resp.status().is_success() => true,
+        Ok(resp) => {
+            tracing::debug!(
+                peer = %peer.addr,
+                status = %resp.status(),
+                "route candidate preflight rejected candidate"
+            );
+            false
+        }
+        Err(err) => {
+            tracing::debug!(
+                peer = %peer.addr,
+                err = %err,
+                "route candidate preflight failed"
+            );
+            false
+        }
+    }
+}
+
+fn reorder_route_candidates_by_preflight(
+    candidates: Vec<ResolvedPeer>,
+    preflight_ok: Vec<bool>,
+) -> Vec<ResolvedPeer> {
+    let mut reachable = Vec::new();
+    let mut unproven = Vec::new();
+    let mut deferred = Vec::new();
+
+    for (idx, candidate) in candidates.into_iter().enumerate() {
+        match preflight_ok.get(idx).copied() {
+            Some(true) => reachable.push(candidate),
+            Some(false) => unproven.push(candidate),
+            None => deferred.push(candidate),
+        }
+    }
+
+    reachable.extend(unproven);
+    reachable.extend(deferred);
+    reachable
+}
+
+async fn prioritize_route_candidates_for_forward(
+    client: &reqwest::Client,
+    candidates: Vec<ResolvedPeer>,
+    token: &str,
+) -> Vec<ResolvedPeer> {
+    if candidates.len() < 2 {
+        return candidates;
+    }
+
+    let preflight_count = candidates.len().min(ROUTE_CANDIDATE_PREFLIGHT_MAX);
+    let probes = candidates
+        .iter()
+        .take(preflight_count)
+        .map(|candidate| probe_forward_route_candidate(client, candidate, token));
+    let preflight_ok = futures_util::future::join_all(probes).await;
+    let reachable_count = preflight_ok.iter().filter(|ok| **ok).count();
+    let ordered = reorder_route_candidates_by_preflight(candidates, preflight_ok);
+    if reachable_count > 0 {
+        tracing::info!(
+            candidate_count = ordered.len(),
+            preflighted = preflight_count,
+            reachable = reachable_count,
+            selected_peer = %ordered[0].addr,
+            "route candidate preflight selected reachable direct candidate"
+        );
+    } else {
+        tracing::debug!(
+            candidate_count = ordered.len(),
+            preflighted = preflight_count,
+            "route candidate preflight found no reachable direct candidate; preserving fallback order"
+        );
+    }
+    ordered
+}
+
 /// Forward a task with automatic retry on failure.
 ///
 /// Retries up to `max_retries` times with exponential backoff (1s, 2s, 4s).
@@ -994,6 +1122,15 @@ pub async fn forward_to_peer_with_retry(
     let mut route_candidates = rendezvous.route_peers.clone();
     push_unique_peer(&mut route_candidates, peer.clone());
     route_candidates = crate::bridge::router::select_remote_candidates_in_order(&route_candidates);
+    // Probe candidates with a read-only endpoint before sending the task. Racing
+    // `/api/tasks/forward` itself would duplicate execution; this only changes
+    // candidate order and leaves the existing direct-then-relay fallback intact.
+    route_candidates = prioritize_route_candidates_for_forward(
+        &state.http_client,
+        route_candidates,
+        state.config.outbound_peer_bearer(),
+    )
+    .await;
     let route_peer = route_candidates
         .first()
         .cloned()
@@ -1946,6 +2083,41 @@ mod tests {
             forward_url_for_peer(&peer),
             "https://target.example.com:443/api/tasks/forward"
         );
+    }
+
+    #[test]
+    fn route_preflight_url_uses_same_peer_base_as_forward() {
+        let peer = peer(
+            "192.168.1.10:8070",
+            Some(serde_json::json!({
+                "transport_scheme": "https",
+            })),
+        );
+
+        assert_eq!(
+            route_preflight_url_for_peer(&peer),
+            "https://192.168.1.10:8070/api/fleet/node-status"
+        );
+    }
+
+    #[test]
+    fn preflight_reorders_reachable_candidate_before_stale_first_candidate() {
+        let stale_lan = peer("192.168.1.10:8070", None);
+        let reachable_lan = peer("192.168.1.192:8070", None);
+        let deferred_tailnet = peer("100.64.1.10:8070", None);
+
+        let ordered = reorder_route_candidates_by_preflight(
+            vec![
+                stale_lan.clone(),
+                reachable_lan.clone(),
+                deferred_tailnet.clone(),
+            ],
+            vec![false, true],
+        );
+
+        assert_eq!(ordered[0].addr, reachable_lan.addr);
+        assert_eq!(ordered[1].addr, stale_lan.addr);
+        assert_eq!(ordered[2].addr, deferred_tailnet.addr);
     }
 
     #[test]

@@ -1,0 +1,180 @@
+{
+  "schema": "musu.store_public_metadata_verification.v2",
+  "checked_at": "2026-06-28T15:39:30.9992626+09:00",
+  "ok": false,
+  "base_url": "https://musu.pro",
+  "privacy_url": "https://musu.pro/privacy",
+  "support_url": "https://musu.pro/support",
+  "expected_support_email": "musu@musu.pro",
+  "expected_release_version": "1.15.0-rc.22",
+  "expected_release_metadata_text": "MUSU public release metadata: 1.15.0-rc.22",
+  "fail_count": 3,
+  "failure_kinds": [
+    "request_failed",
+    "dns_nameserver_mismatch",
+    "apex_tls_handshake_failed",
+    "vercel_edge_apex_tls_failed"
+  ],
+  "pages": [
+    {
+      "name": "privacy",
+      "url": "https://musu.pro/privacy",
+      "ok": false,
+      "failure_kind": "request_failed",
+      "status_code": null,
+      "content_length": 0,
+      "content_sha256": null,
+      "required_text": [
+        "MUSU Privacy Policy",
+        "Data MUSU may process",
+        "musu@musu.pro",
+        "MUSU public release metadata: 1.15.0-rc.22"
+      ],
+      "missing_text": [
+        "MUSU Privacy Policy",
+        "Data MUSU may process",
+        "musu@musu.pro",
+        "MUSU public release metadata: 1.15.0-rc.22"
+      ],
+      "matched_text": [],
+      "content_snippet": ""
+    },
+    {
+      "name": "support",
+      "url": "https://musu.pro/support",
+      "ok": false,
+      "failure_kind": "request_failed",
+      "status_code": null,
+      "content_length": 0,
+      "content_sha256": null,
+      "required_text": [
+        "MUSU Support",
+        "Include this diagnostic evidence",
+        "musu@musu.pro",
+        "MUSU public release metadata: 1.15.0-rc.22"
+      ],
+      "missing_text": [
+        "MUSU Support",
+        "Include this diagnostic evidence",
+        "musu@musu.pro",
+        "MUSU public release metadata: 1.15.0-rc.22"
+      ],
+      "matched_text": [],
+      "content_snippet": ""
+    }
+  ],
+  "public_config": {
+    "url": "https://musu.pro/api/public-config",
+    "ok": false,
+    "failure_kind": "request_failed",
+    "status_code": null,
+    "content_length": 0,
+    "content_sha256": null,
+    "missing_fields": [
+      "schema",
+      "supportEmail",
+      "privacyUrl",
+      "supportUrl",
+      "releaseVersion",
+      "publicReleaseMetadata"
+    ],
+    "mismatched_fields": [],
+    "matched_fields": [],
+    "content_snippet": ""
+  },
+  "dns_diagnostics": {
+    "host": "musu.pro",
+    "ok": true,
+    "error": null,
+    "expected_nameservers": [
+      "ns1.vercel-dns.com",
+      "ns2.vercel-dns.com"
+    ],
+    "current_nameservers": [
+      "blakely.ns.cloudflare.com",
+      "weston.ns.cloudflare.com"
+    ],
+    "missing_expected_nameservers": [
+      "ns1.vercel-dns.com",
+      "ns2.vercel-dns.com"
+    ],
+    "unexpected_nameservers": [
+      "blakely.ns.cloudflare.com",
+      "weston.ns.cloudflare.com"
+    ],
+    "nameserver_check_applicable": true,
+    "nameserver_matches_expected": false,
+    "provider_guess": "cloudflare",
+    "a_records": [
+      "104.21.82.53",
+      "172.67.196.17"
+    ],
+    "aaaa_records": [
+      "2606:4700:3033::ac43:c411",
+      "2606:4700:3037::6815:5235"
+    ]
+  },
+  "edge_tls_diagnostics": {
+    "host": "musu.pro",
+    "ok": false,
+    "error": null,
+    "apex_tls": {
+      "name": "apex_tls",
+      "ok": false,
+      "failure_kind": "tls_handshake_failed",
+      "connect_host": "musu.pro",
+      "server_name": "musu.pro",
+      "port": 443,
+      "timeout_sec": 8,
+      "error": "Exception calling \"AuthenticateAsClient\" with \"1\" argument(s): \"Unable to read data from the transport connection: 현재 연결은 원격 호스트에 의해 강제로 끊겼습니다..\"",
+      "tls_protocol": null,
+      "certificate_subject": null,
+      "certificate_thumbprint": null
+    },
+    "www_tls": {
+      "name": "www_tls",
+      "ok": true,
+      "failure_kind": null,
+      "connect_host": "www.musu.pro",
+      "server_name": "www.musu.pro",
+      "port": 443,
+      "timeout_sec": 8,
+      "error": null,
+      "tls_protocol": "Tls13",
+      "certificate_subject": "CN=musu.pro",
+      "certificate_thumbprint": "66143017CF2F1133CA10A5AFCA0275ACA941C9AC"
+    },
+    "vercel_edge_tls": [
+      {
+        "name": "vercel_edge_apex_tls",
+        "ok": false,
+        "failure_kind": "tls_handshake_failed",
+        "connect_host": "76.76.21.21",
+        "server_name": "musu.pro",
+        "port": 443,
+        "timeout_sec": 8,
+        "error": "Exception calling \"AuthenticateAsClient\" with \"1\" argument(s): \"Unable to read data from the transport connection: 현재 연결은 원격 호스트에 의해 강제로 끊겼습니다..\"",
+        "tls_protocol": null,
+        "certificate_subject": null,
+        "certificate_thumbprint": null
+      }
+    ]
+  },
+  "checks": [
+    {
+      "name": "https://musu.pro/privacy",
+      "status": "fail",
+      "message": "GET failed: The SSL connection could not be established, see inner exception."
+    },
+    {
+      "name": "https://musu.pro/support",
+      "status": "fail",
+      "message": "GET failed: The SSL connection could not be established, see inner exception."
+    },
+    {
+      "name": "https://musu.pro/api/public-config",
+      "status": "fail",
+      "message": "GET failed: The SSL connection could not be established, see inner exception."
+    }
+  ]
+}

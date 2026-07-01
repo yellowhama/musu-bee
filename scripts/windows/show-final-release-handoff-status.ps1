@@ -879,8 +879,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\complete-fin
   -StoreSubmissionId "<partner-center-submission-id>" `
   -StoreCertificationStatus "approved" `
   -StoreRestrictedCapabilityStatus "approved" `
+  -StoreSignedInstallEvidencePath "<store-signed-msix-install-evidence-json>" `
+  -StoreDesktopEntrypointEvidencePath "<store-desktop-entrypoint-evidence-json>" `
+  -StoreInstallObservedAt "<store-install-observed-at>" `
+  -StoreLaunchObservedAt "<store-launch-observed-at>" `
   -StoreRecordedBy "<operator-name>" `
-  -StoreNotes "Microsoft Store certification and restricted capability review approved" `
+  -StoreNotes "Microsoft Store certification, restricted capability review, and Store-signed install/launch evidence approved" `
   -FailOnNotReady `
   -Json
 "@
@@ -1062,8 +1066,8 @@ if (-not [bool]$goNoGo.store_release_verified) {
     Add-OperatorStep `
         -List $operatorSteps `
         -Gate "store-release" `
-        -Summary "Verify the Store submission bundle, reserve the Partner Center product name, submit the package, wait for Microsoft certification/restricted capability approval, then record Store release evidence." `
-        -Command 'powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-store-submission-bundle.ps1; powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 -ProductName "MUSU" -ProductNameReservedAt "<partner-center-name-reserved-at>" -SubmissionId "<partner-center-submission-id>" -CertificationStatus "approved" -RestrictedCapabilityStatus "approved" -RecordedBy "<operator-name>" -Notes "Microsoft Store certification and restricted capability review approved" -Json'
+        -Summary "Verify the Store submission bundle, reserve the Partner Center product name, submit the package, wait for Microsoft certification/restricted capability approval, install the approved Store package, then record Store-signed install and desktop launch evidence." `
+        -Command 'powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-store-submission-bundle.ps1; powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\capture-msix-install-evidence.ps1 -StartupContract store-reviewed-immediate-registration; powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-msix-desktop-entrypoint.ps1 -StartupContract store-reviewed-immediate-registration -RequireInstalledPackage -Json; powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-store-release-verification.ps1 -ProductName "MUSU" -ProductNameReservedAt "<partner-center-name-reserved-at>" -SubmissionId "<partner-center-submission-id>" -CertificationStatus "approved" -RestrictedCapabilityStatus "approved" -StoreSignedInstallEvidencePath "<store-signed-msix-install-evidence-json>" -StoreDesktopEntrypointEvidencePath "<store-desktop-entrypoint-evidence-json>" -StoreInstallObservedAt "<store-install-observed-at>" -StoreLaunchObservedAt "<store-launch-observed-at>" -RecordedBy "<operator-name>" -Notes "Microsoft Store certification, restricted capability review, and Store-signed install/launch evidence approved" -Json'
 }
 if (-not [bool]$goNoGo.p2p_control_plane_verified) {
     Add-OperatorStep `

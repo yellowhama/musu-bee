@@ -1,0 +1,7 @@
+﻿{
+    "schema":  "musu.evidence_integrity_sidecar.v1",
+    "algorithm":  "sha256",
+    "evidence_file":  "20260628-143223-musu.pro.evidence.json",
+    "sha256":  "6905aa5628e3a8a4cefe31060e9bd90198420b0d9d7c071c8c7f7f3e7ba82696",
+    "recorded_at":  "2026-06-28T14:32:24.6736433+09:00"
+}

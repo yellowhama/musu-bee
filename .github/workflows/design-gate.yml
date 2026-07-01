@@ -22,6 +22,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Run design-gate evaluator tests
+        run: node --test scripts/design-gate/*.test.cjs
+
       - name: Evaluate UI design evidence requirements
         uses: actions/github-script@v7
         with:
@@ -72,8 +75,9 @@ jobs:
                   "Design gate failed for UI changes.",
                   "PR body must include:",
                   "- `Design: Approved`",
-                  "- Paperclip brief issue URL",
+                  "- design brief issue URL",
                   "- artifact URL ending in `.pen` or `.png`",
+                  "- approval issue comment URL",
                 ].join("\n")
               );
             }

@@ -1,0 +1,132 @@
+{
+  "schema": "musu.desktop_single_instance_audit.v1",
+  "recorded_at": "2026-06-28T23:15:34.8683244+09:00",
+  "version": "1.15.0-rc.22",
+  "repo_root": "F:\\workspace\\musu-bee",
+  "git_commit": "69aa917e36cd1e3a200aa17aee4e82444a565635",
+  "git_dirty": true,
+  "operator_machine": "HUGH_SECOND",
+  "package_name": "blossompark.musu",
+  "package_full_name": "blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc",
+  "package_family_name": "blossompark.musu_f5h38pf4yt4gc",
+  "application_id": "MUSU",
+  "app_user_model_id": "blossompark.musu_f5h38pf4yt4gc!MUSU",
+  "start_app": {
+    "name": "MUSU",
+    "app_id": "blossompark.musu_f5h38pf4yt4gc!MUSU"
+  },
+  "repeat_count": 3,
+  "activation_delay_sec": 4,
+  "max_desktop_process_count": 1,
+  "require_installed_package": true,
+  "cleanup": {
+    "requested": true,
+    "stopped_pids": [],
+    "errors": [],
+    "final_desktop_shell_count": 1,
+    "final_desktop_pids": [
+      22520
+    ]
+  },
+  "process_counts": {
+    "before_desktop_shell": 0,
+    "after_desktop_shell": 1,
+    "new_desktop_shell": 1,
+    "activation_failure_count": 0
+  },
+  "before_processes": [],
+  "after_processes": [
+    {
+      "pid": 22520,
+      "name": "musu-desktop",
+      "path": "C:\\Program Files\\WindowsApps\\blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc\\musu-desktop.exe",
+      "start_time": "2026-06-28T23:15:23.9878005+09:00",
+      "cpu_seconds": 0.1875,
+      "working_set_mb": 28.25
+    }
+  ],
+  "new_desktop_pids": [
+    22520
+  ],
+  "activations": [
+    {
+      "index": 1,
+      "started_at": "2026-06-28T23:15:22.5997760+09:00",
+      "app_user_model_id": "blossompark.musu_f5h38pf4yt4gc!MUSU",
+      "error": null,
+      "desktop_process_count_after_activation": 1,
+      "desktop_pids_after_activation": [
+        22520
+      ]
+    },
+    {
+      "index": 2,
+      "started_at": "2026-06-28T23:15:26.7259248+09:00",
+      "app_user_model_id": "blossompark.musu_f5h38pf4yt4gc!MUSU",
+      "error": null,
+      "desktop_process_count_after_activation": 1,
+      "desktop_pids_after_activation": [
+        22520
+      ]
+    },
+    {
+      "index": 3,
+      "started_at": "2026-06-28T23:15:30.7677992+09:00",
+      "app_user_model_id": "blossompark.musu_f5h38pf4yt4gc!MUSU",
+      "error": null,
+      "desktop_process_count_after_activation": 1,
+      "desktop_pids_after_activation": [
+        22520
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "name": "package installed",
+      "status": "pass",
+      "message": "MSIX package lookup is present or not required"
+    },
+    {
+      "name": "AppUserModelId resolved",
+      "status": "pass",
+      "message": "AppUserModelId is blossompark.musu_f5h38pf4yt4gc!MUSU"
+    },
+    {
+      "name": "Start menu registration",
+      "status": "pass",
+      "message": "Start menu registration was found or not required"
+    },
+    {
+      "name": "repeat count",
+      "status": "pass",
+      "message": "repeat_count is 3"
+    },
+    {
+      "name": "activation attempts",
+      "status": "pass",
+      "message": "all 3 desktop activations were attempted without process launch errors"
+    },
+    {
+      "name": "baseline desktop shell count",
+      "status": "pass",
+      "message": "baseline desktop shell count 0 <= 1"
+    },
+    {
+      "name": "desktop shell count after repeated activation",
+      "status": "pass",
+      "message": "desktop shell count after repeated activation 1 <= 1"
+    },
+    {
+      "name": "new desktop shell count",
+      "status": "pass",
+      "message": "new desktop shell count 1 <= 1"
+    },
+    {
+      "name": "cleanup completed",
+      "status": "pass",
+      "message": "cleanup left the desktop shell count inside the configured budget"
+    }
+  ],
+  "fail_count": 0,
+  "ok": true
+}

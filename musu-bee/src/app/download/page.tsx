@@ -11,7 +11,7 @@ import {
 export const metadata: Metadata = {
   title: "Download MUSU for Windows",
   description:
-    "Install MUSU for Windows in one line: irm https://musu.pro/install.ps1 | iex. Beta build, self-signed; the installer trusts the cert and installs for you.",
+    "Install MUSU for Windows on this PC or another PC in one line: irm https://musu.pro/install.ps1 | iex. Beta build, self-signed; the installer trusts the cert and installs for you.",
 };
 
 export default function DownloadPage() {
@@ -23,21 +23,47 @@ export default function DownloadPage() {
         <h1 style={titleStyle}>MUSU for Windows</h1>
         <p style={descStyle}>
           MUSU is in beta. The desktop build is self-signed today (not yet
-          Microsoft Store-signed). The one-click installer trusts the beta
-          certificate and installs MUSU for you in a single step &mdash; no
-          commands to type. After that, MUSU keeps itself updated automatically.
-          Version <strong>{PUBLIC_RELEASE_VERSION}</strong>, x64.
+          Microsoft Store-signed). The installer trusts the beta certificate,
+          installs MUSU, and registers the App Installer update path. Run the
+          same command on every Windows PC you want in your fleet. Version{" "}
+          <strong>{PUBLIC_RELEASE_VERSION}</strong>, x64.
         </p>
 
         <section style={{ ...sectionStyle, marginTop: 28 }}>
-          <h2 style={headingStyle}>Install in one line</h2>
+          <h2 style={headingStyle}>Install on another Windows PC</h2>
           <p style={bodyStyle}>
-            Open <strong>PowerShell</strong> and paste this. It trusts the beta
-            certificate and installs MUSU (with automatic updates) &mdash; you
-            never type a certificate command, and it elevates itself once.
+            On the other computer, open <strong>PowerShell</strong> and paste
+            this exact command. The script elevates once, trusts the MUSU beta
+            certificate, installs the package, and keeps the update channel
+            attached.
           </p>
           <pre style={preStyle}>
-            <code data-testid="install-one-liner">irm https://musu.pro/install.ps1 | iex</code>
+            <code data-testid="install-one-liner">{INSTALL_ONE_LINER}</code>
+          </pre>
+          <p style={hintStyle}>
+            After install, run <code style={codeStyle}>musu package-status</code>{" "}
+            to confirm the package version, then{" "}
+            <code style={codeStyle}>musu nodes --json</code> to confirm the
+            machine has published itself to the fleet registry.
+          </p>
+        </section>
+
+        <section style={sectionStyle}>
+          <h2 style={headingStyle}>Prove the install after first launch</h2>
+          <p style={bodyStyle}>
+            Open MUSU once on that PC, then run this command to produce the JSON
+            proof MUSU uses for release checks: installed package version,
+            remote-usable fleet URL, direct-only online count, and brain token
+            custody.
+          </p>
+          <pre style={preStyle}>
+            <code data-testid="fleet-proof-command">{FLEET_PROOF_COMMAND}</code>
+          </pre>
+          <p style={hintStyle}>
+            For a two-PC direct proof, include the expected node names:
+          </p>
+          <pre style={preStyle}>
+            <code data-testid="fleet-proof-direct-command">{DIRECT_FLEET_PROOF_COMMAND}</code>
           </pre>
         </section>
 
@@ -81,6 +107,14 @@ export default function DownloadPage() {
   );
 }
 
+const INSTALL_ONE_LINER = "irm https://musu.pro/install.ps1 | iex";
+
+const FLEET_PROOF_COMMAND =
+  "& ([scriptblock]::Create((irm https://musu.pro/fleet-proof.ps1))) -RequireBrainToken -Json";
+
+const DIRECT_FLEET_PROOF_COMMAND =
+  "& ([scriptblock]::Create((irm https://musu.pro/fleet-proof.ps1))) -ExpectedNodeName <this-pc-name> -ExpectedDirectPeerName <other-pc-name> -RequireBrainToken -Json";
+
 const pageStyle: CSSProperties = {
   maxWidth: 960,
   margin: "0 auto",
@@ -111,27 +145,6 @@ const descStyle: CSSProperties = {
   maxWidth: 780,
 };
 
-const ctaRowStyle: CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: 14,
-  marginTop: 28,
-};
-
-const primaryButtonStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 10,
-  padding: "16px 28px",
-  borderRadius: 12,
-  background:
-    "linear-gradient(135deg, var(--accent) 0%, var(--brand-yellow) 100%)",
-  color: "#fff",
-  textDecoration: "none",
-  fontWeight: 700,
-  boxShadow: "0 4px 14px rgba(36, 200, 219, 0.2)",
-};
-
 const sectionStyle: CSSProperties = {
   marginTop: 28,
   paddingTop: 24,
@@ -151,14 +164,6 @@ const bodyStyle: CSSProperties = {
   lineHeight: 1.8,
 };
 
-const listStyle: CSSProperties = {
-  margin: 0,
-  paddingLeft: 22,
-  color: "var(--fg2)",
-  fontSize: 15,
-  lineHeight: 1.85,
-};
-
 const preStyle: CSSProperties = {
   margin: "12px 0 0",
   padding: "14px 16px",
@@ -170,6 +175,15 @@ const preStyle: CSSProperties = {
   fontSize: 14,
   lineHeight: 1.6,
   color: "var(--fg1)",
+  whiteSpace: "pre-wrap",
+  overflowWrap: "anywhere",
+};
+
+const hintStyle: CSSProperties = {
+  margin: "12px 0 0",
+  color: "var(--fg2)",
+  fontSize: 14,
+  lineHeight: 1.75,
 };
 
 const codeStyle: CSSProperties = {

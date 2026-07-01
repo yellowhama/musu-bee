@@ -99,7 +99,7 @@ test("reports relay transport preflight blockers by default", async () => {
     assert.equal(body.relay_transport_descriptor_wired, true);
     assert.equal(body.relay_transport_wired, false);
     assert.equal(body.relay_connect_endpoint_wired, true);
-    assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_endpoint_wired, true);
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_default_data_path, false);
     assert.equal(body.relay_lease_store_backend, "file");
@@ -108,7 +108,7 @@ test("reports relay transport preflight blockers by default", async () => {
     assert.match(body.blockers.join(","), /relay_transport_not_wired/);
     assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
     assert.doesNotMatch(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
-    assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
     assert.match(body.blockers.join(","), /relay_url_not_configured/);
     assert.match(body.blockers.join(","), /connect_pro_entitlement_required/);
     assert.match(body.blockers.join(","), /relay_lease_store_not_release_grade/);
@@ -160,7 +160,7 @@ test("keeps relay transport preflight blocked when only env policy is configured
     assert.equal(body.relay_transport_descriptor_wired, true);
     assert.equal(body.relay_transport_wired, false);
     assert.equal(body.relay_connect_endpoint_wired, true);
-    assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_endpoint_wired, true);
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_default_data_path, false);
     assert.equal(body.relay_url, "wss://relay.musu.pro/api/v1/relay/connect");
@@ -174,7 +174,7 @@ test("keeps relay transport preflight blocked when only env policy is configured
     assert.match(body.blockers.join(","), /relay_transport_not_wired/);
     assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
     assert.doesNotMatch(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
-    assert.match(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_payload_endpoint_not_wired/);
   });
 });
 

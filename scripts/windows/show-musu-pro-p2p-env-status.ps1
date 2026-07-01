@@ -157,6 +157,7 @@ function Get-SourceRelayMarker {
         relay_connect_endpoint_implemented = $false
         relay_payload_endpoint_implemented = $false
         release_payload_preflight_endpoint_implemented = $false
+        release_payload_endpoint_proof_bound = $false
         relay_payload_queue_endpoint_implemented = $false
         release_relay_tunnel_runtime_implemented = $false
         release_relay_tunnel_runtime_source_contract_ready = $false
@@ -203,7 +204,17 @@ function Get-SourceRelayMarker {
             [regex]::IsMatch($releasePayloadRouteText, 'musu\.relay_payload_preflight\.v1') -and
             [regex]::IsMatch($releasePayloadRouteText, 'authorizeP2pControl\(req\)') -and
             [regex]::IsMatch($releasePayloadRouteText, 'queryRelayLeases') -and
-            [regex]::IsMatch($releasePayloadRouteText, 'relay_payload_endpoint_not_wired') -and
+            -not [regex]::IsMatch($releasePayloadRouteText, 'appendRelayPayload')
+        )
+        $summary.release_payload_endpoint_proof_bound = (
+            [bool]$summary.release_payload_preflight_endpoint_implemented -and
+            [regex]::IsMatch($releasePayloadRouteText, 'musu\.relay_payload_release_request\.v1') -and
+            [regex]::IsMatch($releasePayloadRouteText, 'musu\.relay_transport_proof\.v1') -and
+            [regex]::IsMatch($releasePayloadRouteText, 'musu\.relay_payload_delivery_proof\.v1') -and
+            [regex]::IsMatch($releasePayloadRouteText, 'appendRelayTransportProof') -and
+            [regex]::IsMatch($releasePayloadRouteText, 'release_payload_contract:\s*"musu\.relay_payload_release\.v1"') -and
+            [regex]::IsMatch($releasePayloadRouteText, 'release_payload_accepted:\s*true') -and
+            [regex]::IsMatch($releasePayloadRouteText, 'payload_transported:\s*true') -and
             -not [regex]::IsMatch($releasePayloadRouteText, 'appendRelayPayload')
         )
         $summary.release_payload_preflight_only = (
@@ -211,6 +222,7 @@ function Get-SourceRelayMarker {
             [regex]::IsMatch($releasePayloadRouteText, 'release_payload_accepted:\s*false') -and
             [regex]::IsMatch($releasePayloadRouteText, 'payload_transported:\s*false') -and
             [regex]::IsMatch($releasePayloadRouteText, 'releasePayloadBlocked') -and
+            -not [bool]$summary.release_payload_endpoint_proof_bound -and
             -not [regex]::IsMatch($releasePayloadRouteText, 'markRelayPayloadDelivered')
         )
         $summary.relay_payload_queue_endpoint_implemented = [regex]::IsMatch($text, 'RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED\s*=\s*true')
@@ -544,13 +556,17 @@ else {
     if ($sourceSummary.release_connect_fail_closed_placeholder_active) {
         $blockers.Add("source_release_relay_connect_placeholder_active") | Out-Null
     }
-    if ($sourceSummary.preview_store_forward_payload_queue_non_release_grade) {
+    if ($sourceSummary.preview_store_forward_payload_queue_non_release_grade -and -not $sourceSummary.release_payload_endpoint_proof_bound) {
         $blockers.Add("source_preview_store_forward_payload_queue_non_release_grade") | Out-Null
     }
     if ($sourceSummary.relay_connect_endpoint_implemented -and $sourceSummary.release_connect_fail_closed_placeholder_active) {
         $blockers.Add("source_release_relay_connect_marker_conflicts_with_placeholder") | Out-Null
     }
-    if ($sourceSummary.relay_payload_endpoint_implemented -and $sourceSummary.preview_store_forward_payload_queue_non_release_grade) {
+    if (
+        $sourceSummary.relay_payload_endpoint_implemented -and
+        $sourceSummary.preview_store_forward_payload_queue_non_release_grade -and
+        -not $sourceSummary.release_payload_endpoint_proof_bound
+    ) {
         $blockers.Add("source_release_relay_payload_marker_conflicts_with_preview_queue_only") | Out-Null
     }
     if ($sourceSummary.release_payload_endpoint_marker_conflicts_with_preflight_only) {
@@ -689,6 +705,7 @@ $result = [pscustomobject]@{
     release_relay_connect_endpoint_implemented = $sourceSummary.relay_connect_endpoint_implemented
     release_relay_payload_endpoint_implemented = $sourceSummary.relay_payload_endpoint_implemented
     release_payload_preflight_endpoint_implemented = $sourceSummary.release_payload_preflight_endpoint_implemented
+    release_payload_endpoint_proof_bound = $sourceSummary.release_payload_endpoint_proof_bound
     release_payload_preflight_only = $sourceSummary.release_payload_preflight_only
     release_tunnel_payload_endpoint_missing = $sourceSummary.release_tunnel_payload_endpoint_missing
     release_relay_tunnel_runtime_implemented = $sourceSummary.release_relay_tunnel_runtime_implemented
@@ -738,6 +755,7 @@ else {
     "source release relay tunnel runtime not implemented branch active: $($result.source.release_relay_tunnel_runtime_not_implemented_branch_active)"
     "source release relay tunnel runtime missing source hooks: $((@($result.source.release_relay_tunnel_runtime_missing_source_hooks) -join ', '))"
     "source release relay payload preflight endpoint implemented: $($result.source.release_payload_preflight_endpoint_implemented)"
+    "source release payload endpoint proof-bound: $($result.source.release_payload_endpoint_proof_bound)"
     "source release payload preflight only: $($result.source.release_payload_preflight_only)"
     "source release payload marker conflicts with preflight only: $($result.source.release_payload_endpoint_marker_conflicts_with_preflight_only)"
     "source release relay tunnel runtime marker conflicts with source contract: $($result.source.release_relay_tunnel_runtime_marker_conflicts_with_source_contract)"

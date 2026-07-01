@@ -1,0 +1,124 @@
+﻿{
+    "schema":  "musu.brain_product_proof.v1",
+    "ok":  true,
+    "version":  "1.15.0-rc.22",
+    "package_version":  "1.15.0.22",
+    "expected_package_version":  "1.15.0.22",
+    "package_full_name":  "blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc",
+    "install_location":  "C:\\Program Files\\WindowsApps\\blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc",
+    "brain_binary_path":  "C:\\Program Files\\WindowsApps\\blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc\\musu-brain.exe",
+    "brain_binary_packaged":  true,
+    "sidecar_process_observed":  true,
+    "generated_at":  "2026-07-01T16:12:21.7089118+09:00",
+    "operator_machine":  "HUGH_SECOND",
+    "operator_user":  "empty",
+    "brain_root":  "C:\\Users\\empty\\.musu\\brain",
+    "base_url":  "http://127.0.0.1:8080",
+    "product_owned_loopback":  true,
+    "brain_http_public_surface_exposed":  false,
+    "token_present":  true,
+    "token_acl_restricted":  true,
+    "token_path":  "C:\\Users\\empty\\.musu\\brain\\runtime\\musu-ingest.token",
+    "version_coherence_ok":  true,
+    "source_store_owner":  "musu-brain",
+    "musu_db_shared_write":  false,
+    "tenant_id":  "local",
+    "workspace_id":  "musu",
+    "health_ok":  true,
+    "workspace_ok":  true,
+    "task_ingest_ok":  true,
+    "task_source_id":  "src_39aa1f96d7a55534",
+    "task_marker":  "musu-brain-proof-task-20260701161221-726f13c7",
+    "task_process_ok":  true,
+    "task_recall_ok":  true,
+    "task_recall_result_count":  1,
+    "recall_capture_ux_ok":  true,
+    "capture_clip_ok":  true,
+    "capture_source_id":  "src_16468171efccc51d",
+    "capture_marker":  "musu-brain-proof-capture-20260701161221-726f13c7",
+    "capture_process_ok":  true,
+    "capture_recall_ok":  true,
+    "capture_recall_result_count":  1,
+    "checks":  [
+                   {
+                       "name":  "installed package",
+                       "status":  "pass",
+                       "message":  "MUSU MSIX package is installed"
+                   },
+                   {
+                       "name":  "package version",
+                       "status":  "pass",
+                       "message":  "installed package version matches 1.15.0.22"
+                   },
+                   {
+                       "name":  "brain binary packaged",
+                       "status":  "pass",
+                       "message":  "musu-brain.exe is present in the package install location"
+                   },
+                   {
+                       "name":  "brain root",
+                       "status":  "pass",
+                       "message":  "brain root is under ~/.musu/brain"
+                   },
+                   {
+                       "name":  "base url loopback",
+                       "status":  "pass",
+                       "message":  "base URL is product-owned loopback"
+                   },
+                   {
+                       "name":  "sidecar process",
+                       "status":  "pass",
+                       "message":  "musu-brain sidecar process is running"
+                   },
+                   {
+                       "name":  "token present",
+                       "status":  "pass",
+                       "message":  "brain ingest token exists"
+                   },
+                   {
+                       "name":  "token acl",
+                       "status":  "pass",
+                       "message":  "brain ingest token ACL is restricted"
+                   },
+                   {
+                       "name":  "health",
+                       "status":  "pass",
+                       "message":  "brain /health is reachable"
+                   },
+                   {
+                       "name":  "workspace",
+                       "status":  "pass",
+                       "message":  "brain workspace scope is ready"
+                   },
+                   {
+                       "name":  "task ingest",
+                       "status":  "pass",
+                       "message":  "task source ingest created a source"
+                   },
+                   {
+                       "name":  "task process",
+                       "status":  "pass",
+                       "message":  "task source processing succeeded"
+                   },
+                   {
+                       "name":  "task recall",
+                       "status":  "pass",
+                       "message":  "task marker was recalled"
+                   },
+                   {
+                       "name":  "capture clip",
+                       "status":  "pass",
+                       "message":  "capture clip created a source"
+                   },
+                   {
+                       "name":  "capture process",
+                       "status":  "pass",
+                       "message":  "capture source processing succeeded"
+                   },
+                   {
+                       "name":  "capture recall",
+                       "status":  "pass",
+                       "message":  "capture marker was recalled"
+                   }
+               ]
+}

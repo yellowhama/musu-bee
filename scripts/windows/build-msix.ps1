@@ -25,6 +25,9 @@ param(
     # musu.exe. Built from the same crate (zero version skew). See
     # musu-rs/src/bin/musu-startup.rs + ARCHITECTURE_BINARIES_PROCESSES_PACKAGING.
     [string]$StartupExecutable = "musu-startup.exe",
+    # Go knowledge-engine chip bundled as a sidecar. The Go source remains in
+    # the external musu-brain repo; this script only stages the built exe.
+    [string]$BrainExecutable = "musu-brain.exe",
     [string]$Version,
     # Base URL the published .appinstaller + .msix are hosted at. App Installer
     # re-fetches the .appinstaller from this exact URL on its update interval, so
@@ -67,7 +70,10 @@ param(
     # release LTO of the large lib.rs (~7.5k lines) does not exhaust RAM/paging
     # and crash rustc with STATUS_STACK_BUFFER_OVERRUN / "out of memory". Pass
     # -FastBuild on a machine with ample RAM to restore parallel codegen.
-    [switch]$FastBuild
+    [switch]$FastBuild,
+    # Cheap release gate: verify version coherence and the Musu Brain checkout
+    # pin before the long Rust/Tauri/MSIX build path starts.
+    [switch]$PreflightOnly
 )
 
 Set-StrictMode -Version Latest
@@ -184,9 +190,13 @@ function Normalize-Version([string]$RawVersion) {
 }
 
 function Assert-VersionSourcesCoherent {
-    # VERSION is the authoritative source the build reads + auto-bumps. Three other
-    # files restate the same version and historically drifted (Cargo.toml/
-    # tauri.conf.json/publicRelease.ts froze at rc.1/GA while VERSION reached rc.6).
+    # VERSION is the authoritative source the build reads + auto-bumps. Five other
+    # files restate the same version and historically drifted (musu-rs\Cargo.toml/
+    # src-tauri\Cargo.toml/tauri.conf.json/publicRelease.ts froze at rc.1/GA while
+    # VERSION reached rc.6). src-tauri\Cargo.toml was a blind spot until V33 (it was
+    # kept in lockstep by hand but never gate-checked). V34 adds the Go knowledge
+    # chip pin as the fifth product-version source so the sidecar cannot drift
+    # silently from the shipped MUSU version.
     # We do NOT rewrite those files here — PowerShell regex on source files risks
     # encoding corruption (see CLAUDE.md). Instead, read + compare and fail fast
     # with an actionable message so a human fixes the stated source before shipping
@@ -194,9 +204,11 @@ function Assert-VersionSourcesCoherent {
     param([string]$ExpectedVersion, [string]$RepoRoot)
 
     $checks = @(
-        @{ Name = "Cargo.toml";       Path = (Join-Path $RepoRoot "musu-rs\Cargo.toml");                      Regex = '(?m)^version\s*=\s*"([^"]+)"' },
-        @{ Name = "tauri.conf.json";  Path = (Join-Path $RepoRoot "musu-bee\src-tauri\tauri.conf.json");      Regex = '"version"\s*:\s*"([^"]+)"' },
-        @{ Name = "publicRelease.ts"; Path = (Join-Path $RepoRoot "musu-bee\src\lib\publicRelease.ts");        Regex = 'PUBLIC_RELEASE_VERSION\s*=\s*"([^"]+)"' }
+        @{ Name = "Cargo.toml";              Path = (Join-Path $RepoRoot "musu-rs\Cargo.toml");                      Regex = '(?m)^version\s*=\s*"([^"]+)"' },
+        @{ Name = "src-tauri\Cargo.toml";    Path = (Join-Path $RepoRoot "musu-bee\src-tauri\Cargo.toml");           Regex = '(?m)^version\s*=\s*"([^"]+)"' },
+        @{ Name = "tauri.conf.json";         Path = (Join-Path $RepoRoot "musu-bee\src-tauri\tauri.conf.json");      Regex = '"version"\s*:\s*"([^"]+)"' },
+        @{ Name = "publicRelease.ts";        Path = (Join-Path $RepoRoot "musu-bee\src\lib\publicRelease.ts");        Regex = 'PUBLIC_RELEASE_VERSION\s*=\s*"([^"]+)"' },
+        @{ Name = "musu-brain.pin.json";     Path = (Join-Path $RepoRoot "musu-bee\src-tauri\musu-brain.pin.json");  Regex = '"product_version"\s*:\s*"([^"]+)"' }
     )
     $mismatches = @()
     foreach ($c in $checks) {
@@ -245,7 +257,117 @@ editor — this script deliberately does NOT rewrite source files to avoid
 encoding corruption.)
 "@
     }
-    Write-Step "Version coherence OK: Cargo.toml / tauri.conf.json / publicRelease.ts all = $ExpectedVersion"
+    Write-Step "Version coherence OK: Cargo.toml / src-tauri\Cargo.toml / tauri.conf.json / publicRelease.ts / musu-brain.pin.json all = $ExpectedVersion"
+}
+
+function Resolve-RustHostTuple {
+    param([string]$Architecture)
+
+    $rustc = Get-Command rustc -ErrorAction SilentlyContinue
+    if ($rustc) {
+        $tuple = (& $rustc.Source --print host-tuple 2>$null)
+        if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($tuple)) {
+            return $tuple.Trim()
+        }
+    }
+
+    switch ($Architecture) {
+        "x64" { return "x86_64-pc-windows-msvc" }
+        "x86" { return "i686-pc-windows-msvc" }
+        "arm64" { return "aarch64-pc-windows-msvc" }
+        default { throw "Cannot infer Rust host tuple for Architecture '$Architecture'. Install rustc or pass a concrete architecture." }
+    }
+}
+
+function Assert-BrainSidecarBuildInfo {
+    param([string]$BrainExePath, [string]$PinPath)
+
+    if (-not (Test-Path -LiteralPath $PinPath)) {
+        throw "musu-brain pin file not found at $PinPath"
+    }
+    $pin = Get-Content -LiteralPath $PinPath -Raw | ConvertFrom-Json
+    $info = & go version -m $BrainExePath 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "go version -m failed for $BrainExePath`n$($info -join "`n")"
+    }
+
+    $moduleOk = $false
+    $revision = $null
+    $modified = $null
+    foreach ($line in $info) {
+        if ($line -match "^\s*mod\s+(\S+)\s+") {
+            $moduleOk = ($Matches[1] -eq [string]$pin.module_path)
+        }
+        if ($line -match "^\s*build\s+vcs\.revision=(.+)$") {
+            $revision = $Matches[1].Trim()
+        }
+        if ($line -match "^\s*build\s+vcs\.modified=(.+)$") {
+            $modified = $Matches[1].Trim()
+        }
+    }
+
+    if (-not $moduleOk) {
+        throw "musu-brain sidecar module does not match pin module_path '$($pin.module_path)'"
+    }
+    if ($revision -ne [string]$pin.vcs_revision) {
+        throw "musu-brain sidecar revision '$revision' does not match pin '$($pin.vcs_revision)'"
+    }
+    if ($modified -ne "false") {
+        throw "musu-brain sidecar was built from a dirty Go repo (vcs.modified=$modified)"
+    }
+    Write-Step "Musu Brain sidecar build info OK: $($pin.module_path)@$revision"
+}
+
+function Resolve-BrainRepoForPin {
+    param([object]$Pin, [string]$RepoRoot)
+
+    $envRepo = [Environment]::GetEnvironmentVariable("MUSU_BRAIN_REPO")
+    if (-not [string]::IsNullOrWhiteSpace($envRepo)) {
+        return $envRepo
+    }
+    if ($Pin.PSObject.Properties.Name -contains "default_repo_hint") {
+        $hint = [string]$Pin.default_repo_hint
+        if (-not [string]::IsNullOrWhiteSpace($hint)) {
+            return $hint
+        }
+    }
+
+    $workspaceRoot = Split-Path -Parent (Split-Path -Parent $RepoRoot)
+    return (Join-Path $workspaceRoot "musu_2nd_brain")
+}
+
+function Assert-BrainRepoMatchesPin {
+    param([string]$PinPath, [string]$RepoRoot)
+
+    if (-not (Test-Path -LiteralPath $PinPath)) {
+        throw "musu-brain pin file not found at $PinPath"
+    }
+    $pin = Get-Content -LiteralPath $PinPath -Raw | ConvertFrom-Json
+    $brainRepo = Resolve-BrainRepoForPin -Pin $pin -RepoRoot $RepoRoot
+
+    if (-not (Test-Path -LiteralPath (Join-Path $brainRepo "go.mod"))) {
+        throw "Musu Brain repo not found at $brainRepo; set MUSU_BRAIN_REPO to the Go engine checkout."
+    }
+
+    $revisionOutput = & git -C $brainRepo rev-parse HEAD 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "git rev-parse failed for Musu Brain repo $brainRepo`n$($revisionOutput -join "`n")"
+    }
+    $revision = ($revisionOutput | Select-Object -First 1).Trim()
+    if ($revision -ne [string]$pin.vcs_revision) {
+        throw "musu-brain pin revision $($pin.vcs_revision) does not match $brainRepo HEAD $revision"
+    }
+
+    $dirtyOutput = & git -C $brainRepo status --porcelain=v1 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "git status failed for Musu Brain repo $brainRepo`n$($dirtyOutput -join "`n")"
+    }
+    $dirty = ($dirtyOutput -join "`n").Trim()
+    if (-not [string]::IsNullOrWhiteSpace($dirty)) {
+        throw "musu-brain repo has uncommitted changes; refusing to start the long release build from a dirty knowledge chip."
+    }
+
+    Write-Step "Musu Brain repo pin OK before release build: $($pin.module_path)@$revision"
 }
 
 function Resolve-OptionalPath([string]$PathValue) {
@@ -282,6 +404,7 @@ function New-ManifestContent {
         [string]$AppDescription,
         [string]$ApplicationExecutable,
         [string]$RuntimeExecutable,
+        [string]$BrainExecutable,
         [string]$StartupExecutable,
         [string]$StartupContract
     )
@@ -361,6 +484,12 @@ $rescap5Namespace
           </uap3:AppExecutionAlias>
         </uap3:Extension>
         <desktop:Extension
+          Category="windows.fullTrustProcess"
+          Executable="$BrainExecutable"
+          EntryPoint="Windows.FullTrustApplication">
+          <desktop:FullTrustProcess />
+        </desktop:Extension>
+        <desktop:Extension
           Category="windows.startupTask"
           Executable="$StartupExecutable"
           EntryPoint="Windows.FullTrustApplication">
@@ -431,11 +560,17 @@ $musuBeeDir = Join-Path $repoRoot "musu-bee"
 $tauriDir = Join-Path $musuBeeDir "src-tauri"
 . (Join-Path $scriptDir "msix-common.ps1")
 
-if (-not $SkipBuild) {
+if ($PreflightOnly) {
+    Assert-CommandAvailable -CommandName "git" -InstallHint "Install Git and ensure git is on PATH for the Musu Brain sidecar pin gate."
+} elseif (-not $SkipBuild) {
     Assert-CommandAvailable -CommandName "cargo" -InstallHint "Install Rust and ensure cargo is on PATH."
     Assert-CommandAvailable -CommandName "npm" -InstallHint "Install Node.js/npm and ensure npm is on PATH."
+    Assert-CommandAvailable -CommandName "go" -InstallHint "Install Go and ensure go is on PATH for the Musu Brain sidecar build."
+    Assert-CommandAvailable -CommandName "git" -InstallHint "Install Git and ensure git is on PATH for the Musu Brain sidecar pin gate."
 }
-Assert-CommandAvailable -CommandName "winapp" -InstallHint "Install Microsoft WinApp CLI with: winget install -e --id Microsoft.WinAppCLI --source winget"
+if (-not $PreflightOnly) {
+    Assert-CommandAvailable -CommandName "winapp" -InstallHint "Install Microsoft WinApp CLI with: winget install -e --id Microsoft.WinAppCLI --source winget"
+}
 
 # Auto-bump (ON by default): increment the prerelease counter in VERSION so each
 # release rises (rc.1 → rc.2 → …) and App Installer auto-update actually fires.
@@ -448,7 +583,7 @@ Assert-CommandAvailable -CommandName "winapp" -InstallHint "Install Microsoft Wi
 # and the next attempt double-bumps. $Version (used by packaging) carries the
 # bumped value in-memory so this build targets the right number regardless.
 $versionPath = Join-Path $repoRoot "VERSION"
-$shouldBump = -not $NoBump -and -not $Version -and -not $DryRun -and -not $SkipBuild
+$shouldBump = -not $NoBump -and -not $Version -and -not $DryRun -and -not $SkipBuild -and -not $PreflightOnly
 $pendingVersionWrite = $null
 if ($shouldBump) {
     $raw = (Get-Content -LiteralPath $versionPath -Raw).Trim()
@@ -492,6 +627,17 @@ if (-not $Version) {
     $Version = Normalize-Version $Version
 }
 
+if ($PreflightOnly) {
+    $preflightBrainPinPath = Join-Path $tauriDir "musu-brain.pin.json"
+    if ($DryRun) {
+        Write-Host "[dry-run] check Musu Brain repo pin at $preflightBrainPinPath"
+    } else {
+        Assert-BrainRepoMatchesPin -PinPath $preflightBrainPinPath -RepoRoot $repoRoot
+    }
+    Write-Step "Release preflight OK: version sources and Musu Brain pin are coherent"
+    exit 0
+}
+
 if (-not $StageDir) {
     $StageDir = Join-Path $repoRoot ".local-build\msix\stage"
 }
@@ -510,7 +656,14 @@ $packageDir = Join-Path $StageDir ("musu-{0}" -f $contractSuffix)
 $musuExe = Join-Path $musuRsDir "target\$Configuration\$RuntimeExecutable"
 $startupExe = Join-Path $musuRsDir "target\$Configuration\$StartupExecutable"
 $desktopExe = Join-Path $tauriDir "target\$Configuration\$ApplicationExecutable"
+$rustHostTuple = Resolve-RustHostTuple -Architecture $Architecture
+$brainSidecarExe = Join-Path $tauriDir ("binaries\musu-brain-{0}.exe" -f $rustHostTuple)
+$brainPinPath = Join-Path $tauriDir "musu-brain.pin.json"
 $generatedCertPath = Join-Path $OutputDir ("{0}_cert.pfx" -f $IdentityName)
+
+if (-not $SkipBuild -and -not $DryRun) {
+    Assert-BrainRepoMatchesPin -PinPath $brainPinPath -RepoRoot $repoRoot
+}
 
 # Memory-safe build env (default ON; -FastBuild restores parallel codegen).
 # CARGO_BUILD_JOBS=1 → one rustc at a time so two release-LTO crates don't peak
@@ -552,6 +705,12 @@ if (-not $DryRun -and -not (Test-Path -LiteralPath $startupExe)) {
 if (-not $DryRun -and -not (Test-Path -LiteralPath $desktopExe)) {
     throw "$ApplicationExecutable not found at $desktopExe"
 }
+if (-not $DryRun -and -not (Test-Path -LiteralPath $brainSidecarExe)) {
+    throw "$BrainExecutable sidecar not found at $brainSidecarExe (run npm run build:tauri-sidecars or a full build first)"
+}
+if (-not $DryRun) {
+    Assert-BrainSidecarBuildInfo -BrainExePath $brainSidecarExe -PinPath $brainPinPath
+}
 
 # Commit the bumped VERSION only after the build succeeded AND all three
 # executables exist. Any failure above throws before this line, so VERSION stays
@@ -592,6 +751,7 @@ if ($DryRun) {
     Copy-Item -LiteralPath $musuExe -Destination (Join-Path $packageDir $RuntimeExecutable)
     Copy-Item -LiteralPath $startupExe -Destination (Join-Path $packageDir $StartupExecutable)
     Copy-Item -LiteralPath $desktopExe -Destination (Join-Path $packageDir $ApplicationExecutable)
+    Copy-Item -LiteralPath $brainSidecarExe -Destination (Join-Path $packageDir $BrainExecutable)
 }
 
 Write-Step "Generating MSIX assets with WinApp CLI"
@@ -622,6 +782,7 @@ $manifestContent = New-ManifestContent `
     -AppDescription $Description `
     -ApplicationExecutable $ApplicationExecutable `
     -RuntimeExecutable $RuntimeExecutable `
+    -BrainExecutable $BrainExecutable `
     -StartupExecutable $StartupExecutable `
     -StartupContract $StartupContract
 
@@ -714,8 +875,9 @@ if (-not $DryRun -and $legacyOutputMsix -ne $outputMsix -and (Test-Path -Literal
 # a sideload-only concept here.
 $appInstallerEmitted = $false
 if ($StartupContract -eq "local-sideload-manual") {
-    $appInstallerUri = "$AppInstallerBaseUrl/musu.appinstaller"
-    $hostedMsixUri = "$AppInstallerBaseUrl/$HostedMsixFileName"
+    $releaseCacheBuster = "rc=$Version"
+    $appInstallerUri = "${AppInstallerBaseUrl}/musu.appinstaller?$releaseCacheBuster"
+    $hostedMsixUri = "${AppInstallerBaseUrl}/${HostedMsixFileName}?$releaseCacheBuster"
     $appInstallerPath = Join-Path $OutputDir "musu.appinstaller"
     # The .appinstaller references the FIXED hosted name. Emit a copy of the
     # version-suffixed MSIX under that exact name (audit 2026-06-11 MEDIUM) so the

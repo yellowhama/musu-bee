@@ -8,6 +8,7 @@
 use anyhow::{anyhow, Result};
 use clap::{Args, Subcommand};
 use serde::Serialize;
+use std::net::IpAddr;
 
 use crate::bridge::route_evidence::{
     build_route_attempt_evidence, elapsed_ms, https_fingerprint_transport_proof, local_node_id,
@@ -41,6 +42,8 @@ pub async fn run_login_desktop() -> anyhow::Result<()> {
 const BRIDGE_HEALTH_TIMEOUT_SECS: u64 = 10;
 const BRIDGE_HEALTH_POLL_INITIAL_MS: u64 = 250;
 const BRIDGE_HEALTH_POLL_MAX_MS: u64 = 2_000;
+const KNOWLEDGE_BASE_URL: &str = "http://127.0.0.1:8080";
+const KNOWLEDGE_HEALTH_TIMEOUT_SECS: u64 = 2;
 const ROUTE_WAIT_DEFAULT_TIMEOUT_SECS: u64 = 300;
 const ROUTE_WAIT_MAX_TIMEOUT_SECS: u64 = 3_600;
 const ROUTE_WAIT_POLL_INTERVAL_SECS: u64 = 2;
@@ -530,6 +533,14 @@ pub struct NodesOpts {
     /// fleet-as-one-device view — without requiring cloud login.
     #[arg(long)]
     pub local: bool,
+
+    /// Delete one owner-scoped cloud registry row by node name.
+    #[arg(long, value_name = "NODE_NAME")]
+    pub delete: Option<String>,
+
+    /// Include cloud registry rows whose public_url cannot be used by other PCs.
+    #[arg(long)]
+    pub include_unusable: bool,
 }
 
 /// `musu nodes` — list the account's registered fleet from musu.pro
@@ -650,7 +661,115 @@ async fn run_nodes_local(opts: NodesOpts) -> Result<()> {
     Ok(())
 }
 
+async fn run_nodes_delete(opts: NodesOpts) -> Result<()> {
+    let node_name = opts
+        .delete
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("");
+    if node_name.is_empty() {
+        let envelope = serde_json::json!({
+            "schema": "musu.nodes_delete_cli.v1",
+            "ok": false,
+            "error": "invalid_args",
+            "detail": "--delete requires a non-empty node name",
+            "node_name": node_name,
+        });
+        if opts.json {
+            println!("{}", serde_json::to_string(&envelope)?);
+        } else {
+            println!("`musu nodes --delete` requires a non-empty node name.");
+        }
+        return Ok(());
+    }
+
+    if opts.local {
+        let envelope = serde_json::json!({
+            "schema": "musu.nodes_delete_cli.v1",
+            "ok": false,
+            "error": "invalid_args",
+            "detail": "--delete cannot be combined with --local",
+            "node_name": node_name,
+        });
+        if opts.json {
+            println!("{}", serde_json::to_string(&envelope)?);
+        } else {
+            println!("`musu nodes --delete` cannot be combined with `--local`.");
+        }
+        return Ok(());
+    }
+
+    let home = musu_home();
+    let Some(token) = crate::cloud::token::load_token(&home) else {
+        if opts.json {
+            println!(
+                "{}",
+                serde_json::to_string(&serde_json::json!({
+                    "schema": "musu.nodes_delete_cli.v1",
+                    "ok": false,
+                    "error": "not_logged_in",
+                    "node_name": node_name,
+                }))?
+            );
+        } else {
+            println!("Not logged in. Run `musu login`.");
+        }
+        return Ok(());
+    };
+
+    let base_url = crate::cloud::base_url_from_env();
+    let cloud = crate::cloud::MusuCloud::new(&base_url, Some(token));
+
+    match cloud.delete_registry_node_by_name(node_name).await {
+        Ok(resp) => {
+            let envelope = serde_json::json!({
+                "schema": "musu.nodes_delete_cli.v1",
+                "ok": true,
+                "node_name": resp.node_name,
+                "deleted": resp.deleted,
+            });
+            if opts.json {
+                println!("{}", serde_json::to_string(&envelope)?);
+            } else if resp.deleted {
+                println!("Deleted cloud registry node '{}'.", resp.node_name);
+            } else {
+                println!("Cloud registry node '{}' was not present.", resp.node_name);
+            }
+        }
+        Err(err) => {
+            let msg = err.to_string();
+            let kind =
+                if msg.contains("failed with HTTP 401") || msg.contains("failed with HTTP 403") {
+                    "token_expired"
+                } else {
+                    "cloud_unreachable"
+                };
+            if opts.json {
+                println!(
+                    "{}",
+                    serde_json::to_string(&serde_json::json!({
+                        "schema": "musu.nodes_delete_cli.v1",
+                        "ok": false,
+                        "error": kind,
+                        "detail": msg,
+                        "node_name": node_name,
+                    }))?
+                );
+            } else {
+                println!("Could not delete cloud registry node '{node_name}' ({kind}): {msg}");
+            }
+        }
+    }
+
+    Ok(())
+}
+
 pub async fn run_nodes(opts: NodesOpts) -> Result<()> {
+    if opts.delete.is_some() {
+        return run_nodes_delete(opts).await;
+    }
+
     // `--local`: read the live local mesh from this bridge's /api/fleet/status
     // (real health checks + manually-added peers), not the cloud registry. This
     // is the fleet-as-one-device view and needs no cloud login.
@@ -721,21 +840,40 @@ pub async fn run_nodes(opts: NodesOpts) -> Result<()> {
     let this_pc = this_node_name();
 
     if opts.json {
+        let mut filtered_unusable_nodes = Vec::new();
         let projected: Vec<_> = nodes
             .iter()
-            .map(|n| {
+            .filter_map(|n| {
                 let meta = n.meta.as_ref();
-                serde_json::json!({
+                let is_this_pc = n.node_name == this_pc;
+                let public_url_warning =
+                    cloud_public_url_warning(&n.public_url, is_this_pc);
+                let public_url_remote_usable = public_url_warning.is_none();
+                if !should_include_cloud_registry_node(
+                    &n.public_url,
+                    is_this_pc,
+                    opts.include_unusable,
+                ) {
+                    filtered_unusable_nodes.push(serde_json::json!({
+                        "node_name": n.node_name,
+                        "public_url": n.public_url,
+                        "public_url_warning": public_url_warning,
+                    }));
+                    return None;
+                }
+                Some(serde_json::json!({
                     "node_name": n.node_name,
                     "public_url": n.public_url,
+                    "public_url_remote_usable": public_url_remote_usable,
+                    "public_url_warning": public_url_warning,
                     "last_seen": n.last_seen,
                     "tailscale_ip": meta.and_then(|m| m.get("tailscale_ip")).and_then(|v| v.as_str()).unwrap_or(""),
                     "mesh_mode": meta.and_then(|m| m.get("mesh_mode")).and_then(|v| v.as_str()).unwrap_or(""),
                     "route_label": meta.and_then(|m| m.get("route_label")).and_then(|v| v.as_str()).unwrap_or(""),
                     "control_server_url": meta.and_then(|m| m.get("control_server_url")).and_then(|v| v.as_str()).unwrap_or(""),
                     "control_server_verified": meta.and_then(|m| m.get("control_server_verified")).and_then(|v| v.as_bool()).unwrap_or(false),
-                    "is_this_pc": n.node_name == this_pc,
-                })
+                    "is_this_pc": is_this_pc,
+                }))
             })
             .collect();
         println!(
@@ -743,21 +881,105 @@ pub async fn run_nodes(opts: NodesOpts) -> Result<()> {
             serde_json::to_string(&serde_json::json!({
                 "schema": "musu.nodes_cli.v1",
                 "ok": true,
+                "filtered_unusable_nodes": filtered_unusable_nodes,
                 "nodes": projected,
             }))?
         );
     } else if nodes.is_empty() {
         println!("No registered nodes yet.");
     } else {
-        println!("\nRegistered fleet ({} nodes):", nodes.len());
+        let mut visible = Vec::new();
+        let mut filtered = Vec::new();
         for n in &nodes {
+            let is_this_pc = n.node_name == this_pc;
+            let warning = cloud_public_url_warning(&n.public_url, is_this_pc);
+            if !should_include_cloud_registry_node(&n.public_url, is_this_pc, opts.include_unusable)
+            {
+                filtered.push((n, warning));
+            } else {
+                visible.push((n, warning));
+            }
+        }
+
+        if visible.is_empty() {
+            println!("No registered usable nodes yet.");
+        } else {
+            println!("\nRegistered fleet ({} nodes):", visible.len());
+        }
+        for (n, warning) in visible {
+            if let Some(warning) = warning {
+                println!(
+                    "  {} - {} (last seen {}) [warning: {}]",
+                    n.node_name, n.public_url, n.last_seen, warning
+                );
+            } else {
+                println!(
+                    "  {} - {} (last seen {})",
+                    n.node_name, n.public_url, n.last_seen
+                );
+            }
+        }
+        if !filtered.is_empty() {
             println!(
-                "  {} — {} (last seen {})",
-                n.node_name, n.public_url, n.last_seen
+                "\nFiltered {} cloud registry row(s) whose public_url cannot be used by other PCs.",
+                filtered.len()
             );
+            println!("Use `musu nodes --include-unusable` to inspect them or `musu nodes --delete <node>` to remove a stale row after server support is deployed.");
         }
     }
     Ok(())
+}
+
+fn cloud_public_url_warning(public_url: &str, _is_this_pc: bool) -> Option<String> {
+    let url = match reqwest::Url::parse(public_url) {
+        Ok(url) => url,
+        Err(_) => return Some("cloud public_url is not a valid URL".into()),
+    };
+    if !matches!(url.scheme(), "http" | "https") {
+        return Some("cloud public_url must use http:// or https://".into());
+    }
+    match url.port_or_known_default() {
+        Some(port) if port != 0 => {}
+        _ => return Some("cloud public_url must include a non-zero port".into()),
+    }
+    let Some(host) = url.host_str() else {
+        return Some("cloud public_url has no host".into());
+    };
+    if !is_usable_remote_public_host(host) {
+        return Some(
+            "cloud public_url points to loopback/wildcard; other PCs cannot use it".into(),
+        );
+    }
+    None
+}
+
+fn is_usable_remote_public_host(host: &str) -> bool {
+    let normalized = host
+        .trim()
+        .trim_matches(&['[', ']'][..])
+        .trim_end_matches('.');
+    if normalized.is_empty() || normalized.eq_ignore_ascii_case("localhost") {
+        return false;
+    }
+    match normalized.parse::<IpAddr>() {
+        Ok(IpAddr::V4(ip)) => !ip.is_loopback() && !ip.is_unspecified(),
+        Ok(IpAddr::V6(ip)) => {
+            if let Some(mapped) = ip.to_ipv4_mapped() {
+                !mapped.is_loopback() && !mapped.is_unspecified()
+            } else {
+                !ip.is_loopback() && !ip.is_unspecified()
+            }
+        }
+        Err(_) => true,
+    }
+}
+
+fn should_include_cloud_registry_node(
+    public_url: &str,
+    is_this_pc: bool,
+    include_unusable: bool,
+) -> bool {
+    is_this_pc || include_unusable || cloud_public_url_warning(public_url, is_this_pc).is_none()
 }
 // ── share / unshare / shares ────────────────────────────────────────────
 
@@ -783,7 +1005,8 @@ pub async fn run_share(opts: ShareOpts) -> Result<()> {
     } else {
         println!("  Mode: read-only");
     }
-    println!("  Restart bridge to apply: musu bridge");
+    println!("  Remote file API: applies without bridge restart");
+    println!("  File watcher/sync: restart bridge to refresh watched roots");
     Ok(())
 }
 
@@ -838,12 +1061,21 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
     }
 
     let home = musu_home();
-    let token = get_token();
     let hints = route_hints_from_opts(&opts);
     let peers = crate::peer::discovery::resolve_all_peers(&home);
-    let selected_peer = opts.target.as_ref().and_then(|target| {
-        crate::bridge::router::select_peer_for_route(Some(target.as_str()), &hints, &peers)
-    });
+    let route_is_remote = opts
+        .target
+        .as_ref()
+        .map(|target| target.as_str() != this_node_name())
+        .unwrap_or(false);
+    let token = get_route_token(&home, route_is_remote);
+    let client = reqwest::Client::new();
+    let mut route_candidates = cli_route_candidates_for_route(&opts, &hints, &peers);
+    if route_is_remote && route_candidates.len() > 1 {
+        route_candidates =
+            prioritize_cli_route_candidates_by_preflight(&client, route_candidates, &token).await;
+    }
+    let selected_peer = route_candidates.into_iter().next();
 
     let addr = if let Some(ref target) = opts.target {
         if let Some(peer) = selected_peer.as_ref() {
@@ -869,7 +1101,6 @@ pub async fn run_route(opts: RouteOpts) -> Result<()> {
 
     let route_base_url = route_base_url_for_addr(&addr, selected_peer.as_ref());
     let url = route_delegate_url(&route_base_url);
-    let client = reqwest::Client::new();
     let route_started = std::time::Instant::now();
     let handshake_ms: Option<u64>;
     let mut route_result = RouteAttemptEvidenceResult::Failed;
@@ -1304,6 +1535,105 @@ fn route_hints_from_opts(opts: &RouteOpts) -> crate::bridge::router::RouteHints 
         prefer_os: None,
         prefer_least_busy: false,
     }
+}
+
+fn cli_route_candidates_for_route(
+    opts: &RouteOpts,
+    hints: &crate::bridge::router::RouteHints,
+    peers: &[crate::peer::discovery::ResolvedPeer],
+) -> Vec<crate::peer::discovery::ResolvedPeer> {
+    let Some(target) = opts.target.as_deref() else {
+        return crate::bridge::router::select_peer_for_route(None, hints, peers)
+            .into_iter()
+            .collect();
+    };
+
+    let exact_addr_matches: Vec<_> = peers
+        .iter()
+        .filter(|peer| peer.addr == target)
+        .cloned()
+        .collect();
+    if !exact_addr_matches.is_empty() {
+        return crate::bridge::router::select_remote_candidates_in_order(&exact_addr_matches);
+    }
+
+    let name_matches: Vec<_> = peers
+        .iter()
+        .filter(|peer| peer.name.as_deref() == Some(target))
+        .cloned()
+        .collect();
+    if !name_matches.is_empty() {
+        let ordered = crate::bridge::router::select_remote_candidates_in_order(&name_matches);
+        if !ordered.is_empty() {
+            return ordered;
+        }
+        return name_matches;
+    }
+
+    Vec::new()
+}
+
+fn reorder_cli_route_candidates_by_preflight(
+    candidates: Vec<crate::peer::discovery::ResolvedPeer>,
+    preflight_ok: Vec<Option<bool>>,
+) -> Vec<crate::peer::discovery::ResolvedPeer> {
+    let mut reachable = Vec::new();
+    let mut failed = Vec::new();
+    let mut unproven = Vec::new();
+
+    for (idx, candidate) in candidates.into_iter().enumerate() {
+        match preflight_ok.get(idx).copied().flatten() {
+            Some(true) => reachable.push(candidate),
+            Some(false) => failed.push(candidate),
+            None => unproven.push(candidate),
+        }
+    }
+
+    if reachable.is_empty() {
+        reachable.extend(failed);
+        reachable.extend(unproven);
+        return reachable;
+    }
+
+    reachable.extend(unproven);
+    reachable.extend(failed);
+    reachable
+}
+
+fn route_node_status_url(base_url: &str) -> String {
+    format!("{}/api/fleet/node-status", base_url.trim_end_matches('/'))
+}
+
+async fn probe_cli_route_candidate(
+    client: &reqwest::Client,
+    candidate: &crate::peer::discovery::ResolvedPeer,
+    token: &str,
+) -> Option<bool> {
+    let base_url = route_base_url_for_addr(&candidate.addr, Some(candidate));
+    let url = route_node_status_url(&base_url);
+    match client
+        .get(&url)
+        .bearer_auth(token)
+        .timeout(std::time::Duration::from_secs(2))
+        .send()
+        .await
+    {
+        Ok(resp) => Some(resp.status().is_success()),
+        Err(_) => Some(false),
+    }
+}
+
+async fn prioritize_cli_route_candidates_by_preflight(
+    client: &reqwest::Client,
+    candidates: Vec<crate::peer::discovery::ResolvedPeer>,
+    token: &str,
+) -> Vec<crate::peer::discovery::ResolvedPeer> {
+    let mut probes = Vec::with_capacity(candidates.len());
+    for candidate in &candidates {
+        probes.push(probe_cli_route_candidate(client, candidate, token).await);
+    }
+
+    reorder_cli_route_candidates_by_preflight(candidates, probes)
 }
 
 fn select_route_candidate(
@@ -3317,7 +3647,7 @@ async fn run_room_presence_list(opts: RoomPresenceListOpts) -> Result<()> {
 /// `musu ls peer-name:/path` — list files on a remote peer.
 pub async fn run_ls(opts: LsOpts) -> Result<()> {
     let home = musu_home();
-    let token = get_token();
+    let token = get_outbound_peer_token(&home);
     let (peer_name, path) = parse_remote(&opts.remote)?;
     let addr = find_peer_addr(&home, &peer_name)?;
 
@@ -3364,7 +3694,7 @@ pub async fn run_ls(opts: LsOpts) -> Result<()> {
 /// `musu get peer-name:/path/to/file` — download a file from a peer.
 pub async fn run_get(opts: GetOpts) -> Result<()> {
     let home = musu_home();
-    let token = get_token();
+    let token = get_outbound_peer_token(&home);
     let (peer_name, path) = parse_remote(&opts.remote)?;
     let addr = find_peer_addr(&home, &peer_name)?;
 
@@ -3399,7 +3729,7 @@ pub async fn run_get(opts: GetOpts) -> Result<()> {
 /// `musu put local-file peer-name:/path/to/dest` — upload a file to a peer.
 pub async fn run_put(opts: PutOpts) -> Result<()> {
     let home = musu_home();
-    let token = get_token();
+    let token = get_outbound_peer_token(&home);
     let (peer_name, path) = parse_remote(&opts.remote)?;
     let addr = find_peer_addr(&home, &peer_name)?;
 
@@ -3512,6 +3842,10 @@ fn find_peer_addr(home: &std::path::Path, peer_name: &str) -> Result<String> {
 
 /// Read the bridge/peer token from env.
 fn get_token() -> String {
+    get_bridge_route_token(&musu_home())
+}
+
+fn get_bridge_route_token(home: &std::path::Path) -> String {
     if let Ok(token) = std::env::var("MUSU_BRIDGE_TOKEN") {
         if !token.trim().is_empty() {
             return token;
@@ -3522,7 +3856,27 @@ fn get_token() -> String {
             return token;
         }
     }
-    crate::install::token::read_bridge_token(&musu_home()).unwrap_or_default()
+    crate::install::token::read_bridge_token(home).unwrap_or_default()
+}
+
+fn get_outbound_peer_token(home: &std::path::Path) -> String {
+    if let Ok(token) = std::env::var("MUSU_TOKEN") {
+        if !token.trim().is_empty() {
+            return token;
+        }
+    }
+    if let Some(token) = crate::install::token::read_mesh_bearer(home) {
+        return token;
+    }
+    crate::install::token::read_bridge_token(home).unwrap_or_default()
+}
+
+fn get_route_token(home: &std::path::Path, route_is_remote: bool) -> String {
+    if route_is_remote {
+        get_outbound_peer_token(home)
+    } else {
+        get_bridge_route_token(home)
+    }
 }
 
 fn local_bridge_addr() -> String {
@@ -3567,6 +3921,7 @@ struct DoctorReport {
     binary: DoctorBinary,
     account: DoctorAccount,
     bridge: DoctorBridge,
+    knowledge: DoctorKnowledge,
     dashboard: DoctorDashboard,
     package: DoctorPackage,
     background: DoctorBackground,
@@ -3600,6 +3955,8 @@ struct DoctorAccount {
     logged_in: bool,
     account_token_present: bool,
     bridge_token_present: bool,
+    fleet_registry_checked: bool,
+    fleet_registry_warnings: Vec<String>,
     note: String,
 }
 
@@ -3608,12 +3965,35 @@ struct DoctorBridge {
     status: DoctorLevel,
     local_url: String,
     service_registry_addr: Option<String>,
+    service_registry_bind_addr: Option<String>,
     service_registry_pid: Option<u32>,
     public_url: String,
     public_url_valid: bool,
+    advertised_public_url: String,
+    advertised_public_url_valid: bool,
+    advertised_public_url_remote_usable: bool,
+    advertised_public_url_warning: Option<String>,
     health_http_status: Option<u16>,
     health_body: Option<serde_json::Value>,
     error: Option<String>,
+    note: String,
+}
+
+#[derive(Debug, Serialize)]
+struct DoctorKnowledge {
+    status: DoctorLevel,
+    root: String,
+    root_exists: bool,
+    token_path: String,
+    token_present: bool,
+    autostart_status_path: String,
+    autostart_status: Option<serde_json::Value>,
+    autostart_status_error: Option<String>,
+    health_url: String,
+    health_http_status: Option<u16>,
+    health_body: Option<serde_json::Value>,
+    error: Option<String>,
+    restart_hint: String,
     note: String,
 }
 
@@ -3804,20 +4184,33 @@ pub async fn run_doctor(opts: DoctorOpts) -> Result<()> {
         .as_deref()
         .is_some_and(|t| !t.trim().is_empty());
     let bridge_token_present = !bridge_token.trim().is_empty();
-    let account_status = match (account_token_present, bridge_token_present) {
+    let base_account_status = match (account_token_present, bridge_token_present) {
         (true, true) => DoctorLevel::Ok,
         (true, false) | (false, true) => DoctorLevel::Warn,
         (false, false) => DoctorLevel::Fail,
     };
+    let (fleet_registry_checked, fleet_registry_warnings) =
+        check_cloud_fleet_registry(account_token.as_deref()).await;
+    let account_status =
+        if !fleet_registry_warnings.is_empty() && matches!(base_account_status, DoctorLevel::Ok) {
+            DoctorLevel::Warn
+        } else {
+            base_account_status
+        };
     let account_check = DoctorAccount {
         status: account_status,
         logged_in: account_token_present,
         account_token_present,
         bridge_token_present,
+        fleet_registry_checked,
+        fleet_registry_warnings,
         note: match account_status {
             DoctorLevel::Ok => "Account token and local bridge token are present.".into(),
-            DoctorLevel::Warn => {
+            DoctorLevel::Warn if !account_token_present || !bridge_token_present => {
                 "Partial auth state: either account login or local bridge token is missing.".into()
+            }
+            DoctorLevel::Warn => {
+                "Account tokens are present, but cloud fleet registry has warnings.".into()
             }
             DoctorLevel::Fail => "No account token or bridge token found. Run `musu login`.".into(),
         },
@@ -3826,6 +4219,7 @@ pub async fn run_doctor(opts: DoctorOpts) -> Result<()> {
     let distribution_mode = crate::install::distribution::DistributionMode::current();
     let distribution = distribution_mode.as_str().to_string();
     let bridge_check = check_bridge(&home).await;
+    let knowledge_check = check_knowledge_sidecar(&home).await;
     let dashboard_check = check_dashboard(distribution_mode).await;
     let background_check = check_background_features(&home, account_token_present);
     let package_status = if cfg!(windows) {
@@ -3850,6 +4244,7 @@ pub async fn run_doctor(opts: DoctorOpts) -> Result<()> {
         binary_check.status,
         account_check.status,
         bridge_check.status,
+        knowledge_check.status,
         dashboard_check.status,
         background_check.status,
     ];
@@ -3863,7 +4258,10 @@ pub async fn run_doctor(opts: DoctorOpts) -> Result<()> {
         bridge_check.status,
         dashboard_check.status,
         dashboard_check.required,
-        bridge_check.public_url_valid,
+        bridge_check.public_url_valid
+            && bridge_check.advertised_public_url_valid
+            && bridge_check.advertised_public_url_remote_usable,
+        knowledge_check.status,
     );
 
     let report = DoctorReport {
@@ -3875,6 +4273,7 @@ pub async fn run_doctor(opts: DoctorOpts) -> Result<()> {
         binary: binary_check,
         account: account_check,
         bridge: bridge_check,
+        knowledge: knowledge_check,
         dashboard: dashboard_check,
         package: package_check,
         background: background_check,
@@ -4249,6 +4648,13 @@ async fn check_bridge(home: &std::path::Path) -> DoctorBridge {
     let local_url = crate::bridge::services::local_bridge_http_url(home);
     let registry = crate::bridge::services::ServiceRegistry::with_dir(home.join("services"));
     let service_registry_record = registry.discover("bridge");
+    let service_registry_bind_addr = service_registry_record.as_ref().and_then(|record| {
+        if matches!(record.transport, crate::bridge::services::Transport::Tcp) {
+            Some(record.addr.clone())
+        } else {
+            None
+        }
+    });
     let service_registry_addr = service_registry_record.as_ref().and_then(|record| {
         if matches!(record.transport, crate::bridge::services::Transport::Tcp) {
             Some(crate::bridge::services::normalize_loopback_addr(
@@ -4262,7 +4668,14 @@ async fn check_bridge(home: &std::path::Path) -> DoctorBridge {
         .as_ref()
         .and_then(|record| record.pid);
     let public_url = crate::bridge::services::resolve_public_bridge_url(home);
+    let advertised_public_url = crate::bridge::config::BridgeConfig::from_env()
+        .ok()
+        .map(|cfg| crate::bridge::services::advertised_bridge_http_url(&cfg))
+        .unwrap_or_else(|| public_url.clone());
     let public_url_valid = is_http_url(&public_url);
+    let advertised_public_url_valid = is_http_url(&advertised_public_url);
+    let advertised_public_url_warning = cloud_public_url_warning(&advertised_public_url, false);
+    let advertised_public_url_remote_usable = advertised_public_url_warning.is_none();
 
     let client = reqwest::Client::new();
     match client
@@ -4276,7 +4689,10 @@ async fn check_bridge(home: &std::path::Path) -> DoctorBridge {
             let health_http_status = Some(status.as_u16());
             let health_body = resp.json::<serde_json::Value>().await.ok();
             let level = if status.is_success() {
-                if public_url_valid {
+                if public_url_valid
+                    && advertised_public_url_valid
+                    && advertised_public_url_remote_usable
+                {
                     DoctorLevel::Ok
                 } else {
                     DoctorLevel::Warn
@@ -4288,16 +4704,21 @@ async fn check_bridge(home: &std::path::Path) -> DoctorBridge {
                 status: level,
                 local_url,
                 service_registry_addr,
+                service_registry_bind_addr,
                 service_registry_pid,
                 public_url,
                 public_url_valid,
+                advertised_public_url,
+                advertised_public_url_valid,
+                advertised_public_url_remote_usable,
+                advertised_public_url_warning,
                 health_http_status,
                 health_body,
                 error: None,
                 note: match level {
                     DoctorLevel::Ok => "Local bridge is reachable.".into(),
                     DoctorLevel::Warn => {
-                        "Local bridge is reachable, but public URL is not a valid http/https URL."
+                        "Local bridge is reachable, but a public URL is not usable for cloud fleet registration."
                             .into()
                     }
                     DoctorLevel::Fail => "Bridge health endpoint returned an error status.".into(),
@@ -4308,14 +4729,123 @@ async fn check_bridge(home: &std::path::Path) -> DoctorBridge {
             status: DoctorLevel::Fail,
             local_url,
             service_registry_addr,
+            service_registry_bind_addr,
             service_registry_pid,
             public_url,
             public_url_valid,
+            advertised_public_url,
+            advertised_public_url_valid,
+            advertised_public_url_remote_usable,
+            advertised_public_url_warning,
             health_http_status: None,
             health_body: None,
             error: Some(err.to_string()),
             note: "Local bridge is not reachable. Start it with `musu bridge`.".into(),
         },
+    }
+}
+
+async fn check_knowledge_sidecar(home: &std::path::Path) -> DoctorKnowledge {
+    let root = home.join("brain");
+    let token_path = root.join("runtime").join("musu-ingest.token");
+    let autostart_status_path = root.join("runtime").join("sidecar-autostart-status.json");
+    let (autostart_status, autostart_status_error) =
+        read_knowledge_sidecar_autostart_status(&autostart_status_path);
+    let root_exists = root.exists();
+    let token_present = token_path
+        .try_exists()
+        .unwrap_or_else(|_| token_path.exists());
+    let health_url = format!("{}/health", KNOWLEDGE_BASE_URL);
+    let restart_hint =
+        "Open or restart the packaged MUSU desktop so it relaunches the hidden brain sidecar."
+            .to_string();
+
+    let client = reqwest::Client::new();
+    match client
+        .get(&health_url)
+        .timeout(std::time::Duration::from_secs(
+            KNOWLEDGE_HEALTH_TIMEOUT_SECS,
+        ))
+        .send()
+        .await
+    {
+        Ok(resp) => {
+            let status = resp.status();
+            let health_http_status = Some(status.as_u16());
+            let health_body = resp.json::<serde_json::Value>().await.ok();
+            let level = if status.is_success() {
+                DoctorLevel::Ok
+            } else {
+                DoctorLevel::Warn
+            };
+            DoctorKnowledge {
+                status: level,
+                root: root.display().to_string(),
+                root_exists,
+                token_path: token_path.display().to_string(),
+                token_present,
+                autostart_status_path: autostart_status_path.display().to_string(),
+                autostart_status,
+                autostart_status_error,
+                health_url,
+                health_http_status,
+                health_body,
+                error: None,
+                restart_hint,
+                note: match level {
+                    DoctorLevel::Ok => "Hidden brain sidecar is reachable.".into(),
+                    DoctorLevel::Warn => {
+                        "Hidden brain sidecar health endpoint returned an error status.".into()
+                    }
+                    DoctorLevel::Fail => unreachable!("knowledge checker does not emit fail"),
+                },
+            }
+        }
+        Err(err) => DoctorKnowledge {
+            status: DoctorLevel::Warn,
+            root: root.display().to_string(),
+            root_exists,
+            token_path: token_path.display().to_string(),
+            token_present,
+            autostart_status_path: autostart_status_path.display().to_string(),
+            autostart_status,
+            autostart_status_error,
+            health_url,
+            health_http_status: None,
+            health_body: None,
+            error: Some(err.to_string()),
+            restart_hint,
+            note: if token_present {
+                "Hidden brain sidecar is not reachable, but the ingest token exists.".into()
+            } else {
+                "Hidden brain sidecar is not reachable and the ingest token is missing.".into()
+            },
+        },
+    }
+}
+
+fn read_knowledge_sidecar_autostart_status(
+    path: &std::path::Path,
+) -> (Option<serde_json::Value>, Option<String>) {
+    match std::fs::read_to_string(path) {
+        Ok(text) => match serde_json::from_str::<serde_json::Value>(&text) {
+            Ok(value) => (Some(value), None),
+            Err(err) => (
+                None,
+                Some(format!(
+                    "failed to parse hidden brain autostart status {}: {err}",
+                    path.display()
+                )),
+            ),
+        },
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => (None, None),
+        Err(err) => (
+            None,
+            Some(format!(
+                "failed to read hidden brain autostart status {}: {err}",
+                path.display()
+            )),
+        ),
     }
 }
 
@@ -4379,7 +4909,8 @@ fn check_background_features(
     let mdns_tailscale_enabled = env_truthy("MUSU_MDNS_ENABLE_TAILSCALE");
     let mdns_virtual_enabled = env_truthy("MUSU_MDNS_ENABLE_VIRTUAL_INTERFACES");
     let clipboard_enabled = env_truthy("MUSU_ENABLE_CLIPBOARD_SYNC");
-    let relay_payload_poller_enabled = env_truthy("MUSU_ENABLE_RELAY_PAYLOAD_POLLER");
+    let relay_payload_poller_enabled =
+        crate::bridge::handlers::relay_payload::relay_payload_poller_enabled();
     let relay_payload_poller_interval_sec =
         crate::bridge::handlers::relay_payload::normalize_relay_payload_poller_interval_sec(
             std::env::var("MUSU_RELAY_PAYLOAD_POLLER_INTERVAL_SEC")
@@ -4446,7 +4977,6 @@ fn check_background_features(
         mdns_virtual_enabled,
         clipboard_enabled,
         file_sync_enabled,
-        relay_payload_poller_enabled,
         planner_enabled,
         auto_update_supervise_enabled,
     ]
@@ -4523,13 +5053,13 @@ fn check_background_features(
             key: "relay_target_polling",
             label: "Relay target polling",
             active: relay_payload_poller_enabled,
-            activation_mode: "env-opt-in",
+            activation_mode: "default-on-opt-out",
             note: if relay_payload_poller_enabled {
                 format!(
                     "Relay target polling is active at {relay_payload_poller_interval_sec}s with empty backoff capped at {relay_payload_poller_empty_backoff_max_sec}s."
                 )
             } else {
-                "Relay target polling is off because MUSU_ENABLE_RELAY_PAYLOAD_POLLER is not set."
+                "Relay target polling is off because MUSU_ENABLE_RELAY_PAYLOAD_POLLER opted it out."
                     .into()
             },
         },
@@ -4695,7 +5225,7 @@ fn check_background_features(
                     "Relay payload target polling is enabled at a bounded {relay_payload_poller_interval_sec}s interval, limit {relay_payload_poller_limit}, with empty/failure backoff capped at {relay_payload_poller_empty_backoff_max_sec}s."
                 )
             } else {
-                "Relay payload target polling is off by default; manual drain remains request-driven.".into()
+                "Relay payload target polling is disabled by MUSU_ENABLE_RELAY_PAYLOAD_POLLER opt-out; manual drain remains request-driven.".into()
             },
         },
         relay_payload_poller_interval_sec,
@@ -4985,6 +5515,7 @@ fn next_steps_for(
     dashboard: DoctorLevel,
     dashboard_required: bool,
     public_url_valid: bool,
+    knowledge: DoctorLevel,
 ) -> Vec<String> {
     let mut steps = Vec::new();
     if !account.account_token_present {
@@ -4996,14 +5527,26 @@ fn next_steps_for(
                 .into(),
         );
     }
+    if !account.fleet_registry_warnings.is_empty() {
+        steps.push(
+            "Fix the warned fleet node(s): run `musu nodes --include-unusable` to inspect stale rows. For a dead/old row, run `musu nodes --delete <node>`; for a real PC, restart or reinstall MUSU there so cloud public_url republishes a LAN/private-mesh URL, not 127.0.0.1."
+                .into(),
+        );
+    }
     if matches!(bridge, DoctorLevel::Fail) {
         steps.push("Start the local bridge with `musu bridge`.".into());
     }
     if !public_url_valid {
-        steps.push("Set MUSU_BRIDGE_PUBLIC_URL to an http:// or https:// URL if cloud registration rejects the computed URL.".into());
+        steps.push("Set MUSU_BRIDGE_PUBLIC_URL to a LAN/private-mesh http:// or https:// URL that other PCs can reach.".into());
     }
     if dashboard_required && matches!(dashboard, DoctorLevel::Warn | DoctorLevel::Fail) {
         steps.push("Start the dashboard from `musu-bee`: `npm run dev` for port 3000 or `npm start` for port 3001.".into());
+    }
+    if matches!(knowledge, DoctorLevel::Warn | DoctorLevel::Fail) {
+        steps.push(
+            "Open or restart the packaged MUSU desktop so it relaunches the hidden brain sidecar; then rerun `musu doctor --json` and confirm `knowledge.status` is `ok`."
+                .into(),
+        );
     }
     if steps.is_empty() {
         steps.push(
@@ -5016,8 +5559,36 @@ fn next_steps_for(
 
 fn is_http_url(raw: &str) -> bool {
     reqwest::Url::parse(raw)
-        .map(|url| matches!(url.scheme(), "http" | "https"))
+        .map(|url| {
+            matches!(url.scheme(), "http" | "https")
+                && url.port_or_known_default().is_some_and(|port| port != 0)
+        })
         .unwrap_or(false)
+}
+
+async fn check_cloud_fleet_registry(account_token: Option<&str>) -> (bool, Vec<String>) {
+    let Some(token) = account_token.filter(|token| !token.trim().is_empty()) else {
+        return (false, Vec::new());
+    };
+    let base_url = crate::cloud::base_url_from_env();
+    let cloud = crate::cloud::MusuCloud::new(&base_url, Some(token.to_string()));
+    let this_pc = this_node_name();
+    match cloud.list_nodes().await {
+        Ok(nodes) => {
+            let warnings = nodes
+                .iter()
+                .filter_map(|node| {
+                    cloud_public_url_warning(&node.public_url, node.node_name == this_pc)
+                        .map(|warning| format!("{}: {}", node.node_name, warning))
+                })
+                .collect();
+            (true, warnings)
+        }
+        Err(err) => (
+            false,
+            vec![format!("could not verify cloud fleet registry: {err}")],
+        ),
+    }
 }
 
 fn path_contains_dir(dir: &std::path::Path) -> bool {
@@ -5107,6 +5678,14 @@ fn print_doctor_report(report: &DoctorReport) {
         &format!("{} ({})", report.bridge.local_url, report.bridge.note),
     );
     print_line(
+        "knowledge",
+        report.knowledge.status,
+        &format!(
+            "{} ({})",
+            report.knowledge.health_url, report.knowledge.note
+        ),
+    );
+    print_line(
         "public URL",
         if report.bridge.public_url_valid {
             DoctorLevel::Ok
@@ -5114,6 +5693,21 @@ fn print_doctor_report(report: &DoctorReport) {
             DoctorLevel::Warn
         },
         &report.bridge.public_url,
+    );
+    print_line(
+        "advertised URL",
+        if report.bridge.advertised_public_url_valid
+            && report.bridge.advertised_public_url_remote_usable
+        {
+            DoctorLevel::Ok
+        } else {
+            DoctorLevel::Warn
+        },
+        report
+            .bridge
+            .advertised_public_url_warning
+            .as_deref()
+            .unwrap_or(&report.bridge.advertised_public_url),
     );
     print_line("dashboard", report.dashboard.status, &report.dashboard.note);
     print_line("package", report.package.status, &report.package.note);
@@ -5371,9 +5965,10 @@ pub async fn run_status(opts: StatusOpts) -> Result<()> {
     // Peers
     if let Some(peers) = fleet["peers"].as_array() {
         for peer in peers {
-            // F-3 HIGH-2: a peer with healthy=false but reachable_via="relay" is
-            // reachable over the relay, NOT offline. Read the same fields the
-            // cockpit reads so CLI and cockpit agree on the 3-state status.
+            // F-3/V33: relay is a display/freshness state, not proof that work
+            // can be routed. Read the same fields the cockpit reads so CLI and
+            // cockpit agree on the 3-state status while online totals stay
+            // direct/healthy-only.
             let healthy = peer["healthy"].as_bool().unwrap_or(false);
             let relay = peer["reachable_via"].as_str() == Some("relay");
             let (icon, label) = if healthy {
@@ -5395,7 +5990,7 @@ pub async fn run_status(opts: StatusOpts) -> Result<()> {
     }
 
     println!(
-        "\n  Total: {} nodes, {} online, {} tasks running\n",
+        "\n  Total: {} nodes, {} direct online, {} tasks running\n",
         fleet["total_nodes"].as_u64().unwrap_or(0),
         fleet["online_nodes"].as_u64().unwrap_or(0),
         fleet["total_tasks_running"].as_u64().unwrap_or(0),
@@ -5769,6 +6364,35 @@ mod tests {
 
     static ENV_LOCK: Mutex<()> = Mutex::new(());
 
+    fn route_peer(
+        name: &str,
+        addr: &str,
+        source: crate::peer::discovery::PeerSource,
+    ) -> crate::peer::discovery::ResolvedPeer {
+        crate::peer::discovery::ResolvedPeer {
+            addr: addr.to_string(),
+            name: Some(name.to_string()),
+            source,
+            meta: None,
+        }
+    }
+
+    fn route_opts_for_target(target: &str) -> RouteOpts {
+        RouteOpts {
+            text: "test route".to_string(),
+            target: Some(target.to_string()),
+            channel: "cli".to_string(),
+            model: None,
+            adapter: None,
+            wait: false,
+            wait_timeout_sec: ROUTE_WAIT_DEFAULT_TIMEOUT_SECS,
+            gpu: false,
+            explain: false,
+            json: false,
+            route_evidence_path: None,
+        }
+    }
+
     #[test]
     fn bridge_health_poll_delay_backs_off_and_caps() {
         let samples: Vec<u64> = (0..6)
@@ -5784,10 +6408,19 @@ mod tests {
             logged_in: true,
             account_token_present: true,
             bridge_token_present: true,
+            fleet_registry_checked: true,
+            fleet_registry_warnings: Vec::new(),
             note: String::new(),
         };
 
-        let steps = next_steps_for(&account, DoctorLevel::Ok, DoctorLevel::Warn, false, true);
+        let steps = next_steps_for(
+            &account,
+            DoctorLevel::Ok,
+            DoctorLevel::Warn,
+            false,
+            true,
+            DoctorLevel::Ok,
+        );
 
         assert!(!steps.iter().any(|step| step.contains("npm run dev")));
         assert!(steps.iter().any(|step| step.contains("MUSU.PRO")));
@@ -5800,12 +6433,198 @@ mod tests {
             logged_in: true,
             account_token_present: true,
             bridge_token_present: true,
+            fleet_registry_checked: true,
+            fleet_registry_warnings: Vec::new(),
             note: String::new(),
         };
 
-        let steps = next_steps_for(&account, DoctorLevel::Ok, DoctorLevel::Warn, true, true);
+        let steps = next_steps_for(
+            &account,
+            DoctorLevel::Ok,
+            DoctorLevel::Warn,
+            true,
+            true,
+            DoctorLevel::Ok,
+        );
 
         assert!(steps.iter().any(|step| step.contains("npm run dev")));
+    }
+
+    #[test]
+    fn cloud_public_url_warning_flags_any_loopback_registry_row() {
+        assert!(cloud_public_url_warning("http://127.0.0.1:8070", false).is_some());
+        assert!(cloud_public_url_warning("http://localhost:8070", false).is_some());
+        assert!(cloud_public_url_warning("http://0.0.0.0:8070", false).is_some());
+        assert!(cloud_public_url_warning("http://[::1]:8070", false).is_some());
+        assert!(cloud_public_url_warning("http://[::ffff:127.0.0.1]:8070", false).is_some());
+        assert!(cloud_public_url_warning("http://[::ffff:0.0.0.0]:8070", false).is_some());
+        assert!(cloud_public_url_warning("http://192.168.1.20:0", false).is_some());
+        assert!(cloud_public_url_warning("http://192.168.1.20:8070", false).is_none());
+        assert!(cloud_public_url_warning("https://peer.example.test", false).is_none());
+        assert!(cloud_public_url_warning("http://127.0.0.1:8070", true).is_some());
+    }
+
+    #[test]
+    fn cloud_registry_listing_hides_remote_unusable_rows_by_default() {
+        assert!(!should_include_cloud_registry_node(
+            "http://127.0.0.1:8070",
+            false,
+            false
+        ));
+        assert!(should_include_cloud_registry_node(
+            "http://127.0.0.1:8070",
+            false,
+            true
+        ));
+        assert!(should_include_cloud_registry_node(
+            "http://127.0.0.1:8070",
+            true,
+            false
+        ));
+        assert!(
+            cloud_public_url_warning("http://127.0.0.1:8070", true).is_some(),
+            "the current PC stays visible, but its cloud public_url still must warn"
+        );
+        assert!(should_include_cloud_registry_node(
+            "http://192.168.1.20:8070",
+            false,
+            false
+        ));
+    }
+
+    #[test]
+    fn doctor_next_steps_include_cloud_registry_warning() {
+        let account = DoctorAccount {
+            status: DoctorLevel::Warn,
+            logged_in: true,
+            account_token_present: true,
+            bridge_token_present: true,
+            fleet_registry_checked: true,
+            fleet_registry_warnings: vec!["hugh-main: loopback".to_string()],
+            note: String::new(),
+        };
+
+        let steps = next_steps_for(
+            &account,
+            DoctorLevel::Ok,
+            DoctorLevel::Ok,
+            false,
+            true,
+            DoctorLevel::Ok,
+        );
+
+        assert!(steps.iter().any(|step| step.contains("cloud public_url")));
+        assert!(steps
+            .iter()
+            .any(|step| step.contains("musu nodes --include-unusable")));
+        assert!(steps
+            .iter()
+            .any(|step| step.contains("musu nodes --delete <node>")));
+        assert!(!steps.iter().any(|step| step.contains("System looks ready")));
+    }
+
+    #[test]
+    fn doctor_next_steps_include_remote_usable_advertised_url_warning() {
+        let account = DoctorAccount {
+            status: DoctorLevel::Ok,
+            logged_in: true,
+            account_token_present: true,
+            bridge_token_present: true,
+            fleet_registry_checked: true,
+            fleet_registry_warnings: Vec::new(),
+            note: String::new(),
+        };
+
+        let steps = next_steps_for(
+            &account,
+            DoctorLevel::Ok,
+            DoctorLevel::Ok,
+            false,
+            false,
+            DoctorLevel::Ok,
+        );
+
+        assert!(steps.iter().any(|step| step.contains("LAN/private-mesh")));
+        assert!(!steps.iter().any(|step| step.contains("System looks ready")));
+    }
+
+    #[test]
+    fn doctor_next_steps_include_hidden_brain_sidecar_warning() {
+        let account = DoctorAccount {
+            status: DoctorLevel::Ok,
+            logged_in: true,
+            account_token_present: true,
+            bridge_token_present: true,
+            fleet_registry_checked: true,
+            fleet_registry_warnings: Vec::new(),
+            note: String::new(),
+        };
+
+        let steps = next_steps_for(
+            &account,
+            DoctorLevel::Ok,
+            DoctorLevel::Ok,
+            false,
+            true,
+            DoctorLevel::Warn,
+        );
+
+        assert!(steps
+            .iter()
+            .any(|step| step.contains("hidden brain sidecar")));
+        assert!(steps.iter().any(|step| step.contains("knowledge.status")));
+        assert!(!steps.iter().any(|step| step.contains("System looks ready")));
+    }
+
+    #[test]
+    fn knowledge_sidecar_autostart_status_reader_handles_missing_valid_and_invalid_json() {
+        let tmp = tempfile::tempdir().unwrap();
+        let status_path = tmp
+            .path()
+            .join("brain")
+            .join("runtime")
+            .join("sidecar-autostart-status.json");
+
+        let (missing, missing_error) = read_knowledge_sidecar_autostart_status(&status_path);
+        assert!(missing.is_none());
+        assert!(missing_error.is_none());
+
+        std::fs::create_dir_all(status_path.parent().unwrap()).unwrap();
+        std::fs::write(
+            &status_path,
+            r#"{
+  "schema": "musu.knowledge_sidecar_autostart.v1",
+  "result": "started",
+  "readiness_ok": true
+}"#,
+        )
+        .unwrap();
+        let (valid, valid_error) = read_knowledge_sidecar_autostart_status(&status_path);
+        assert!(valid_error.is_none());
+        assert_eq!(
+            valid
+                .as_ref()
+                .and_then(|value| value.get("result"))
+                .and_then(|value| value.as_str()),
+            Some("started")
+        );
+
+        std::fs::write(&status_path, "{not-json").unwrap();
+        let (invalid, invalid_error) = read_knowledge_sidecar_autostart_status(&status_path);
+        assert!(invalid.is_none());
+        assert!(invalid_error
+            .as_deref()
+            .unwrap_or_default()
+            .contains("failed to parse hidden brain autostart status"));
+    }
+
+    #[test]
+    fn doctor_http_url_validation_rejects_port_zero() {
+        assert!(is_http_url("http://192.168.1.154:13619"));
+        assert!(is_http_url("https://fleet.example.test"));
+        assert!(!is_http_url("http://192.168.1.154:0"));
+        assert!(!is_http_url("file:///tmp/musu"));
+        assert!(!is_http_url("not-a-url"));
     }
 
     #[test]
@@ -6133,6 +6952,83 @@ mod tests {
     }
 
     #[test]
+    fn cli_route_candidates_include_all_matching_target_routes() {
+        let opts = route_opts_for_target("hugh-main");
+        let peers = vec![
+            route_peer(
+                "hugh-main",
+                "192.168.1.10:4387",
+                crate::peer::discovery::PeerSource::Cache,
+            ),
+            route_peer(
+                "hugh-main",
+                "192.168.1.192:4387",
+                crate::peer::discovery::PeerSource::Cache,
+            ),
+            route_peer(
+                "other",
+                "192.168.1.50:4387",
+                crate::peer::discovery::PeerSource::Manual,
+            ),
+        ];
+
+        let candidates = cli_route_candidates_for_route(
+            &opts,
+            &crate::bridge::router::RouteHints::default(),
+            &peers,
+        );
+
+        assert_eq!(candidates.len(), 2);
+        assert!(candidates
+            .iter()
+            .all(|peer| peer.name.as_deref() == Some("hugh-main")));
+    }
+
+    #[test]
+    fn cli_route_preflight_moves_reachable_candidate_before_stale_first_candidate() {
+        let stale_first = route_peer(
+            "hugh-main",
+            "192.168.1.10:4387",
+            crate::peer::discovery::PeerSource::Cache,
+        );
+        let reachable_second = route_peer(
+            "hugh-main",
+            "192.168.1.192:4387",
+            crate::peer::discovery::PeerSource::Cache,
+        );
+
+        let ordered = reorder_cli_route_candidates_by_preflight(
+            vec![stale_first.clone(), reachable_second.clone()],
+            vec![Some(false), Some(true)],
+        );
+
+        assert_eq!(ordered[0].addr, reachable_second.addr);
+        assert_eq!(ordered[1].addr, stale_first.addr);
+    }
+
+    #[test]
+    fn cli_route_preflight_preserves_order_when_no_candidate_is_reachable() {
+        let stale_first = route_peer(
+            "hugh-main",
+            "192.168.1.10:4387",
+            crate::peer::discovery::PeerSource::Cache,
+        );
+        let stale_second = route_peer(
+            "hugh-main",
+            "192.168.1.192:4387",
+            crate::peer::discovery::PeerSource::Cache,
+        );
+
+        let ordered = reorder_cli_route_candidates_by_preflight(
+            vec![stale_first.clone(), stale_second.clone()],
+            vec![Some(false), Some(false)],
+        );
+
+        assert_eq!(ordered[0].addr, stale_first.addr);
+        assert_eq!(ordered[1].addr, stale_second.addr);
+    }
+
+    #[test]
     fn candidate_report_records_current_legacy_transport_gap() {
         let candidate = candidate_report(
             Some("remote".to_string()),
@@ -6403,7 +7299,7 @@ mod tests {
         assert_eq!(background.cloud_heartbeat_interval_sec, 300);
         assert_eq!(background.cloud_heartbeat_floor_sec, 60);
         assert_eq!(background.file_serve_root_count, 0);
-        assert!(!background.relay_payload_poller.enabled);
+        assert!(background.relay_payload_poller.enabled);
         assert_eq!(
             background.relay_payload_poller_interval_sec,
             crate::bridge::handlers::relay_payload::RELAY_PAYLOAD_POLLER_DEFAULT_INTERVAL_SEC
@@ -6455,8 +7351,28 @@ mod tests {
             BRIDGE_HEALTH_POLL_MAX_MS
         );
         assert_eq!(background.runtime_loop_candidates.len(), 10);
+        assert_eq!(background.active_runtime_loop_candidate_count, 1);
+        assert_eq!(
+            background.active_runtime_loop_candidate_keys,
+            vec!["relay_target_polling"]
+        );
+    }
+
+    #[test]
+    fn doctor_background_relay_payload_poller_matches_runtime_opt_out() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_background_env();
+        std::env::set_var("MUSU_ENABLE_RELAY_PAYLOAD_POLLER", "0");
+        let tmp = tempfile::tempdir().unwrap();
+
+        let background = check_background_features(tmp.path(), false);
+
+        assert_eq!(background.status, DoctorLevel::Ok);
+        assert!(!background.relay_payload_poller.enabled);
         assert_eq!(background.active_runtime_loop_candidate_count, 0);
         assert!(background.active_runtime_loop_candidate_keys.is_empty());
+
+        std::env::remove_var("MUSU_ENABLE_RELAY_PAYLOAD_POLLER");
     }
 
     #[test]
@@ -6475,10 +7391,15 @@ mod tests {
         assert!(background.clipboard_sync.enabled);
         assert!(background.cloud_registration.enabled);
         assert_eq!(background.cloud_heartbeat_interval_sec, 60);
-        assert_eq!(background.active_runtime_loop_candidate_count, 3);
+        assert_eq!(background.active_runtime_loop_candidate_count, 4);
         assert_eq!(
             background.active_runtime_loop_candidate_keys,
-            vec!["mdns_discovery", "clipboard_polling", "cloud_heartbeat"]
+            vec![
+                "mdns_discovery",
+                "clipboard_polling",
+                "cloud_heartbeat",
+                "relay_target_polling"
+            ]
         );
 
         std::env::remove_var("MUSU_ENABLE_MDNS");
@@ -6518,7 +7439,7 @@ mod tests {
     }
 
     #[test]
-    fn doctor_background_warns_and_floors_relay_payload_poller_budget() {
+    fn doctor_background_floors_relay_payload_poller_budget() {
         let _guard = ENV_LOCK.lock().unwrap();
         clear_background_env();
         std::env::set_var("MUSU_ENABLE_RELAY_PAYLOAD_POLLER", "1");
@@ -6529,7 +7450,7 @@ mod tests {
 
         let background = check_background_features(tmp.path(), false);
 
-        assert_eq!(background.status, DoctorLevel::Warn);
+        assert_eq!(background.status, DoctorLevel::Ok);
         assert!(background.relay_payload_poller.enabled);
         assert_eq!(
             background.relay_payload_poller_interval_sec,
@@ -6570,11 +7491,112 @@ mod tests {
             background.auto_update_health_poll_max_ms,
             crate::install::auto_update::HEALTH_POLL_MAX_MS
         );
-        assert_eq!(background.active_runtime_loop_candidate_count, 2);
+        assert_eq!(background.active_runtime_loop_candidate_count, 3);
         assert_eq!(
             background.active_runtime_loop_candidate_keys,
-            vec!["health_check_retry", "auto_update_supervisor"]
+            vec![
+                "relay_target_polling",
+                "health_check_retry",
+                "auto_update_supervisor"
+            ]
         );
+    }
+
+    #[test]
+    fn remote_route_token_prefers_mesh_bearer_over_local_bridge_token() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_route_token_env();
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(
+            tmp.path().join("bridge.env"),
+            "MUSU_BRIDGE_TOKEN=local-bridge-token-0123456789abcdef\n",
+        )
+        .unwrap();
+        crate::install::token::write_mesh_bearer(tmp.path(), "shared-mesh-bearer")
+            .expect("write mesh bearer");
+
+        assert_eq!(get_route_token(tmp.path(), true), "shared-mesh-bearer");
+        assert_eq!(
+            get_route_token(tmp.path(), false),
+            "local-bridge-token-0123456789abcdef"
+        );
+        clear_route_token_env();
+    }
+
+    #[test]
+    fn remote_route_token_prefers_mesh_bearer_over_env_bridge_token() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_route_token_env();
+        let tmp = tempfile::tempdir().unwrap();
+        std::env::set_var("MUSU_BRIDGE_TOKEN", "local-env-bridge-token");
+        crate::install::token::write_mesh_bearer(tmp.path(), "shared-mesh-bearer")
+            .expect("write mesh bearer");
+
+        assert_eq!(get_route_token(tmp.path(), true), "shared-mesh-bearer");
+        assert_eq!(get_route_token(tmp.path(), false), "local-env-bridge-token");
+        clear_route_token_env();
+    }
+
+    #[test]
+    fn remote_route_token_accepts_musu_token_env_as_shared_bearer_override() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_route_token_env();
+        let tmp = tempfile::tempdir().unwrap();
+        std::env::set_var("MUSU_BRIDGE_TOKEN", "local-env-bridge-token");
+        std::env::set_var("MUSU_TOKEN", "shared-env-musu-token");
+
+        assert_eq!(get_route_token(tmp.path(), true), "shared-env-musu-token");
+        assert_eq!(get_route_token(tmp.path(), false), "local-env-bridge-token");
+        clear_route_token_env();
+    }
+
+    #[test]
+    fn remote_file_token_prefers_mesh_bearer_over_local_bridge_token() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_route_token_env();
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(
+            tmp.path().join("bridge.env"),
+            "MUSU_BRIDGE_TOKEN=local-bridge-token-0123456789abcdef\n",
+        )
+        .unwrap();
+        crate::install::token::write_mesh_bearer(tmp.path(), "shared-mesh-bearer")
+            .expect("write mesh bearer");
+
+        assert_eq!(get_outbound_peer_token(tmp.path()), "shared-mesh-bearer");
+        clear_route_token_env();
+    }
+
+    #[test]
+    fn remote_file_token_accepts_musu_mesh_bearer_env() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_route_token_env();
+        let tmp = tempfile::tempdir().unwrap();
+        std::env::set_var("MUSU_MESH_BEARER", "shared-env-mesh-bearer");
+
+        assert_eq!(
+            get_outbound_peer_token(tmp.path()),
+            "shared-env-mesh-bearer"
+        );
+        clear_route_token_env();
+    }
+
+    #[test]
+    fn remote_file_token_accepts_musu_token_env_as_shared_bearer_override() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_route_token_env();
+        let tmp = tempfile::tempdir().unwrap();
+        std::env::set_var("MUSU_BRIDGE_TOKEN", "local-env-bridge-token");
+        std::env::set_var("MUSU_TOKEN", "shared-env-musu-token");
+
+        assert_eq!(get_outbound_peer_token(tmp.path()), "shared-env-musu-token");
+        clear_route_token_env();
+    }
+
+    fn clear_route_token_env() {
+        for name in ["MUSU_BRIDGE_TOKEN", "MUSU_TOKEN", "MUSU_MESH_BEARER"] {
+            std::env::remove_var(name);
+        }
     }
 
     fn clear_background_env() {

@@ -2,7 +2,9 @@
 //!
 //! Signals the runner to cancel an in-flight task. Returns 200 on found,
 //! 404 if no live registry entry. Idempotent: deleting an already-finished
-//! task returns 404 (operator can re-check via SSE or row).
+//! task returns 404 (operator can re-check via SSE or row). On found, the
+//! handler also terminalizes the DB row if it is still pending/running so a
+//! wedged adapter cannot keep fleet status logically busy forever.
 
 use std::net::SocketAddr;
 
@@ -18,6 +20,7 @@ use crate::bridge::AppState;
 pub struct CancelResponse {
     pub task_id: String,
     pub cancelled: bool,
+    pub terminalized: bool,
 }
 
 pub async fn cancel_task(
@@ -25,26 +28,28 @@ pub async fn cancel_task(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Path(task_id): Path<String>,
 ) -> Result<(StatusCode, Json<CancelResponse>)> {
-    let found = state.task_runner.cancel(&task_id);
-    if !found {
-        // Audit even on miss — operator visibility.
-        state
-            .audit
-            .write(crate::bridge::audit::AuditEntry {
-                actor_ip: addr.ip(),
-                method: "DELETE".into(),
-                path: format!("/api/tasks/{task_id}"),
-                status_code: 404,
-                agent_id: None,
-                note: Some("cancel: task_id not found in live registry".into()),
-                company_id: None,
-                cross_machine: false,
-            })
-            .await;
-        return Err(MusuError::NotFound(format!(
-            "task {task_id} not found (already completed or unknown)"
-        )));
-    }
+    let terminalized = match state.task_runner.cancel_and_terminalize(&task_id).await {
+        Some(terminalized) => terminalized,
+        None => {
+            // Audit even on miss — operator visibility.
+            state
+                .audit
+                .write(crate::bridge::audit::AuditEntry {
+                    actor_ip: addr.ip(),
+                    method: "DELETE".into(),
+                    path: format!("/api/tasks/{task_id}"),
+                    status_code: 404,
+                    agent_id: None,
+                    note: Some("cancel: task_id not found in live registry".into()),
+                    company_id: None,
+                    cross_machine: false,
+                })
+                .await;
+            return Err(MusuError::NotFound(format!(
+                "task {task_id} not found (already completed or unknown)"
+            )));
+        }
+    };
 
     state
         .audit
@@ -54,7 +59,9 @@ pub async fn cancel_task(
             path: format!("/api/tasks/{task_id}"),
             status_code: 200,
             agent_id: None,
-            note: Some("cancel signal delivered".into()),
+            note: Some(format!(
+                "cancel signal delivered; db_terminalized={terminalized}"
+            )),
             company_id: None,
             cross_machine: false,
         })
@@ -65,6 +72,7 @@ pub async fn cancel_task(
         Json(CancelResponse {
             task_id,
             cancelled: true,
+            terminalized,
         }),
     ))
 }

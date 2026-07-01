@@ -36,10 +36,36 @@ Fleet `last_seen` must mean evidence-backed observation time:
 
 The UI must not invent stale timestamps to force an offline rendering.
 
+Cloud registry `public_url` must be usable by other PCs:
+
+- `/api/v1/nodes/register` rejects non-HTTP(S), loopback, localhost, wildcard,
+  IPv4-mapped loopback/wildcard (`[::ffff:127.0.0.1]`,
+  `[::ffff:0.0.0.0]`), and port-0 `public_url` values before writing the
+  registry row.
+- `/api/v1/nodes` filters legacy rows with non-remote-usable `public_url` so old
+  registry pollution is not returned as fleet truth.
+- `musu nodes` applies the same client-side default filter and omits remote
+  non-usable registry rows from the default fleet view. `--include-unusable`
+  exists for audit/cleanup so stale rows can still be inspected deliberately.
+- `DELETE /api/v1/nodes/[nodeName]` is owner-scoped cleanup for stale registry
+  rows, including legacy rows that `listNodes` would hide because their
+  `public_url` is not remote-usable.
+- `musu nodes --delete <nodeName>` is the CLI wrapper for that cleanup API. It
+  emits `musu.nodes_delete_cli.v1` in JSON mode and deletes only the caller's
+  owner-scoped registry row; it does not evict a Headscale mesh node.
+- If the cleanup API returns the JSON not-found shape for an owner-scoped row,
+  the CLI treats it as idempotent success/already-absent, not as a fatal cleanup
+  failure.
+- Local resolver/cache code treats any legacy remote loopback/wildcard registry
+  entry, including IPv4-mapped loopback/wildcard forms, as unusable and does
+  not convert it into a cached peer or fresh heartbeat evidence.
+
 Fleet filter semantics follow that same contract:
 
-- `Targetable` means the peer is currently reachable (direct OR relay) and
-  selectable for delegated work.
+- `Targetable` means the peer is currently reachable for delegated work. In the
+  current release this requires a direct/healthy probe; `relay` is a display
+  freshness state only until release-grade relay transport is implemented and
+  proven.
 - `Stale` means the peer is currently offline but has evidence-backed
   `last_seen`.
 - `Offline` means the peer is currently offline regardless of whether the UI has
@@ -55,8 +81,16 @@ reachable via the WAN relay forward path. Fleet status therefore carries a
 - `direct` (green / "online"): the direct probe succeeded. `healthy == true`.
 - `relay` (yellow / "relay"): the direct probe failed BUT the registry heartbeat
   is fresh (`now - last_seen <= RELAY_FRESH_SECS`, currently 300s ≈ 2.5× the
-  120s registry heartbeat TTL). `healthy == false` but the peer is targetable —
-  delegated work routes to it over the relay.
+  120s registry heartbeat TTL). `healthy == false`; the peer is displayed as a
+  relay candidate, but it is **not** counted in `online_nodes` and is **not**
+  treated as work-targetable until transport proof exists.
+  ⚠️ **V33 정정 (2026-06-26)**: 이 3-state는 **표시/판정 레이어**일 뿐이다. `relay`는
+  heartbeat가 신선해 곧 복구될 수 있음을 노란 상태로 **표시**한다는 의미이지, 그 상태에서
+  delegate한 work가 실제로 relay 경로로 forward된다는 뜻이 **아니다**. 실제
+  라우팅(`router.rs::select_peer_for_route`, L170-171)은 **relay를 선택하지 않는다 — relay/QUIC 터널 transport가 아직 미구현**
+  (`relay_transport_wired == false`). direct 경로가 복구되기 전까지 실제 forward는 가지 않는다.
+  relay transport 실구현은 별도 후속(V34, `NEXT_STEPS_V34_2026_06_26.md` N-4)이며, 그것이 되어야
+  "delegated work routes over the relay"가 비로소 참이 된다.
 - `offline` (red): direct probe failed AND no fresh heartbeat (or no `last_seen`
   evidence at all).
 
@@ -70,10 +104,10 @@ The same `healthy` + `reachable_via` pair MUST drive all THREE render surfaces
 identically (web page, CLI, installed cockpit shell — see Implementation Notes).
 Cross-surface divergence is the bug class this state is most prone to.
 
-The relay-reachable online tally is asymmetric BY DESIGN: a `relay` peer counts
-toward `online_nodes` (it is reachable) but its task counts are NOT summed into
-`total_running`/`total_pending` (the direct probe failed, so task data is
-unavailable and must not be fabricated).
+The relay-display tally is asymmetric BY DESIGN: a `relay` peer remains visible
+as a distinct yellow state, but it does **not** count toward `online_nodes`, and
+its task counts are NOT summed into `total_running`/`total_pending`. The direct
+probe failed, so neither work availability nor task data is proven.
 
 ## Implementation Notes
 
@@ -96,9 +130,10 @@ Relay-reachable state (F-3, 2026-06-23):
 - `musu-rs/src/bridge/handlers/fleet.rs` owns the policy: `RELAY_FRESH_SECS`
   (300s) + `relay_verdict()` (the only place the relay-vs-offline decision
   lives, computed at the `peer_fallback_status` chokepoint from
-  `peer_last_seen()`), and `tally_fleet()` (the online-counts-relay /
-  task-counts-exclude-relay asymmetry, unit-tested). `FleetNodeStatus` gains
-  `reachable_via: Option<String>` (`#[serde(skip_serializing_if)]`).
+  `peer_last_seen()`), and `tally_fleet()` (direct/healthy nodes count online;
+  relay-display peers remain visible but are excluded from online/task totals,
+  unit-tested). `FleetNodeStatus` gains `reachable_via: Option<String>`
+  (`#[serde(skip_serializing_if)]`).
 - The page repointed from the never-implemented `/api/machines` to the existing
   `GET /api/fleet/status` (`FleetDashboard`/`FleetNodeStatus`). Before F-3 the
   web fleet page was fully broken (it called Python-era `/api/machines`,
@@ -178,13 +213,14 @@ Additional cross-machine smoke run on 2026-06-13 KST:
   The same script should be used on separate hardware with `-TailscaleIp
   <100.x.y.z> -ExpectedRouteKind tailscale` to prove the intended network path.
 
-Relay-reachable state checks (F-3, 2026-06-23):
+Relay-display state checks (F-3/V33, corrected 2026-06-26):
 
 - `relay_verdict()` unit tests: fresh `last_seen` (≤300s) → `reachable_via=relay`
   with `healthy=false`; stale `last_seen` (>300s) → offline; no `last_seen` →
   offline (the pre-F-3 "does not fabricate online" regression test stays green).
-- `tally_fleet()` test asserts a relay peer increments `online_nodes` but its
-  task counts are excluded from `total_running`/`total_pending`.
+- `tally_fleet()` test asserts a relay-display peer does **not** increment
+  `online_nodes`, and its task counts are excluded from
+  `total_running`/`total_pending`.
 - `cargo test --lib bridge::handlers::fleet` (`14/14`) and
   `bridge::services` (`20/20`) — run by an independent auditor, not just the
   builder.
@@ -195,3 +231,19 @@ Relay-reachable state checks (F-3, 2026-06-23):
   from the same `healthy`/`reachable_via` fields.
 - STILL PENDING (user-gated): two-machine real-hardware E2E showing a peer flip
   from `direct` to `relay` to `offline` on the live cockpit.
+
+Additional rc.21 stale-registry audit hotfix checks (2026-06-26):
+
+- Server registry write/list path rejects or hides non-remote-usable
+  `public_url` values; resolver/cache also excludes legacy remote loopback rows.
+- 2026-06-27 follow-up: the same remote-usable rule now covers IPv4-mapped
+  loopback/wildcard forms in TS registry, Rust resolver/cache, `musu doctor` /
+  `musu nodes` warning helpers, and `verify-fleet-audit-contract.ps1`.
+- `cargo test --manifest-path musu-rs\Cargo.toml --jobs 1 --lib
+  cloud::tests::delete_registry_node_by_name_treats_json_404_as_absent` passed,
+  proving the cleanup CLI path treats JSON 404 as idempotent absent.
+- `verify-fleet-audit-contract.ps1 -AllowRemoteRegistryWarnings -Json` passed on
+  `hugh_second` with exactly one external warning: live `hugh-main` still
+  advertises `http://127.0.0.1:13397`.
+- Strict verifier remains intentionally blocked until `hugh-main` republishes a
+  non-loopback URL or the production cleanup route removes the stale row.

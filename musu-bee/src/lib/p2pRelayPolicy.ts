@@ -7,7 +7,7 @@ export const RELAY_CONNECT_PATH = "/api/v1/relay/connect";
 export const RELAY_PAYLOAD_PATH = "/api/v1/relay/payload";
 export const RELEASE_GRADE_TRANSPORT_REQUIRED = "quic_tls_1_3";
 export const RELAY_CONNECT_ENDPOINT_IMPLEMENTED = true;
-export const RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED = false;
+export const RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED = true;
 export const RELAY_PAYLOAD_QUEUE_ENDPOINT_IMPLEMENTED = true;
 export const RELAY_TUNNEL_RUNTIME_IMPLEMENTED = false;
 

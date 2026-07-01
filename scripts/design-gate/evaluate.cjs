@@ -10,8 +10,12 @@ const API_PATH_PREFIXES = ["musu-bee/src/app/api/"];
 
 const NEXT_APP_ROUTE_HANDLER_RE =
   /^musu-bee\/src\/app\/(?:.*\/)?route\.[jt]sx?$/;
+const TEST_FILE_RE = /(?:^|\/)[^/]+\.(?:test|spec)\.[jt]sx?$/;
 
-const DESIGN_APPROVED_TOKEN_RE = /\bDesign:\s*Approved\b/i;
+// Approval must be an explicit status line. Mentions inside prose, checklists,
+// or backticks such as "change this to `Design: Approved`" are instructions,
+// not approval evidence.
+const DESIGN_APPROVED_TOKEN_RE = /^\s*Design:\s*Approved\s*$/im;
 const URL_RE = /https?:\/\/[^\s)]+/gi;
 // Design-brief issue URL. musu uses its own trackers (musu-system / musu-brain /
 // musu-website-co GitHub issues) — Paperclip was dropped, so a plain numeric
@@ -20,6 +24,8 @@ const URL_RE = /https?:\/\/[^\s)]+/gi;
 const DESIGN_BRIEF_ISSUE_URL_RE =
   /\/issues\/(?:MUS-\d+|[0-9a-fA-F-]{36}|\d+)(?:[/?#]|$)/i;
 const ARTIFACT_URL_RE = /\.(?:pen|png)(?:[?#][^\s)]*)?$/i;
+const APPROVAL_COMMENT_URL_RE =
+  /github\.com\/[^/\s)]+\/[^/\s)]+\/issues\/\d+#issuecomment-\d+(?:[/?#][^\s)]*)?$/i;
 
 function extractUrls(text) {
   if (!text) {
@@ -37,7 +43,8 @@ function evaluateDesignGate({ changedFiles, prBody }) {
     (file) =>
       UI_PATH_PREFIXES.some((prefix) => file.startsWith(prefix)) &&
       !API_PATH_PREFIXES.some((prefix) => file.startsWith(prefix)) &&
-      !NEXT_APP_ROUTE_HANDLER_RE.test(file)
+      !NEXT_APP_ROUTE_HANDLER_RE.test(file) &&
+      !TEST_FILE_RE.test(file)
   );
   const uiTouched = matchedUiFiles.length > 0;
 
@@ -47,6 +54,9 @@ function evaluateDesignGate({ changedFiles, prBody }) {
       DESIGN_BRIEF_ISSUE_URL_RE.test(url)
     ),
     hasArtifactLink: urls.some((url) => ARTIFACT_URL_RE.test(url)),
+    hasApprovalCommentUrl: urls.some((url) =>
+      APPROVAL_COMMENT_URL_RE.test(url)
+    ),
   };
 
   const missingRequirements = [];
@@ -58,6 +68,9 @@ function evaluateDesignGate({ changedFiles, prBody }) {
   }
   if (!checks.hasArtifactLink) {
     missingRequirements.push("artifact URL ending in `.pen` or `.png`");
+  }
+  if (!checks.hasApprovalCommentUrl) {
+    missingRequirements.push("approval issue comment URL");
   }
 
   const pass = !uiTouched || missingRequirements.length === 0;
@@ -120,6 +133,8 @@ if (require.main === module) {
 module.exports = {
   API_PATH_PREFIXES,
   NEXT_APP_ROUTE_HANDLER_RE,
+  TEST_FILE_RE,
   UI_PATH_PREFIXES,
+  APPROVAL_COMMENT_URL_RE,
   evaluateDesignGate,
 };

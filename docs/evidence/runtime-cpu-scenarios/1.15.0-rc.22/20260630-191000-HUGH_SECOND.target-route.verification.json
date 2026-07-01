@@ -1,0 +1,557 @@
+{
+    "ok":  true,
+    "evidence_path":  "F:\\workspace\\musu-bee\\.local-build\\runtime-cpu-scenarios\\20260630-191000-HUGH_SECOND\\20260630-191000-HUGH_SECOND.runtime-cpu-scenario-matrix.json",
+    "fail_count":  0,
+    "version":  "1.15.0-rc.22",
+    "git_commit":  "eaaff38cf1d18012389ffaba0e703bab9178bf86",
+    "operator_machine":  "HUGH_SECOND",
+    "required_scenarios":  [
+                               "post-route"
+                           ],
+    "present_required_scenarios":  [
+                                       "post-route"
+                                   ],
+    "require_post_route_probe":  true,
+    "require_post_route_target":  true,
+    "expected_post_route_target":  "hugh-main",
+    "reject_self_post_route_target":  true,
+    "reject_local_post_route_target":  true,
+    "allow_failed_post_route_probe":  true,
+    "checks":  [
+                   {
+                       "name":  "parse",
+                       "status":  "pass",
+                       "message":  "runtime CPU scenario matrix parses"
+                   },
+                   {
+                       "name":  "schema",
+                       "status":  "pass",
+                       "message":  "schema is valid"
+                   },
+                   {
+                       "name":  "version",
+                       "status":  "pass",
+                       "message":  "version matches 1.15.0-rc.22"
+                   },
+                   {
+                       "name":  "matrix ok",
+                       "status":  "pass",
+                       "message":  "matrix reports ok=true"
+                   },
+                   {
+                       "name":  "git commit present",
+                       "status":  "pass",
+                       "message":  "git commit is recorded"
+                   },
+                   {
+                       "name":  "git clean during matrix",
+                       "status":  "pass",
+                       "message":  "matrix was captured from clean git state"
+                   },
+                   {
+                       "name":  "MUSU executable release identity",
+                       "status":  "pass",
+                       "message":  "matrix used the packaged WindowsApps MUSU command"
+                   },
+                   {
+                       "name":  "operator machine",
+                       "status":  "pass",
+                       "message":  "operator_machine is present"
+                   },
+                   {
+                       "name":  "sample duration",
+                       "status":  "pass",
+                       "message":  "sample duration is at least 60s"
+                   },
+                   {
+                       "name":  "cpu budget",
+                       "status":  "pass",
+                       "message":  "matrix CPU budget is \u003c= 5% of one logical core"
+                   },
+                   {
+                       "name":  "owned process budget present",
+                       "status":  "pass",
+                       "message":  "owned process budget is 16"
+                   },
+                   {
+                       "name":  "WebView2 budget present",
+                       "status":  "pass",
+                       "message":  "WebView2 process budget is 8"
+                   },
+                   {
+                       "name":  "working set budget present",
+                       "status":  "pass",
+                       "message":  "working set budget is 1024MB"
+                   },
+                   {
+                       "name":  "doctor background snapshot present",
+                       "status":  "pass",
+                       "message":  "runtime CPU matrix captures a MUSU doctor background snapshot"
+                   },
+                   {
+                       "name":  "doctor background snapshot schema",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot schema is valid"
+                   },
+                   {
+                       "name":  "doctor background snapshot command",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records the MUSU doctor command"
+                   },
+                   {
+                       "name":  "doctor background snapshot completeness",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot came from a package that exposes the complete loop-attribution schema"
+                   },
+                   {
+                       "name":  "doctor background fields present",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot includes background feature fields"
+                   },
+                   {
+                       "name":  "doctor background required fields",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot includes the required loop-attribution fields"
+                   },
+                   {
+                       "name":  "doctor background cloud heartbeat floor",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records a low-duty cloud heartbeat floor"
+                   },
+                   {
+                       "name":  "doctor background relay poller floor",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records bounded relay payload poller cadence"
+                   },
+                   {
+                       "name":  "doctor background planner floor",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records bounded planner cadence"
+                   },
+                   {
+                       "name":  "doctor background planner timeout bounds",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records bounded planner command timeout"
+                   },
+                   {
+                       "name":  "doctor background auto-update interval floor",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records bounded auto-update supervisor cadence"
+                   },
+                   {
+                       "name":  "doctor background auto-update health poll bounds",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records bounded auto-update health polling backoff"
+                   },
+                   {
+                       "name":  "doctor background bridge health poll bounds",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records bounded bridge readiness polling backoff"
+                   },
+                   {
+                       "name":  "doctor background runtime loop candidates",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records the expected runtime loop candidate summary"
+                   },
+                   {
+                       "name":  "doctor background runtime loop candidate keys",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot includes the expected runtime loop candidate keys"
+                   },
+                   {
+                       "name":  "doctor background active runtime loop candidate count",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records a consistent active runtime loop candidate count"
+                   },
+                   {
+                       "name":  "doctor background active runtime loop candidate keys",
+                       "status":  "pass",
+                       "message":  "doctor background snapshot records the active runtime loop candidate keys"
+                   },
+                   {
+                       "name":  "scenario present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 is present"
+                   },
+                   {
+                       "name":  "measurement present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 has measurement"
+                   },
+                   {
+                       "name":  "measurement ok: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 reports ok=true"
+                   },
+                   {
+                       "name":  "measurement clean git: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 measured clean git"
+                   },
+                   {
+                       "name":  "measurement duration: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 sample duration is at least 60s"
+                   },
+                   {
+                       "name":  "process metadata available: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 captured process metadata for PID/parent/path attribution"
+                   },
+                   {
+                       "name":  "process metadata timeout: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 process metadata lookup did not time out"
+                   },
+                   {
+                       "name":  "helper process scope: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 helper scope is limited to MUSU process tree or repo-related helpers"
+                   },
+                   {
+                       "name":  "CPU attribution present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records PID/role CPU attribution"
+                   },
+                   {
+                       "name":  "CPU attribution schema: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution schema is valid"
+                   },
+                   {
+                       "name":  "CPU attribution scope: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution excludes unrelated helper processes"
+                   },
+                   {
+                       "name":  "CPU attribution sample count: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution sample count matches measurement"
+                   },
+                   {
+                       "name":  "CPU attribution role counts: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution records MUSU/node/WebView2/other role sample counts"
+                   },
+                   {
+                       "name":  "CPU attribution subrole counts: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution records bridge/runtime/desktop/helper subrole sample counts"
+                   },
+                   {
+                       "name":  "CPU attribution totals by role: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution records MUSU/node/WebView2/other CPU totals by role"
+                   },
+                   {
+                       "name":  "CPU attribution totals by subrole: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution records bridge/runtime/desktop/helper CPU totals by subrole"
+                   },
+                   {
+                       "name":  "CPU attribution max by role: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution records MUSU/node/WebView2/other max CPU by role"
+                   },
+                   {
+                       "name":  "CPU attribution max by subrole: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution records bridge/runtime/desktop/helper max CPU by subrole"
+                   },
+                   {
+                       "name":  "CPU attribution MUSU role: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution includes MUSU role"
+                   },
+                   {
+                       "name":  "CPU attribution bridge subrole: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 CPU attribution identifies the bridge runtime PID separately"
+                   },
+                   {
+                       "name":  "CPU attribution top processes: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records top CPU processes"
+                   },
+                   {
+                       "name":  "CPU attribution top process fields: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 top CPU process rows include PID, role, subrole, and CPU fields"
+                   },
+                   {
+                       "name":  "measurement CPU roles present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records MUSU/node/WebView2/other max CPU fields"
+                   },
+                   {
+                       "name":  "measurement CPU subroles present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records bridge/runtime/desktop/helper max CPU fields"
+                   },
+                   {
+                       "name":  "role CPU post-route/musu",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 role \u0027musu\u0027 CPU 0.05% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU post-route/node",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 role \u0027node\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU post-route/webview2",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 role \u0027webview2\u0027 CPU 0.73% \u003c= 5%"
+                   },
+                   {
+                       "name":  "role CPU post-route/other",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 role \u0027other\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU post-route/musu_runtime",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 subrole \u0027musu_runtime\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU post-route/bridge_runtime",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 subrole \u0027bridge_runtime\u0027 CPU 0.05% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU post-route/desktop_shell",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 subrole \u0027desktop_shell\u0027 CPU 0.03% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU post-route/node_helper",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 subrole \u0027node_helper\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU post-route/webview2_helper",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 subrole \u0027webview2_helper\u0027 CPU 0.73% \u003c= 5%"
+                   },
+                   {
+                       "name":  "subrole CPU post-route/other",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 subrole \u0027other\u0027 CPU 0% \u003c= 5%"
+                   },
+                   {
+                       "name":  "hot process count: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 has no hot processes"
+                   },
+                   {
+                       "name":  "resource budget field: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records resource budget violations field"
+                   },
+                   {
+                       "name":  "resource budget: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 has no resource budget violations"
+                   },
+                   {
+                       "name":  "process counts present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records process counts by role"
+                   },
+                   {
+                       "name":  "process subrole counts present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records process counts by bridge/runtime/desktop/helper subrole"
+                   },
+                   {
+                       "name":  "process count roles present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records MUSU/node/WebView2/other process count fields"
+                   },
+                   {
+                       "name":  "process count subroles present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records bridge/runtime/desktop/helper process count fields"
+                   },
+                   {
+                       "name":  "bridge runtime process count: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records at least one bridge runtime process"
+                   },
+                   {
+                       "name":  "owned process budget: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 owned process count 8 \u003c= 16"
+                   },
+                   {
+                       "name":  "WebView2 process budget: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 WebView2 process count 6 \u003c= 8"
+                   },
+                   {
+                       "name":  "working set present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records total working set"
+                   },
+                   {
+                       "name":  "working set budget: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 working set 405.22MB \u003c= 1024MB"
+                   },
+                   {
+                       "name":  "private memory present: post-route",
+                       "status":  "pass",
+                       "message":  "scenario \u0027post-route\u0027 records total private memory"
+                   },
+                   {
+                       "name":  "post-route route probe present",
+                       "status":  "pass",
+                       "message":  "post-route matrix includes a route probe"
+                   },
+                   {
+                       "name":  "post-route route probe",
+                       "status":  "pass",
+                       "message":  "post-route matrix includes a successful route probe or an explicitly allowed failed route attempt"
+                   },
+                   {
+                       "name":  "post-route expected token present",
+                       "status":  "pass",
+                       "message":  "post-route route probe records an expected token"
+                   },
+                   {
+                       "name":  "post-route route command binds wait token",
+                       "status":  "pass",
+                       "message":  "post-route route command records the wait prompt token"
+                   },
+                   {
+                       "name":  "post-route route arguments bind wait token",
+                       "status":  "pass",
+                       "message":  "post-route route arguments record --wait with the expected token"
+                   },
+                   {
+                       "name":  "post-route successful output contains expected token",
+                       "status":  "pass",
+                       "message":  "post-route successful route output contains the expected token"
+                   },
+                   {
+                       "name":  "post-route route explain present",
+                       "status":  "pass",
+                       "message":  "post-route route probe includes route explain metadata"
+                   },
+                   {
+                       "name":  "post-route route explain schema",
+                       "status":  "pass",
+                       "message":  "post-route route explain schema is valid"
+                   },
+                   {
+                       "name":  "post-route route explain path priority",
+                       "status":  "pass",
+                       "message":  "post-route route explain records lan/tailscale/direct_quic/relay priority"
+                   },
+                   {
+                       "name":  "post-route route explain bridge path selection wired",
+                       "status":  "pass",
+                       "message":  "post-route route explain records bridge_path_selection_wired=true"
+                   },
+                   {
+                       "name":  "post-route route explain rendezvous wired",
+                       "status":  "pass",
+                       "message":  "post-route route explain records rendezvous_session_wired=true"
+                   },
+                   {
+                       "name":  "post-route route target present",
+                       "status":  "pass",
+                       "message":  "post-route route target is present"
+                   },
+                   {
+                       "name":  "post-route route command binds target",
+                       "status":  "pass",
+                       "message":  "post-route route command records the target route attempt"
+                   },
+                   {
+                       "name":  "post-route route arguments bind target",
+                       "status":  "pass",
+                       "message":  "post-route route arguments record --target hugh-main"
+                   },
+                   {
+                       "name":  "post-route route explain target",
+                       "status":  "pass",
+                       "message":  "post-route route explain requested target matches the route probe target"
+                   },
+                   {
+                       "name":  "post-route route target",
+                       "status":  "pass",
+                       "message":  "post-route route target matches hugh-main"
+                   },
+                   {
+                       "name":  "post-route route target not self",
+                       "status":  "pass",
+                       "message":  "post-route route target is not the operator machine"
+                   },
+                   {
+                       "name":  "post-route route target not local",
+                       "status":  "pass",
+                       "message":  "post-route route target is not localhost or loopback"
+                   },
+                   {
+                       "name":  "post-route route evidence path",
+                       "status":  "pass",
+                       "message":  "post-route route probe records route_evidence_path"
+                   },
+                   {
+                       "name":  "post-route route attempt evidence present",
+                       "status":  "pass",
+                       "message":  "post-route route probe includes parsed route attempt evidence"
+                   },
+                   {
+                       "name":  "post-route route attempt evidence schema",
+                       "status":  "pass",
+                       "message":  "post-route route attempt evidence schema is valid"
+                   },
+                   {
+                       "name":  "post-route route attempt result present",
+                       "status":  "pass",
+                       "message":  "post-route route attempt evidence records result"
+                   },
+                   {
+                       "name":  "post-route route attempt kind present",
+                       "status":  "pass",
+                       "message":  "post-route route attempt evidence records route_kind"
+                   },
+                   {
+                       "name":  "post-route route attempt candidate addr present",
+                       "status":  "pass",
+                       "message":  "post-route route attempt evidence records candidate_addr"
+                   },
+                   {
+                       "name":  "post-route route attempt peer identity field",
+                       "status":  "pass",
+                       "message":  "post-route route attempt evidence records peer_identity_verified"
+                   },
+                   {
+                       "name":  "post-route route attempt encryption present",
+                       "status":  "pass",
+                       "message":  "post-route route attempt evidence records encryption"
+                   },
+                   {
+                       "name":  "post-route route attempt target matches route target",
+                       "status":  "pass",
+                       "message":  "post-route route attempt evidence target matches route target"
+                   },
+                   {
+                       "name":  "post-route network probe present",
+                       "status":  "pass",
+                       "message":  "post-route route probe includes network probe for the selected candidate"
+                   },
+                   {
+                       "name":  "post-route network probe target",
+                       "status":  "pass",
+                       "message":  "post-route network probe target matches selected candidate host"
+                   },
+                   {
+                       "name":  "post-route network probe port",
+                       "status":  "pass",
+                       "message":  "post-route network probe port matches selected candidate port"
+                   }
+               ]
+}

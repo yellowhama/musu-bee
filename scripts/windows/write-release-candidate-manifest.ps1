@@ -11,8 +11,27 @@ $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 $version = (Get-Content -LiteralPath (Join-Path $repoRoot "VERSION") -Raw).Trim()
+
+function Convert-PublicVersionToPackageVersion {
+    param([Parameter(Mandatory = $true)][string]$PublicVersion)
+
+    if ($PublicVersion -match '^(\d+)\.(\d+)\.(\d+)-rc\.(\d+)$') {
+        return "$($Matches[1]).$($Matches[2]).$($Matches[3]).$($Matches[4])"
+    }
+
+    if ($PublicVersion -match '^(\d+)\.(\d+)\.(\d+)$') {
+        return "$($Matches[1]).$($Matches[2]).$($Matches[3]).0"
+    }
+
+    if ($PublicVersion -match '^\d+\.\d+\.\d+\.\d+$') {
+        return $PublicVersion
+    }
+
+    throw "Cannot convert public version '$PublicVersion' to a 4-segment package version."
+}
+
 $numericVersion = if ($version.Contains("-")) { $version.Split("-", 2)[0] } else { $version }
-$msixVersion = "$numericVersion.0"
+$msixVersion = Convert-PublicVersionToPackageVersion -PublicVersion $version
 
 if ([string]::IsNullOrWhiteSpace($OutputDir)) {
     $OutputDir = Join-Path $repoRoot ".local-build\release-candidates\$version"
@@ -49,6 +68,17 @@ function Get-Sha256FileHash([string]$Path) {
 }
 
 function Get-FileArtifact([string]$Role, [string]$Path, [bool]$Required = $true) {
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        if ($Required) {
+            throw "Required release artifact missing for ${Role}: no candidate path was found."
+        }
+        return [pscustomobject]@{
+            role = $Role
+            present = $false
+            path = ""
+        }
+    }
+
     if (-not (Test-Path -LiteralPath $Path)) {
         if ($Required) {
             throw "Required release artifact missing for ${Role}: $Path"
@@ -74,6 +104,17 @@ function Get-FileArtifact([string]$Role, [string]$Path, [bool]$Required = $true)
 }
 
 function Get-DirectoryArtifact([string]$Role, [string]$Path, [bool]$Required = $true) {
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        if ($Required) {
+            throw "Required release artifact directory missing for ${Role}: no candidate path was found."
+        }
+        return [pscustomobject]@{
+            role = $Role
+            present = $false
+            path = ""
+        }
+    }
+
     if (-not (Test-Path -LiteralPath $Path)) {
         if ($Required) {
             throw "Required release artifact directory missing for ${Role}: $Path"
@@ -120,6 +161,16 @@ function Find-LatestDirectory([string]$Directory, [string]$Filter) {
         return $null
     }
     Get-ChildItem -LiteralPath $Directory -Filter $Filter -Directory |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -ExpandProperty FullName -First 1
+}
+
+function Find-LatestDirectoryContainingFile([string]$Directory, [string]$Filter, [string]$RequiredFileName) {
+    if (-not (Test-Path -LiteralPath $Directory)) {
+        return $null
+    }
+    Get-ChildItem -LiteralPath $Directory -Filter $Filter -Directory |
+        Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName $RequiredFileName) } |
         Sort-Object LastWriteTime -Descending |
         Select-Object -ExpandProperty FullName -First 1
 }
@@ -183,9 +234,10 @@ function Read-ReadinessAuditJson {
 $msixOutput = Join-Path $repoRoot ".local-build\msix\output"
 $localMsix = Join-Path $msixOutput ("musu_{0}_x64_local-sideload-manual.msix" -f $msixVersion)
 $storeMsix = Join-Path $msixOutput ("musu_{0}_x64_store-reviewed-immediate-registration.msix" -f $msixVersion)
+$storeMsixName = Split-Path -Leaf $storeMsix
 $publicCert = Find-LatestFile -Directory $msixOutput -Filter "*.cer"
 $privateCert = Find-LatestFile -Directory $msixOutput -Filter "*.pfx"
-$storeBundle = Find-LatestDirectory -Directory (Join-Path $repoRoot ".local-build\msix\submission-bundles") -Filter "store-reviewed-*"
+$storeBundle = Find-LatestDirectoryContainingFile -Directory (Join-Path $repoRoot ".local-build\msix\submission-bundles") -Filter "store-reviewed-*" -RequiredFileName $storeMsixName
 $multiDeviceKit = Find-LatestFile -Directory (Join-Path $repoRoot ".local-build\multi-device-test-kit") -Filter ("musu-multidevice-{0}-*.zip" -f $version)
 $tauriMsi = Join-Path $repoRoot "musu-bee\src-tauri\target\release\bundle\msi\MUSU_${numericVersion}_x64_en-US.msi"
 $tauriNsis = Join-Path $repoRoot "musu-bee\src-tauri\target\release\bundle\nsis\MUSU_${numericVersion}_x64-setup.exe"

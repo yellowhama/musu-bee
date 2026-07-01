@@ -24,21 +24,34 @@ New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
 
 $p2pVerifier = Join-Path $scriptDir "verify-p2p-control-plane-evidence.ps1"
 $msixVerifier = Join-Path $scriptDir "verify-msix-install-evidence.ps1"
+$directRouteVerifier = Join-Path $scriptDir "verify-direct-route-evidence.ps1"
 $multiDeviceVerifier = Join-Path $scriptDir "verify-multidevice-evidence.ps1"
 $runtimeCpuScenarioMatrixVerifier = Join-Path $scriptDir "verify-runtime-cpu-scenario-matrix.ps1"
 $routeReachabilityVerifier = Join-Path $scriptDir "verify-route-reachability-diagnostic.ps1"
 $processAttributionSummaryVerifier = Join-Path $scriptDir "verify-process-attribution-summary.ps1"
 $singleMachineVerifier = Join-Path $scriptDir "verify-single-machine-evidence.ps1"
 $supportVerifier = Join-Path $scriptDir "verify-support-mailbox-evidence.ps1"
+$supportOperatorGateRetirementVerifier = Join-Path $scriptDir "verify-support-operator-gate-retirement.ps1"
+$supportOperatorGateRetirementRecorder = Join-Path $scriptDir "record-support-operator-gate-retirement.ps1"
+$brainProductVerifier = Join-Path $scriptDir "verify-brain-product-proof.ps1"
+$v34SelfHealVerifier = Join-Path $scriptDir "verify-v34-self-heal-proof.ps1"
+$v34SelfHealRecorder = Join-Path $scriptDir "record-v34-self-heal-proof.ps1"
+$v34SourceArtifactRecorder = Join-Path $scriptDir "record-v34-source-artifacts.ps1"
+$v34SnapshotCapture = Join-Path $scriptDir "capture-v34-source-snapshot.ps1"
+$storeReleaseVerifier = Join-Path $scriptDir "verify-store-release-evidence.ps1"
+$storeReleaseRecorder = Join-Path $scriptDir "record-store-release-verification.ps1"
 $storePublicMetadataVerifier = Join-Path $scriptDir "verify-store-public-metadata.ps1"
+$publicMetadataDnsRepairPlanner = Join-Path $scriptDir "plan-musu-pro-public-metadata-dns-repair.ps1"
 $releaseGoNoGoWriter = Join-Path $scriptDir "write-release-go-no-go.ps1"
 $releaseCandidateManifestWriter = Join-Path $scriptDir "write-release-candidate-manifest.ps1"
 $frontendPollingAuditor = Join-Path $scriptDir "audit-frontend-polling-contract.ps1"
 $storeSubmissionBundleVerifier = Join-Path $scriptDir "verify-store-submission-bundle.ps1"
+$storeSubmissionBundlePreparer = Join-Path $scriptDir "prepare-store-submission-bundle.ps1"
 $desktopReleaseReadinessAuditor = Join-Path $scriptDir "audit-desktop-release-readiness.ps1"
 $p2pControlPlaneEvidenceRecorder = Join-Path $scriptDir "record-p2p-control-plane-evidence.ps1"
 $externalGateRecheckRecorder = Join-Path $scriptDir "record-external-release-gate-recheck.ps1"
 $p2pEnvStatusReporter = Join-Path $scriptDir "show-musu-pro-p2p-env-status.ps1"
+$releaseRelayTransportDesignGate = Join-Path $scriptDir "audit-release-relay-transport-design-gate.ps1"
 $finalHandoffStatusReporter = Join-Path $scriptDir "show-final-release-handoff-status.ps1"
 $operatorApiSecurityAuditor = Join-Path $scriptDir "audit-operator-api-security-contract.ps1"
 $msixLegacyConflictsChecker = Join-Path $scriptDir "check-msix-legacy-conflicts.ps1"
@@ -46,6 +59,7 @@ $msixCommon = Join-Path $scriptDir "msix-common.ps1"
 $routeReachabilityRecorder = Join-Path $scriptDir "record-route-reachability-diagnostic.ps1"
 $supportMailboxRequestPreparer = Join-Path $scriptDir "prepare-support-mailbox-verification-request.ps1"
 $oneMachineMusuProWorkOrderSmoke = Join-Path $scriptDir "smoke-one-machine-musu-pro-work-order.ps1"
+$operatorActionPackPreparer = Join-Path $scriptDir "prepare-operator-action-pack.ps1"
 
 function Copy-JsonObject {
     param([Parameter(Mandatory = $true)]$Object)
@@ -86,14 +100,35 @@ function Get-CurrentPowerShellExecutable {
 
 $powerShellExecutable = Get-CurrentPowerShellExecutable
 
+function Convert-TestPublicVersionToPackageVersion {
+    param([Parameter(Mandatory = $true)][string]$PublicVersion)
+
+    if ($PublicVersion -match '^(\d+)\.(\d+)\.(\d+)-rc\.(\d+)$') {
+        return "$($Matches[1]).$($Matches[2]).$($Matches[3]).$($Matches[4])"
+    }
+    if ($PublicVersion -match '^\d+\.\d+\.\d+\.\d+$') {
+        return $PublicVersion
+    }
+    throw "Cannot convert public version '$PublicVersion' to a 4-segment package version."
+}
+
+$expectedPackageVersion = Convert-TestPublicVersionToPackageVersion -PublicVersion $ExpectedVersion
+
 function Invoke-Verifier {
     param(
         [Parameter(Mandatory = $true)][string]$ScriptPath,
         [Parameter(Mandatory = $true)][string[]]$Arguments
     )
 
-    $output = & $powerShellExecutable -NoProfile -ExecutionPolicy Bypass -File $ScriptPath @Arguments 2>&1
-    $exitCode = $LASTEXITCODE
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $output = & $powerShellExecutable -NoProfile -ExecutionPolicy Bypass -File $ScriptPath @Arguments 2>&1
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
     $text = ($output | Out-String).Trim()
     $parsed = $null
     if (-not [string]::IsNullOrWhiteSpace($text)) {
@@ -210,9 +245,12 @@ function Test-RuntimeCpuScenarioMatrixRouteProbeContract {
     $source = Get-Content -LiteralPath $ScriptPath -Raw
     $requiredNeedles = @(
         '[int]$RouteWaitTimeoutSec = 180',
+        '[string]$RouteAdapter = "echo"',
         'RouteWaitTimeoutSec must be between 1 and 3600.',
+        'RouteAdapter must not be blank.',
         '$RoutePrompt = $RoutePrompt.Replace("{TOKEN}", $expectedRouteToken)',
         'RoutePrompt must include expected token',
+        '"--adapter", $RouteAdapter',
         '"--wait-timeout-sec"',
         '$routeProbeCommandTimeoutSec = [Math]::Max($CommandTimeoutSec, $RouteWaitTimeoutSec + 30)',
         '$effectiveRouteExitCode = [int]$candidateResult.exit_code',
@@ -221,6 +259,7 @@ function Test-RuntimeCpuScenarioMatrixRouteProbeContract {
         'exit_code = $effectiveRouteExitCode',
         'attempt_count = $routeAttempts.Count',
         'attempts = $routeAttempts.ToArray()',
+        'route_adapter = $RouteAdapter',
         'wait_timeout_sec = $RouteWaitTimeoutSec',
         'command_timeout_sec = $routeProbeCommandTimeoutSec'
     )
@@ -732,6 +771,53 @@ function Test-SecondPcReleaseCheckRouteTargetConsistencyContract {
     return $true
 }
 
+function Test-SecondPcReleaseCheckPrivateMeshPhysicalPeerEvidenceContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'SkipPrivateMeshPhysicalPeerEvidence',
+        'FailOnPrivateMeshPhysicalPeerEvidence',
+        '.local-build\private-mesh-physical-peer',
+        'musu mesh physical-peer-evidence',
+        'private_mesh_physical_peer_evidence_path',
+        'private_mesh_physical_peer_evidence_sha256_path',
+        'private_mesh_physical_peer_evidence_ok',
+        'private_mesh_physical_peer_evidence_report',
+        'private_mesh_physical_peer_evidence_error'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-SecondPcImportPrivateMeshPhysicalPeerEvidenceContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'Copy-Sha256SidecarIntoRoot',
+        'musu.private_mesh_physical_peer_evidence.v1',
+        '.local-build\private-mesh-physical-peer',
+        'private_mesh_physical_peer_evidence_path',
+        'private_mesh_physical_peer_evidence_sha256_path',
+        'private_mesh_physical_peer_evidence_imported',
+        'private_mesh_physical_peer_evidence_release_check_ok',
+        'private_mesh_physical_peer_evidence_matches_release_check'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-SecondPcKitMetadataContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -743,6 +829,28 @@ function Test-SecondPcKitMetadataContract {
         'kit-build-metadata.json',
         'commit = [string]$sourceGitState.commit',
         'dirty = if ($null -eq $sourceGitState.dirty) { $null } else { [bool]$sourceGitState.dirty }'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-SecondPcKitJsonOutputContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '[switch]$Json',
+        'schema = "musu.multidevice_test_kit_prepare.v1"',
+        'zip_sha256 = $zipHash.Hash.ToLowerInvariant()',
+        'metadata_path = Join-Path $kitRoot "kit-build-metadata.json"',
+        '$resultJson = $result | ConvertTo-Json -Depth 8',
+        '$latestOutputPath = Join-Path $OutputRoot "latest-prepare-output.json"',
+        'Move-Item -LiteralPath $latestTempPath -Destination $latestOutputPath -Force'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -957,6 +1065,69 @@ function Test-FinalOperatorPacketTargetedReleaseCheckContract {
     return $true
 }
 
+function Test-FinalOperatorPacketFullProductRoadmapContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '"docs\MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md"',
+        '"docs\SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28.md"',
+        '"docs\V34_DISCOVERY_STALE_THESIS_2026_06_26.md"',
+        '"capture-v34-source-snapshot.ps1"',
+        '"record-v34-source-artifacts.ps1"',
+        '"record-v34-self-heal-proof.ps1"',
+        '"verify-v34-self-heal-proof.ps1"',
+        '"verify-direct-route-evidence.ps1"',
+        'Current full-product blockers:',
+        'design approval evidence for PR #34',
+        'real delegated-work relay transport proof',
+        'V34 stale registry/cache/manual-peer physical self-heal proof',
+        'Store distribution approval and Store-signed install evidence',
+        '-StoreSignedInstallEvidencePath',
+        '-StoreDesktopEntrypointEvidencePath',
+        '-StoreInstallObservedAt',
+        '-StoreLaunchObservedAt',
+        'support/operator evidence: formal mailbox-delivery gate retirement is recorded',
+        'The old support mailbox delivery gate is not a remaining blocker',
+        'Gate D - V34 stale self-heal physical proof',
+        'capture-v34-source-snapshot.ps1 -SnapshotKind ttl -Stage before',
+        'capture-v34-source-snapshot.ps1 -SnapshotKind boot -Stage after',
+        'BootPrunedManualPeerCount',
+        'TtlSourceEvidencePath',
+        'BootSourceEvidencePath',
+        'musu.v34_ttl_prune_source.v1',
+        'musu.v34_boot_reconcile_source.v1',
+        'musu.v34_ttl_snapshot.v1',
+        'musu.v34_boot_snapshot.v1',
+        'RouteDuplicateTaskExecutionPrevented',
+        'v34_stale_self_heal_verified=true',
+        'Gate E - Relay transport failure-injection proof',
+        '"audit-release-relay-transport-design-gate.ps1"',
+        'audit-release-relay-transport-design-gate.ps1 -BaseUrl https://musu.pro -Json',
+        'runtime_marker_can_be_flipped=true',
+        'RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false',
+        'record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -Json',
+        'relay_transport_product_verified=true',
+        'musu.relay_payload_delivery_proof.v1'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+
+    $forbiddenNeedles = @(
+        'real __SUPPORT_EMAIL__ inbox delivery evidence'
+    )
+    foreach ($needle in $forbiddenNeedles) {
+        if ($source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-FinalOperatorPacketHandoffStatusTargetedRuntimeCpuContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -1012,6 +1183,109 @@ function Test-SecondPcKitRouteReachabilityContract {
         'peer not found',
         'not release-grade multi-device proof',
         'verify-route-reachability-diagnostic.ps1 -EvidencePath'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-SecondPcKitPrivateMeshPhysicalPeerEvidenceContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '"run-private-mesh-release-proof.ps1"',
+        '"smoke-private-mesh-route-proof.ps1"',
+        '"verify-private-mesh-route-proof-evidence.ps1"',
+        '"verify-private-mesh-release-proof-bundle.ps1"',
+        '"archive-private-mesh-release-proof-bundle.ps1"',
+        '"import-private-mesh-release-proof-archive.ps1"',
+        '"verify-private-mesh-release-proof-archive.ps1"',
+        '## Private Mesh packaged release proof handoff',
+        '.local-build\private-mesh-physical-peer\*.physical-peer-evidence.json',
+        'musu mesh physical-peer-evidence --output',
+        'import-second-pc-return.ps1 -ReturnZipPath',
+        'PhysicalPeerEvidencePath',
+        'DesktopRuntimeKind packaged_desktop',
+        'SkipPrivateMeshPhysicalPeerEvidence',
+        'FailOnPrivateMeshPhysicalPeerEvidence',
+        'packaged desktop release-proof archive'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-SecondPcKitV34SelfHealProofContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '"capture-v34-source-snapshot.ps1"',
+        '"record-v34-source-artifacts.ps1"',
+        '"record-v34-self-heal-proof.ps1"',
+        '"verify-v34-self-heal-proof.ps1"',
+        '## V34 stale self-heal proof',
+        'capture-v34-source-snapshot.ps1 -SnapshotKind ttl -Stage before',
+        'capture-v34-source-snapshot.ps1 -SnapshotKind boot -Stage after',
+        'BootPrunedManualPeerCount',
+        'musu.v34_self_heal_proof.v1',
+        'musu.route_evidence.v1',
+        'RouteStaleCandidateWasFirst',
+        'RouteDuplicateTaskExecutionPrevented',
+        'RouteTaskPostCount 1',
+        'TtlSourceEvidencePath',
+        'BootSourceEvidencePath',
+        'musu.v34_ttl_prune_source.v1',
+        'musu.v34_boot_reconcile_source.v1',
+        'musu.v34_ttl_snapshot.v1',
+        'musu.v34_boot_snapshot.v1',
+        'payload_transited_musu_infra=false',
+        'route_evidence_candidate_matches_selected',
+        'v34_stale_self_heal_verified=false',
+        'verify-v34-self-heal-proof.ps1 -EvidencePath'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-SecondPcKitRelayTransportProofContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '"audit-release-relay-transport-design-gate.ps1"',
+        '"show-musu-pro-p2p-env-status.ps1"',
+        '"record-p2p-control-plane-evidence.ps1"',
+        '"verify-p2p-control-plane-evidence.ps1"',
+        '## Relay transport failure-injection proof',
+        'block the direct path between the two',
+        'audit-release-relay-transport-design-gate.ps1 -BaseUrl https://musu.pro -Json',
+        'runtime_marker_can_be_flipped=true',
+        'RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false',
+        'record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -Json',
+        'verify-p2p-control-plane-evidence.ps1 -EvidencePath',
+        'musu.relay_transport_proof.v1',
+        'quic_relay_tunnel',
+        'quic_tls_1_3',
+        'musu.route_evidence.v1` with relay proof attached',
+        'musu.relay_payload_delivery_proof.v1',
+        'payload_transited_musu_infra=true',
+        'relay_transport_product_verified=false',
+        'relay_transport_product_verified=true'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -1471,6 +1745,70 @@ function Test-GoNoGoLatestOutputContract {
     return $true
 }
 
+function Test-GoNoGoFullProductSpecReadinessContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'function Convert-PublicVersionToPackageVersion',
+        'function Get-LatestJsonEvidence',
+        'function Test-JsonCheckPassed',
+        'function New-FullProductSpecLane',
+        '$fullProductSpecLanes = @(',
+        '$fullProductSpecIncompleteLanes = @(',
+        '$fullProductSpecReady = ($fullProductSpecIncompleteLanes.Count -eq 0)',
+        'schema = "musu.full_product_spec_readiness.v1"',
+        'roadmap_path = "docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md"',
+        'full_product_spec_ready',
+        'full_product_spec = [pscustomobject]@',
+        'full_product_spec_incomplete_lanes:',
+        'fleet_node_proof_verified',
+        'fleet_install_channel_proof_verified',
+        'fleet_brain_token_acl_verified',
+        'design_approval_verified',
+        'relay_transport_product_verified',
+        'brain_product_verified',
+        'verify-brain-product-proof.ps1',
+        'record-brain-product-proof.ps1',
+        '$brainProductVerificationResult = Invoke-JsonScript',
+        'verification = if ($brainProductVerificationResult',
+        'v34_stale_self_heal_verified',
+        'verify-v34-self-heal-proof.ps1',
+        '$v34SelfHealVerificationResult = Invoke-JsonScript',
+        'verification = if ($v34SelfHealVerificationResult',
+        'support_operator_gate_retirement_verified',
+        'support_operator_evidence_verified',
+        '$supportOperatorEvidenceVerified = ([bool]$supportMailboxVerified -or [bool]$supportOperatorGateRetirementVerified)',
+        'verify-support-operator-gate-retirement.ps1',
+        '$supportOperatorGateRetirementVerificationResult = Invoke-JsonScript',
+        'musu.support_operator_gate_retirement.v1',
+        'musu.fleet_node_proof.v1',
+        'musu.design_approval.v1',
+        'musu.brain_product_proof.v1',
+        'musu.v34_self_heal_proof.v1',
+        'public_install_channel_validate_release',
+        'installed_package_version_matches_release',
+        'brain_ingest_token_acl_restricted',
+        'design-approval',
+        'fleet-proof',
+        'relay-transport',
+        'brain-product-proof',
+        'v34-stale-self-heal',
+        'Full product spec requires real delegated-work relay transport proof',
+        'Full product spec requires full hidden brain proof; token ACL alone is not enough.',
+        'Full product spec requires V34 stale self-heal proof, not only candidate/TTL code.',
+        'Full product spec requires Store or trusted distribution evidence.',
+        'Full product spec requires support/operator evidence or a formal retirement of the support mailbox gate.'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-RouteReachabilityRecorderSourceContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -1691,6 +2029,8 @@ function Test-SupportMailboxFreshnessStatusOnlyContract {
         '"scripts/windows/prepare-support-mailbox-verification-request.ps1"',
         '"scripts/windows/record-support-mailbox-verification.ps1"',
         '"scripts/windows/verify-support-mailbox-evidence.ps1"',
+        '"scripts/windows/record-support-operator-gate-retirement.ps1"',
+        '"scripts/windows/verify-support-operator-gate-retirement.ps1"',
         '"scripts/windows/show-operator-handoff-card.ps1"'
     )
 
@@ -1763,6 +2103,9 @@ function Test-GoNoGoPublicMetadataFailureDetailContract {
         'mismatched_fields',
         'status_code',
         'failure_kind',
+        'dns_diagnostics',
+        'nameserver_mismatch',
+        'provider_guess',
         'Select-Object -First 4',
         'Select-Object -First 8',
         'Public privacy/support metadata verification failed for ${BaseUrl}:',
@@ -1774,6 +2117,76 @@ function Test-GoNoGoPublicMetadataFailureDetailContract {
             return $false
         }
     }
+    return $true
+}
+
+function Test-PublicMetadataDnsRepairPlannerContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    if (-not (Test-Path -LiteralPath $ScriptPath)) {
+        return $false
+    }
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'schema = "musu.public_metadata_dns_repair_plan.v1"',
+        'ConfirmCloudflareApply',
+        'apply_supported = $false',
+        'will_mutate_external_dns = $false',
+        'apply-musu-pro-public-metadata-cloudflare-dns.ps1',
+        'cloudflare_apply',
+        'dry_run_command',
+        'mutation_requires_confirm_apply',
+        'CLOUDFLARE_API_TOKEN',
+        'verify-store-public-metadata.ps1',
+        'vercel domains inspect',
+        '$vercelArgs = @("-y", "vercel@54.7.1", "domains", "inspect", $Domain)',
+        '$raw = & npx @vercelArgs 2>&1',
+        'token_missing',
+        'inspect_command_failed',
+        'inspect_output_uninformative',
+        'has_informative_output',
+        'ExpectedVercelApexA',
+        'ExpectedWwwCname',
+        '76.76.21.21',
+        'cname.vercel-dns-0.com',
+        '$externalDnsRecordsMatchExpected = ($apexAMatchesExpected -and $apexAaaaRecordsAbsent -and $wwwCnameMatchesExpected)',
+        '$dnsPathMatchesExpected = ($nameserverMatchesExpected -or $externalDnsRecordsMatchExpected)',
+        '$needsDnsRepair = (-not $dnsPathMatchesExpected)',
+        'external_dns_records_match_expected',
+        'dns_path_matches_expected',
+        'apex_aaaa_records_absent',
+        'apex_tls',
+        'vercel_edge_apex_tls',
+        'dns_state',
+        'tls_state',
+        'recommended_actions',
+        'This planner never mutates DNS/provider state'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+
+    $forbiddenNeedles = @(
+        'Invoke-RestMethod -Method Patch',
+        'Invoke-RestMethod -Method Post',
+        'Invoke-RestMethod -Method Put',
+        'Invoke-RestMethod -Method Delete',
+        'Invoke-WebRequest -Method Patch',
+        'Invoke-WebRequest -Method Post',
+        'Invoke-WebRequest -Method Put',
+        'Invoke-WebRequest -Method Delete'
+    )
+
+    foreach ($needle in $forbiddenNeedles) {
+        if ($source.Contains($needle)) {
+            return $false
+        }
+    }
+
     return $true
 }
 
@@ -1816,7 +2229,6 @@ function Test-GoNoGoNextActionsContract {
         'placeholders = @($placeholders)',
         'manual_steps = @($ManualSteps)',
         '[regex]::Matches($Text, "<[^<>]+>|REPLACE_WITH_[A-Z0-9_]+")',
-        'REPLACE_WITH_EXTERNAL_SENDER_EMAIL',
         'prepare-multidevice-test-kit.ps1',
         'Move the generated kit to the second physical Windows PC.',
         'A real second physical PC must run the generated kit and return evidence before the multi-device gate can be recorded.',
@@ -1836,24 +2248,40 @@ function Test-GoNoGoNextActionsContract {
         'Choose the real second-PC peer name from the live fleet.',
         'A real second-PC peer target and post-route matrix evidence are required before the second-PC route-attempt CPU gate can close.',
         '.local-build\runtime-cpu-scenarios\*\*.runtime-cpu-scenario-matrix.json; accepted release path: docs\evidence\runtime-cpu-scenarios\$Version\*.runtime-cpu-scenario-matrix.json',
+        'plan-musu-pro-public-metadata-dns-repair.ps1 -BaseUrl $PublicMetadataBaseUrl -Json',
         'verify-store-public-metadata.ps1 -BaseUrl $PublicMetadataBaseUrl -Json',
-        'Deploy the current MUSU public site build to $PublicMetadataBaseUrl.',
-        'Confirm the deployed privacy, support, and public-config routes are from the current release build.',
-        'Then run the public metadata verifier command.',
-        'Live deployment to $PublicMetadataBaseUrl is required before this verifier can pass; the command only verifies the deployed site.',
+        'Run the public metadata DNS/TLS repair planner first.',
+        'Run vercel domains inspect for the exact Vercel-recommended DNS records.',
+        'If staying on Cloudflare/third-party DNS, run the Cloudflare DNS apply helper in dry-run mode before any DNS mutation: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\apply-musu-pro-public-metadata-cloudflare-dns.ps1 -BaseUrl $PublicMetadataBaseUrl -Json',
+        'Only after reviewing the dry-run, provide a scoped Cloudflare token and rerun the helper with -ConfirmApply: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\apply-musu-pro-public-metadata-cloudflare-dns.ps1 -BaseUrl $PublicMetadataBaseUrl -ConfirmApply -Json',
+        'Repair the apex DNS/TLS path, then run the public metadata verifier command.',
+        'The planner is diagnostic and does not mutate DNS/provider settings; the Cloudflare helper must be dry-run reviewed and explicitly rerun with -ConfirmApply before live DNS mutation. Live DNS/TLS repair is required before this verifier can pass.',
+        'record-support-operator-gate-retirement.ps1 -Json',
+        'Close the support/operator lane by recording real inbox delivery evidence or the formal support mailbox delivery gate retirement.',
         'prepare-support-mailbox-verification-request.ps1 -Json',
-        'Prepare a unique external-email verification packet, then record inbox delivery evidence after the message is actually received.',
-        'Send the generated verification email from an external mailbox into $SupportEmail.',
-        'External email delivery into $SupportEmail must be performed and observed before support mailbox evidence can be recorded.',
         'record-support-mailbox-verification.ps1',
-        'Verify the Store submission bundle locally, then record Partner Center approval evidence after Microsoft certification is complete.',
+        'verify-support-operator-gate-retirement.ps1',
+        'formal retirement still requires current public support metadata proof.',
+        'record-support-mailbox-verification.ps1',
+        'Verify the Store bundle, then record Partner Center approval plus Store-signed install and desktop launch evidence.',
         'Reserve or confirm the MUSU product name in Partner Center.',
         'Wait for certification approval and restricted capability approval.',
-        'Partner Center reservation, submission, certification, and restricted capability approval must exist before Store release evidence can be recorded.',
+        'Install the approved Microsoft Store package on a physical Windows machine, not a local sideload package.',
+        'capture-msix-install-evidence.ps1 -StartupContract store-reviewed-immediate-registration',
+        'audit-msix-desktop-entrypoint.ps1 -StartupContract store-reviewed-immediate-registration -RequireInstalledPackage -Json',
+        'Partner Center reservation, certification, restricted capability approval, and Store-signed install/launch evidence must exist before Store release evidence can be recorded.',
         'record-store-release-verification.ps1',
+        '-StoreSignedInstallEvidencePath',
+        '-StoreDesktopEntrypointEvidencePath',
+        '-StoreInstallObservedAt',
+        '-StoreLaunchObservedAt',
+        'audit-release-relay-transport-design-gate.ps1 -BaseUrl $PublicMetadataBaseUrl -Json',
+        'Run the separate relay transport design gate: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-release-relay-transport-design-gate.ps1 -BaseUrl $PublicMetadataBaseUrl -Json',
+        'Keep RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false until the gate reports runtime_marker_can_be_flipped=true after real quic_relay_tunnel byte transit exists.',
+        'real quic_relay_tunnel byte transit',
         'show-musu-pro-p2p-env-status.ps1 -Json',
         'record-p2p-control-plane-evidence.ps1 -BaseUrl $PublicMetadataBaseUrl -Json',
-        'Release-grade relay payload endpoint and relay tunnel runtime are not implemented/proven yet; this command is diagnostic until those source/env/live gates pass.',
+        'Relay transport remains a separate implementation lane until the design gate, route evidence, relay transport proof, and payload delivery proof all prove real quic_relay_tunnel byte transit.',
         'git status --short',
         'Review the dirty worktree, commit only after all intended changes and release evidence are present, then regenerate release manifests.',
         'Do not commit just to clear the git blocker while required release evidence is still missing.',
@@ -1917,6 +2345,39 @@ function Test-ReleaseCandidateManifestReadinessReuseContract {
     }
     foreach ($needle in $requiredGoNoGoNeedles) {
         if (-not $goNoGoSource.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-ReleaseCandidateManifestPackageVersionContract {
+    param([Parameter(Mandatory = $true)][string]$ManifestScriptPath)
+
+    $source = Get-Content -LiteralPath $ManifestScriptPath -Raw
+    $requiredNeedles = @(
+        'function Convert-PublicVersionToPackageVersion',
+        'function Find-LatestDirectoryContainingFile',
+        "`$PublicVersion -match '^(\d+)\.(\d+)\.(\d+)-rc\.(\d+)$'",
+        'return "$($Matches[1]).$($Matches[2]).$($Matches[3]).$($Matches[4])"',
+        '$msixVersion = Convert-PublicVersionToPackageVersion -PublicVersion $version',
+        '$storeMsixName = Split-Path -Leaf $storeMsix',
+        'Find-LatestDirectoryContainingFile -Directory (Join-Path $repoRoot ".local-build\msix\submission-bundles") -Filter "store-reviewed-*" -RequiredFileName $storeMsixName',
+        'musu_{0}_x64_local-sideload-manual.msix',
+        'musu_{0}_x64_store-reviewed-immediate-registration.msix'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+
+    $forbiddenNeedles = @(
+        '$msixVersion = "$numericVersion.0"'
+    )
+    foreach ($needle in $forbiddenNeedles) {
+        if ($source.Contains($needle)) {
             return $false
         }
     }
@@ -1989,6 +2450,92 @@ function Test-ReadinessStoreBundleEntrypointReuseContract {
     return $true
 }
 
+function Test-DesktopReadinessCurrentMsixVersionContract {
+    param([Parameter(Mandatory = $true)][string]$ReadinessScriptPath)
+
+    $source = Get-Content -LiteralPath $ReadinessScriptPath -Raw
+    $requiredNeedles = @(
+        'function Convert-PublicVersionToPackageVersion',
+        '$msixVersion = Convert-PublicVersionToPackageVersion -PublicVersion $repoVersion',
+        '$msixOutput = Join-Path $repoRoot ".local-build\msix\output"',
+        '$storeMsixName = Split-Path -Leaf $storeMsix',
+        'Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName $storeMsixName) }',
+        'Current Store submission bundle is missing expected artifact ${storeMsixName}.',
+        'musu_{0}_x64_local-sideload-manual.msix',
+        'musu_{0}_x64_store-reviewed-immediate-registration.msix'
+    )
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+
+    $forbiddenNeedles = @(
+        'musu_1.15.0.0_x64_local-sideload-manual.msix',
+        'musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix'
+    )
+    foreach ($needle in $forbiddenNeedles) {
+        if ($source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-OperatorActionPackCurrentStoreMsixContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'function Convert-PublicVersionToPackageVersion',
+        '$windowsPackageVersion = Convert-PublicVersionToPackageVersion -PublicVersion $Version',
+        '$expectedStoreMsixName = "musu_{0}_x64_store-reviewed-immediate-registration.msix" -f $windowsPackageVersion',
+        'Where-Object { $_.Name -eq $expectedStoreMsixName }',
+        'Current Store-reviewed MSIX is missing from action pack bundle',
+        '$uploadMsix = Join-Path $storeDir $expectedStoreMsixName',
+        '$uploadMsixLeaf = Split-Path -Leaf $uploadMsix',
+        'Version: $Version / Windows package version $windowsPackageVersion',
+        '- $uploadMsixLeaf'
+    )
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+
+    $forbiddenNeedles = @(
+        'musu_1.15.0.0_x64_store-reviewed-immediate-registration.msix',
+        'Windows package version 1.15.0.0'
+    )
+    foreach ($needle in $forbiddenNeedles) {
+        if ($source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-StoreSubmissionBundlePreparerNoBumpContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        '[switch]$NoBump',
+        'if ($NoBump)',
+        '$buildArgs += "-NoBump"',
+        '$previousErrorActionPreference = $ErrorActionPreference',
+        '$ErrorActionPreference = "Continue"',
+        '$ErrorActionPreference = $previousErrorActionPreference',
+        '-StartupContract", $startupContract'
+    )
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-StorePublicMetadataReleaseMarkerContract {
     param([Parameter(Mandatory = $true)][string]$ScriptPath)
 
@@ -2004,6 +2551,17 @@ function Test-StorePublicMetadataReleaseMarkerContract {
         'supportEmail = $ExpectedSupportEmail',
         'privacyUrl = $privacyUrl',
         'supportUrl = $supportUrl',
+        'function Get-PublicMetadataDnsDiagnostics',
+        'ExpectedApexARecords',
+        'ExpectedWwwCname',
+        'dns_nameserver_mismatch',
+        'dns_configuration_mismatch',
+        'dns_path_matches_expected',
+        'external_dns_records_match_expected',
+        'apex_aaaa_records_absent',
+        'www_cname_matches_expected',
+        'nameserver_matches_expected',
+        'dns_diagnostics = $dnsDiagnostics',
         '$expectedReleaseMetadataText',
         'expected_release_version = $expectedReleaseVersion',
         'expected_release_metadata_text = $expectedReleaseMetadataText',
@@ -2114,6 +2672,41 @@ function Test-P2pEnvStatusReleaseTunnelMarkerConflictContract {
         'Do not set RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true while /api/v1/relay/payload still returns preflight-only',
         'Do not set RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true until the Rust source has release tunnel submit/accept hooks',
         'removes the release_relay_tunnel_runtime_not_implemented branch'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-ReleaseRelayTransportDesignGateContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    if (-not (Test-Path -LiteralPath $ScriptPath)) {
+        return $false
+    }
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'schema = "musu.release_relay_transport_design_gate.v1"',
+        'show-musu-pro-p2p-env-status.ps1',
+        'runtime_marker_can_be_flipped',
+        'must_keep_runtime_marker_false',
+        'RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false until real quic_relay_tunnel byte transit and quic_tls_1_3 proof exist',
+        'source_release_relay_tunnel_runtime_not_implemented',
+        'runtime_byte_path_missing',
+        'release_relay_transport_proof_missing',
+        'release_relay_payload_delivery_proof_missing',
+        'two_pc_failure_injection',
+        'quic_relay_tunnel',
+        'quic_tls_1_3',
+        'musu_quic_tls_transport',
+        'relay_payload_delivery_proof',
+        'record-p2p-control-plane-evidence.ps1',
+        'verify-p2p-control-plane-evidence.ps1'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -3867,7 +4460,7 @@ $validRuntimeCpuMatrix = [pscustomobject]@{
     scenarios = @(
         [pscustomobject]@{
             scenario = "startup-open"
-            preparation = [pscustomobject]@{ action = "Start packaged desktop app"; desktop_app_id = "Yellowhama.MUSU_ygcjq669as2b6!MUSU"; sample_delay_seconds = 2.0 }
+            preparation = [pscustomobject]@{ action = "Start packaged desktop app"; desktop_app_id = "blossompark.musu_f5h38pf4yt4gc!MUSU"; sample_delay_seconds = 2.0 }
             measurement = (New-RuntimeMeasurement)
         },
         [pscustomobject]@{
@@ -3882,7 +4475,7 @@ $validRuntimeCpuMatrix = [pscustomobject]@{
         },
         [pscustomobject]@{
             scenario = "desktop-open"
-            preparation = [pscustomobject]@{ action = "Start packaged desktop app"; desktop_app_id = "Yellowhama.MUSU_ygcjq669as2b6!MUSU" }
+            preparation = [pscustomobject]@{ action = "Start packaged desktop app"; desktop_app_id = "blossompark.musu_f5h38pf4yt4gc!MUSU" }
             measurement = (New-RuntimeMeasurement)
         },
         [pscustomobject]@{
@@ -3891,6 +4484,242 @@ $validRuntimeCpuMatrix = [pscustomobject]@{
             measurement = (New-RuntimeMeasurement)
         }
     )
+}
+
+function New-BrainProductProofEvidence {
+    param(
+        [switch]$PublicBaseUrl,
+        [switch]$MissingCaptureRecall
+    )
+
+    $baseUrl = if ($PublicBaseUrl) { "https://musu.pro" } else { "http://127.0.0.1:8080" }
+    $captureRecallOk = -not [bool]$MissingCaptureRecall
+    $captureRecallCount = if ($captureRecallOk) { 1 } else { 0 }
+    [pscustomobject]@{
+        schema = "musu.brain_product_proof.v1"
+        ok = $true
+        version = $ExpectedVersion
+        package_version = $expectedPackageVersion
+        expected_package_version = $expectedPackageVersion
+        package_full_name = "blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc"
+        install_location = "C:\Program Files\WindowsApps\blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc"
+        brain_binary_path = "C:\Program Files\WindowsApps\blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc\musu-brain.exe"
+        brain_binary_packaged = $true
+        sidecar_process_observed = $true
+        generated_at = $now.ToString("o")
+        operator_machine = "VERIFIER-TEST"
+        operator_user = "verifier-test"
+        brain_root = "C:\Users\verifier\.musu\brain"
+        base_url = $baseUrl
+        product_owned_loopback = -not [bool]$PublicBaseUrl
+        brain_http_public_surface_exposed = [bool]$PublicBaseUrl
+        token_present = $true
+        token_acl_restricted = $true
+        token_path = "C:\Users\verifier\.musu\brain\runtime\musu-ingest.token"
+        version_coherence_ok = $true
+        source_store_owner = "musu-brain"
+        musu_db_shared_write = $false
+        tenant_id = "local"
+        workspace_id = "musu"
+        health_ok = $true
+        workspace_ok = $true
+        task_ingest_ok = $true
+        task_source_id = "source-task-fixture"
+        task_marker = "musu-brain-proof-task-fixture"
+        task_process_ok = $true
+        task_recall_ok = $true
+        task_recall_result_count = 1
+        recall_capture_ux_ok = $captureRecallOk
+        capture_clip_ok = $true
+        capture_source_id = "source-capture-fixture"
+        capture_marker = "musu-brain-proof-capture-fixture"
+        capture_process_ok = $true
+        capture_recall_ok = $captureRecallOk
+        capture_recall_result_count = $captureRecallCount
+        checks = @(
+            [pscustomobject]@{ name = "fixture"; status = "pass"; message = "fixture check passed" }
+        )
+    }
+}
+
+function New-V34SelfHealProofEvidence {
+    param(
+        [switch]$DuplicateTask,
+        [switch]$UnroutableSelectedCandidate,
+        [switch]$PortZeroSelectedCandidate,
+        [switch]$NegativePortSelectedCandidate,
+        [switch]$UrlLoopbackSelectedCandidate,
+        [switch]$RouteEvidenceCandidateMismatch,
+        [switch]$RouteEvidenceNodeMismatch,
+        [switch]$RouteEvidenceVersionMismatch,
+        [switch]$MissingSourceArtifacts,
+        [switch]$BadSourceSnapshotSchema,
+        [switch]$MinimalRouteEvidence,
+        [switch]$MissingSourceArtifactPaths,
+        [switch]$BadSourceType
+    )
+
+    $taskPostCount = if ($DuplicateTask) { 2 } else { 1 }
+    $selectedCandidate = if ($UnroutableSelectedCandidate) {
+        "127.0.0.1:4387"
+    } elseif ($PortZeroSelectedCandidate) {
+        "192.168.1.192:0"
+    } elseif ($NegativePortSelectedCandidate) {
+        "192.168.1.192:-1"
+    } elseif ($UrlLoopbackSelectedCandidate) {
+        "http://127.0.0.1:4387/api/tasks/delegate"
+    } else {
+        "192.168.1.192:4387"
+    }
+    $routeEvidenceCandidate = if ($RouteEvidenceCandidateMismatch) { "192.168.1.10:4387" } else { $selectedCandidate }
+    $routeEvidenceSource = if ($RouteEvidenceNodeMismatch) { "wrong-source" } else { "hugh_second" }
+    $routeEvidenceTarget = if ($RouteEvidenceNodeMismatch) { "wrong-target" } else { "hugh-main" }
+    $routeEvidenceVersion = if ($RouteEvidenceVersionMismatch) { "0.0.0-rc.0" } else { $ExpectedVersion }
+    $ttlSnapshotSchema = if ($BadSourceSnapshotSchema) { "musu.v34_ttl_snapshot.fixture.v1" } else { "musu.v34_ttl_snapshot.v1" }
+    $bootSnapshotSchema = if ($BadSourceSnapshotSchema) { "musu.v34_boot_snapshot.fixture.v1" } else { "musu.v34_boot_snapshot.v1" }
+    $sourceType = if ($BadSourceType) { "hand_written_fixture" } else { "operator_snapshot_pair" }
+    $routeEvidenceObject = [ordered]@{
+        schema = "musu.route_evidence.v1"
+        version = $routeEvidenceVersion
+        source_node_id = $routeEvidenceSource
+        target_node_id = $routeEvidenceTarget
+        result = "success"
+        route_kind = "lan"
+        candidate_addr = $routeEvidenceCandidate
+        payload_transited_musu_infra = $false
+    }
+    if (-not $MinimalRouteEvidence) {
+        $routeEvidenceObject.session_id = $null
+        $routeEvidenceObject.handshake_ms = 39
+        $routeEvidenceObject.total_attempt_ms = 2054
+        $routeEvidenceObject.peer_identity_verified = $false
+        $routeEvidenceObject.encryption = "none_http_bearer"
+        $routeEvidenceObject.failure_class = $null
+        $routeEvidenceObject.recorded_at = $now.ToString("o")
+        $routeEvidenceObject.note = "fixture direct route evidence"
+    }
+    [pscustomobject]@{
+        schema = "musu.v34_self_heal_proof.v1"
+        ok = $true
+        version = $ExpectedVersion
+        package_version = $expectedPackageVersion
+        generated_at = $now.ToString("o")
+        operator_machine = "VERIFIER-TEST"
+        ttl_prune_ok = $true
+        boot_reconcile_ok = $true
+        stale_candidate_e2e_ok = $true
+        ttl_prune = [pscustomobject]@{
+            stale_row_injected = $true
+            registry_current_excludes_stale_rows = $true
+            expired_rows_hidden = $true
+            stale_row_count_before = 1
+            stale_row_count_after = 0
+            heartbeat_ttl_sec = 300
+            stale_row_last_seen_at = $now.AddMinutes(-20).ToString("o")
+        }
+        boot_reconcile = [pscustomobject]@{
+            cache_available = $true
+            manual_peer_count_before = 4
+            manual_peer_count_after = 3
+            pruned_manual_peer_count = 1
+            stale_manual_peer_removed = $true
+            lan_only_manual_peer_preserved = $true
+            same_name_current_candidate_preserved = $true
+        }
+        route_preflight = [pscustomobject]@{
+            physical_two_node_evidence = $true
+            source_node_name = "hugh_second"
+            target_node_name = "hugh-main"
+            stale_candidate_injected = $true
+            stale_candidate_was_first = $true
+            selected_reachable_candidate_before_stale = $true
+            duplicate_task_execution_prevented = (-not [bool]$DuplicateTask)
+            task_post_count = $taskPostCount
+            route_checked = $true
+            selected_candidate_addr = $selectedCandidate
+            route_evidence = [pscustomobject]$routeEvidenceObject
+        }
+        source_evidence = [pscustomobject]@{
+            route_evidence_path = "fixture-route-evidence.json"
+            route_evidence_sha256 = "1111111111111111111111111111111111111111111111111111111111111111"
+            route_evidence_candidate_addr = $routeEvidenceCandidate
+            route_evidence_candidate_matches_selected = (-not [bool]$RouteEvidenceCandidateMismatch)
+            node_pair_distinct = (-not [bool]$RouteEvidenceNodeMismatch)
+            ttl_source_evidence_path = $(if ($MissingSourceArtifacts -or $MissingSourceArtifactPaths) { $null } else { "fixture-v34-ttl-source.json" })
+            ttl_source_evidence_sha256 = $(if ($MissingSourceArtifacts) { $null } else { "2222222222222222222222222222222222222222222222222222222222222222" })
+            ttl_source_evidence_matches_parameters = (-not [bool]$MissingSourceArtifacts)
+            ttl_source_evidence = $(if ($MissingSourceArtifacts) { $null } else {
+                [pscustomobject]@{
+                    schema = "musu.v34_ttl_prune_source.v1"
+                    version = $ExpectedVersion
+                    source_type = $sourceType
+                    stale_row_injected = $true
+                    registry_current_excludes_stale_rows = $true
+                    expired_rows_hidden = $true
+                    stale_row_count_before = 1
+                    stale_row_count_after = 0
+                    heartbeat_ttl_sec = 300
+                    stale_row_last_seen_at = $now.AddMinutes(-20).ToString("o")
+                    before_snapshot_sha256 = "4444444444444444444444444444444444444444444444444444444444444444"
+                    before_snapshot = [pscustomobject]@{
+                        schema = $ttlSnapshotSchema
+                        stale_row_injected = $true
+                        stale_row_count = 1
+                        heartbeat_ttl_sec = 300
+                        stale_row_last_seen_at = $now.AddMinutes(-20).ToString("o")
+                        rows = @([pscustomobject]@{ node = "hugh-main"; stale = $true })
+                    }
+                    after_snapshot_sha256 = "5555555555555555555555555555555555555555555555555555555555555555"
+                    after_snapshot = [pscustomobject]@{
+                        schema = $ttlSnapshotSchema
+                        stale_row_count = 0
+                        heartbeat_ttl_sec = 300
+                        registry_current_excludes_stale_rows = $true
+                        expired_rows_hidden = $true
+                        rows = @()
+                    }
+                }
+            })
+            boot_source_evidence_path = $(if ($MissingSourceArtifacts -or $MissingSourceArtifactPaths) { $null } else { "fixture-v34-boot-source.json" })
+            boot_source_evidence_sha256 = $(if ($MissingSourceArtifacts) { $null } else { "3333333333333333333333333333333333333333333333333333333333333333" })
+            boot_source_evidence_matches_parameters = (-not [bool]$MissingSourceArtifacts)
+            boot_source_evidence = $(if ($MissingSourceArtifacts) { $null } else {
+                [pscustomobject]@{
+                    schema = "musu.v34_boot_reconcile_source.v1"
+                    version = $ExpectedVersion
+                    source_type = $sourceType
+                    cache_available = $true
+                    manual_peer_count_before = 4
+                    manual_peer_count_after = 3
+                    pruned_manual_peer_count = 1
+                    stale_manual_peer_removed = $true
+                    lan_only_manual_peer_preserved = $true
+                    same_name_current_candidate_preserved = $true
+                    before_snapshot_sha256 = "6666666666666666666666666666666666666666666666666666666666666666"
+                    before_snapshot = [pscustomobject]@{
+                        schema = $bootSnapshotSchema
+                        cache_available = $true
+                        manual_peer_count = 4
+                        stale_manual_peer_present = $true
+                        lan_only_manual_peer_present = $true
+                        same_name_current_candidate_present = $true
+                        manual_peers = @("stale", "lan", "current", "other")
+                    }
+                    after_snapshot_sha256 = "7777777777777777777777777777777777777777777777777777777777777777"
+                    after_snapshot = [pscustomobject]@{
+                        schema = $bootSnapshotSchema
+                        cache_available = $true
+                        manual_peer_count = 3
+                        pruned_manual_peer_count = 1
+                        stale_manual_peer_present = $false
+                        lan_only_manual_peer_present = $true
+                        same_name_current_candidate_present = $true
+                        manual_peers = @("lan", "current", "other")
+                    }
+                }
+            })
+        }
+    }
 }
 
 function New-MsixInstallEvidence {
@@ -3906,9 +4735,11 @@ function New-MsixInstallEvidence {
         "package identity",
         "installed package",
         "musu exe",
+        "brain exe",
         "startup exe",
         "installed manifest",
         "installed alias contract",
+        "installed brain fullTrust process",
         "installed startup contract",
         "artifact contract match",
         "version match",
@@ -3928,13 +4759,15 @@ function New-MsixInstallEvidence {
         operator_machine = "VERIFIER-TEST"
         operator_user = "verifier-test"
         package_path = "F:\workspace\musu-bee\.local-build\msix\output\musu_1.15.0.0_x64_local-sideload-manual.msix"
-        package_name = "Yellowhama.MUSU"
+        package_name = "blossompark.musu"
         artifact_version = "1.15.0.0"
-        package_full_name = "Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6"
+        package_full_name = "blossompark.musu_1.15.0.0_x64__f5h38pf4yt4gc"
         installed_version = "1.15.0.0"
-        install_location = "C:\Program Files\WindowsApps\Yellowhama.MUSU_1.15.0.0_x64__ygcjq669as2b6"
+        install_location = "C:\Program Files\WindowsApps\blossompark.musu_1.15.0.0_x64__f5h38pf4yt4gc"
         startup_task_id = "MusuBridgeStartup"
         startup_enabled = "true"
+        brain_full_trust_process = $true
+        brain_executable = "musu-brain.exe"
         startup_immediate_registration = "false"
         non_user_configurable_startup_capability = $false
         run_full_trust = $true
@@ -3951,7 +4784,7 @@ function New-MsixInstallEvidence {
         alternate_alias_sources = if ($Shadowed) { @($shadowPath) } else { @() }
         alias_remediation = if ($Shadowed) { "Move WindowsApps before the shadowing PATH entry." } else { $null }
         start_menu_entry = $true
-        expected_start_app_id = "Yellowhama.MUSU_ygcjq669as2b6!MUSU"
+        expected_start_app_id = "blossompark.musu_f5h38pf4yt4gc!MUSU"
         startup_conflict_count = 0
         alias_shadowing_count = if ($Shadowed) { 1 } else { 0 }
         legacy_conflict_count = if ($Shadowed) { 1 } else { 0 }
@@ -3967,6 +4800,147 @@ function New-MsixInstallEvidence {
             }
         })
         error = $null
+    }
+}
+
+function New-StoreSignedInstallEvidence {
+    param([string]$StartupContract = "store-reviewed-immediate-registration")
+
+    [pscustomobject]@{
+        schema = "musu.msix_install_evidence.v1"
+        ok = $true
+        version = $ExpectedVersion
+        startup_contract = $StartupContract
+        recorded_at = $now.ToString("o")
+        operator_machine = "STORE-TEST"
+        operator_user = "operator"
+        package_path = "C:\Program Files\WindowsApps\blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc"
+        package_name = "blossompark.musu"
+        artifact_version = $expectedPackageVersion
+        package_full_name = "blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc"
+        installed_version = $expectedPackageVersion
+        install_location = "C:\Program Files\WindowsApps\blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc"
+        startup_task_id = "MusuBridgeStartup"
+        startup_enabled = "true"
+        startup_immediate_registration = "true"
+        non_user_configurable_startup_capability = $true
+        run_full_trust = $true
+        artifact_contract_match = $true
+        windowsapps_alias_present = $true
+        alias_visible_in_get_command = $true
+        windowsapps_alias_invocation = '& "C:\Users\operator\AppData\Local\Microsoft\WindowsApps\musu.exe"'
+        first_alias_path = "C:\Users\operator\AppData\Local\Microsoft\WindowsApps\musu.exe"
+        alias_shadowed_by = $null
+        alias_shadowing_mode = "fail"
+        alias_shadowing_accepted = $false
+        start_menu_entry = $true
+        expected_start_app_id = "blossompark.musu_f5h38pf4yt4gc!MUSU"
+        startup_conflict_count = 0
+        alias_shadowing_count = 0
+        legacy_conflict_count = 0
+        checks = @(
+            [pscustomobject]@{ name = "artifact path"; status = "pass"; message = "MSIX artifact exists" },
+            [pscustomobject]@{ name = "package identity"; status = "pass"; message = "package identity resolved" },
+            [pscustomobject]@{ name = "installed package"; status = "pass"; message = "package is installed for current user" },
+            [pscustomobject]@{ name = "musu exe"; status = "pass"; message = "musu.exe exists in installed package" },
+            [pscustomobject]@{ name = "startup exe"; status = "pass"; message = "musu-startup.exe exists in installed package" },
+            [pscustomobject]@{ name = "installed manifest"; status = "pass"; message = "AppxManifest.xml exists in installed package" },
+            [pscustomobject]@{ name = "installed alias contract"; status = "pass"; message = "installed manifest declares appExecutionAlias" },
+            [pscustomobject]@{ name = "installed startup contract"; status = "pass"; message = "installed manifest declares startupTask" },
+            [pscustomobject]@{ name = "artifact contract match"; status = "pass"; message = "installed startup contract matches current artifact" },
+            [pscustomobject]@{ name = "version match"; status = "pass"; message = "installed version matches artifact" },
+            [pscustomobject]@{ name = "windowsapps alias file"; status = "pass"; message = "WindowsApps alias file exists" },
+            [pscustomobject]@{ name = "windowsapps alias discoverable"; status = "pass"; message = "WindowsApps alias is discoverable via Get-Command" },
+            [pscustomobject]@{ name = "alias not shadowed"; status = "pass"; message = "PATH resolves WindowsApps alias first" },
+            [pscustomobject]@{ name = "legacy startup conflicts"; status = "pass"; message = "no legacy startup/bin conflicts found" },
+            [pscustomobject]@{ name = "legacy alias shadowing"; status = "pass"; message = "no legacy alias shadowing found" }
+        )
+    }
+}
+
+function New-StoreDesktopEntrypointEvidence {
+    [pscustomobject]@{
+        schema = "musu.msix_desktop_entrypoint_audit.v1"
+        ok = $true
+        version = $ExpectedVersion
+        recorded_at = $now.ToString("o")
+        operator_machine = "STORE-TEST"
+        operator_user = "operator"
+        startup_contract = "store-reviewed-immediate-registration"
+        package_path = "C:\Program Files\WindowsApps\blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc"
+        package_name = "blossompark.musu"
+        expected_application_executable = "musu-desktop.exe"
+        runtime_executable = "musu.exe"
+        startup_executable = "musu-startup.exe"
+        require_installed_package = $true
+        installed = [pscustomobject]@{
+            package_full_name = "blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc"
+            package_family_name = "blossompark.musu_f5h38pf4yt4gc"
+            install_location = "C:\Program Files\WindowsApps\blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc"
+            application_id = "MUSU"
+            application_executable = "musu-desktop.exe"
+            alias_executable = "musu.exe"
+            alias_name = "musu.exe"
+            startup_executable = "musu-startup.exe"
+            startup_task_id = "MusuBridgeStartup"
+            startup_immediate_registration = "true"
+            has_non_user_configurable_startup_capability = $true
+            has_run_full_trust = $true
+            startup_contract_matches_artifact = $true
+            contains_expected_application_executable = $true
+            contains_runtime_executable = $true
+            contains_startup_executable = $true
+            start_menu_entry = $true
+        }
+        checks = @(
+            [pscustomobject]@{ name = "installed application executable"; status = "pass"; message = "installed application executable is musu-desktop.exe" },
+            [pscustomobject]@{ name = "installed startup contract matches artifact"; status = "pass"; message = "installed startup contract matches the audited artifact" },
+            [pscustomobject]@{ name = "installed Start menu entry"; status = "pass"; message = "installed package has a Start menu entry" }
+        )
+    }
+}
+
+function New-StoreReleaseEvidence {
+    param(
+        [switch]$MissingInstallEvidence,
+        [switch]$MissingEntrypointEvidence,
+        [string]$InstallStartupContract = "store-reviewed-immediate-registration"
+    )
+
+    $installEvidence = if ($MissingInstallEvidence) { $null } else { New-StoreSignedInstallEvidence -StartupContract $InstallStartupContract }
+    $entrypointEvidence = if ($MissingEntrypointEvidence) { $null } else { New-StoreDesktopEntrypointEvidence }
+    [pscustomobject]@{
+        schema = "musu.store_release_gate_evidence.v1"
+        ok = $true
+        version = $ExpectedVersion
+        product_name = "MUSU"
+        product_name_reserved = $true
+        product_name_reserved_at = $now.AddDays(-10).ToString("o")
+        submission_id = "store-submission-123"
+        certification_status = "approved"
+        restricted_capability_status = "approved"
+        submitted_at = $now.AddDays(-9).ToString("o")
+        certification_completed_at = $now.AddDays(-8).ToString("o")
+        restricted_capability_completed_at = $now.AddDays(-8).ToString("o")
+        store_install_source = "microsoft_store"
+        store_install_observed_at = $now.AddDays(-7).ToString("o")
+        store_launch_observed_at = $now.AddDays(-7).AddMinutes(5).ToString("o")
+        store_signed_install_evidence_path = if ($MissingInstallEvidence) { "" } else { "fixture-store-install.json" }
+        store_signed_install_evidence_sha256 = if ($MissingInstallEvidence) { "" } else { "8888888888888888888888888888888888888888888888888888888888888888" }
+        store_signed_install_evidence = $installEvidence
+        store_signed_install_verification = if ($MissingInstallEvidence) { $null } else {
+            [pscustomobject]@{
+                ok = ($InstallStartupContract -eq "store-reviewed-immediate-registration")
+                fail_count = $(if ($InstallStartupContract -eq "store-reviewed-immediate-registration") { 0 } else { 1 })
+                startup_contract = $InstallStartupContract
+                package_full_name = "blossompark.musu_${expectedPackageVersion}_x64__f5h38pf4yt4gc"
+            }
+        }
+        store_desktop_entrypoint_evidence_path = if ($MissingEntrypointEvidence) { "" } else { "fixture-store-entrypoint.json" }
+        store_desktop_entrypoint_evidence_sha256 = if ($MissingEntrypointEvidence) { "" } else { "9999999999999999999999999999999999999999999999999999999999999999" }
+        store_desktop_entrypoint_evidence = $entrypointEvidence
+        recorded_at = $now.AddDays(-7).AddMinutes(10).ToString("o")
+        recorded_by = "operator"
     }
 }
 
@@ -4010,7 +4984,7 @@ $runtimeCpuScenarioMatrixVerifierScript = Join-Path $scriptDir "verify-runtime-c
 $routeProbeContractOk = Test-RuntimeCpuScenarioMatrixRouteProbeContract -ScriptPath $runtimeCpuMeasureScript
 $invocation = New-StaticVerifierInvocation `
     -Ok $routeProbeContractOk `
-    -Message "runtime CPU matrix route probe must use its own wait timeout, pass --wait-timeout-sec, and fail fast on token-mismatched success prompts"
+    -Message "runtime CPU matrix route probe must use the deterministic echo adapter, its own wait timeout, pass --wait-timeout-sec, and fail fast on token-mismatched success prompts"
 Add-CaseResult `
     -Cases $cases `
     -Name "runtime CPU matrix route probe timeout and prompt contract" `
@@ -4140,6 +5114,75 @@ $fixture = Write-Fixture -Name "support-mailbox-placeholder-sender" -Object $pla
 $invocation = Invoke-Verifier -ScriptPath $supportVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedSupportEmail", "musu@musu.pro", "-ExpectedVersion", $ExpectedVersion, "-Json")
 Add-CaseResult -Cases $cases -Name "support mailbox rejects placeholder sender evidence" -Verifier "verify-support-mailbox-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
 
+$supportOperatorGateRetirementRecorderSource = Get-Content -LiteralPath $supportOperatorGateRetirementRecorder -Raw
+$supportOperatorGateRetirementRecorderOk = (
+    $supportOperatorGateRetirementRecorderSource.Contains('verify-store-public-metadata.ps1') -and
+    $supportOperatorGateRetirementRecorderSource.Contains('verify-support-operator-gate-retirement.ps1') -and
+    $supportOperatorGateRetirementRecorderSource.Contains('schema = "musu.support_operator_gate_retirement.v1"') -and
+    $supportOperatorGateRetirementRecorderSource.Contains('support_mailbox_delivery_evidence_required = $false') -and
+    $supportOperatorGateRetirementRecorderSource.Contains('support_availability_retired = $false') -and
+    $supportOperatorGateRetirementRecorderSource.Contains('public_support_metadata_required = $true')
+)
+$invocation = New-StaticVerifierInvocation `
+    -Ok $supportOperatorGateRetirementRecorderOk `
+    -Message "support operator gate retirement recorder must verify live public metadata and keep support availability active"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "support operator gate retirement recorder is public-metadata bound" `
+    -Verifier "support operator gate retirement recorder source contract" `
+    -FixturePath $supportOperatorGateRetirementRecorder `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$validSupportOperatorGateRetirement = [pscustomobject]@{
+    schema = "musu.support_operator_gate_retirement.v1"
+    ok = $true
+    version = $ExpectedVersion
+    generated_at = $now.ToString("o")
+    support_email = "musu@musu.pro"
+    decision = "retire_historical_mailbox_delivery_gate"
+    retirement_scope = "support_mailbox_delivery_evidence_only"
+    support_mailbox_delivery_evidence_required = $false
+    support_availability_retired = $false
+    support_routes_required = $true
+    public_support_metadata_required = $true
+    retirement_doc_path = "docs/SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28.md"
+    replacement_controls = [pscustomobject]@{
+        public_support_page = $true
+        public_privacy_page = $true
+        public_config_support_email = $true
+        release_metadata_current = $true
+        support_email_kept = $true
+    }
+    public_metadata_verification = [pscustomobject]@{
+        schema = "musu.store_public_metadata_verification.v2"
+        ok = $true
+        base_url = "https://musu.pro"
+        expected_support_email = "musu@musu.pro"
+        expected_release_version = $ExpectedVersion
+        pages = @(
+            [pscustomobject]@{ name = "privacy"; ok = $true },
+            [pscustomobject]@{ name = "support"; ok = $true }
+        )
+        public_config = [pscustomobject]@{ ok = $true }
+    }
+}
+$fixture = Write-Fixture -Name "support-operator-gate-retirement-valid" -Object $validSupportOperatorGateRetirement
+$invocation = Invoke-Verifier -ScriptPath $supportOperatorGateRetirementVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedSupportEmail", "musu@musu.pro", "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "support operator gate retirement accepts public metadata replacement proof" -Verifier "verify-support-operator-gate-retirement.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$supportRetiresAvailability = Copy-JsonObject -Object $validSupportOperatorGateRetirement
+$supportRetiresAvailability.support_availability_retired = $true
+$fixture = Write-Fixture -Name "support-operator-gate-retirement-retires-availability" -Object $supportRetiresAvailability
+$invocation = Invoke-Verifier -ScriptPath $supportOperatorGateRetirementVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedSupportEmail", "musu@musu.pro", "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "support operator gate retirement rejects support availability retirement" -Verifier "verify-support-operator-gate-retirement.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$supportRetirementBadMetadata = Copy-JsonObject -Object $validSupportOperatorGateRetirement
+$supportRetirementBadMetadata.public_metadata_verification.ok = $false
+$fixture = Write-Fixture -Name "support-operator-gate-retirement-bad-public-metadata" -Object $supportRetirementBadMetadata
+$invocation = Invoke-Verifier -ScriptPath $supportOperatorGateRetirementVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedSupportEmail", "musu@musu.pro", "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "support operator gate retirement rejects failed public metadata proof" -Verifier "verify-support-operator-gate-retirement.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
 $targetBindingContractOk = Test-RuntimeCpuScenarioMatrixTargetBindingContract -ScriptPath $runtimeCpuScenarioMatrixVerifierScript
 $invocation = New-StaticVerifierInvocation `
     -Ok $targetBindingContractOk `
@@ -4260,6 +5303,18 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$secondPcReleaseCheckPrivateMeshPhysicalPeerEvidenceOk = Test-SecondPcReleaseCheckPrivateMeshPhysicalPeerEvidenceContract -ScriptPath (Join-Path $scriptDir "run-second-pc-release-check.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcReleaseCheckPrivateMeshPhysicalPeerEvidenceOk `
+    -Message "second-PC release check must capture and return target-side Private Mesh physical-peer evidence for packaged release-proof handoff"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC release check returns Private Mesh physical-peer evidence" `
+    -Verifier "second-PC Private Mesh physical-peer source contract" `
+    -FixturePath (Join-Path $scriptDir "run-second-pc-release-check.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
 $secondPcImportSubroleContractOk = Test-SecondPcImportRuntimeCpuSubroleContract -ScriptPath (Join-Path $scriptDir "import-second-pc-return.ps1")
 $invocation = New-StaticVerifierInvocation `
     -Ok $secondPcImportSubroleContractOk `
@@ -4320,6 +5375,18 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$secondPcImportPrivateMeshPhysicalPeerEvidenceOk = Test-SecondPcImportPrivateMeshPhysicalPeerEvidenceContract -ScriptPath (Join-Path $scriptDir "import-second-pc-return.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcImportPrivateMeshPhysicalPeerEvidenceOk `
+    -Message "second-PC return import must copy Private Mesh physical-peer evidence and its sha256 sidecar into the canonical proof handoff root"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC return import preserves Private Mesh physical-peer evidence" `
+    -Verifier "second-PC Private Mesh physical-peer source contract" `
+    -FixturePath (Join-Path $scriptDir "import-second-pc-return.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
 $secondPcKitMetadataOk = Test-SecondPcKitMetadataContract -ScriptPath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1")
 $invocation = New-StaticVerifierInvocation `
     -Ok $secondPcKitMetadataOk `
@@ -4327,6 +5394,18 @@ $invocation = New-StaticVerifierInvocation `
 Add-CaseResult `
     -Cases $cases `
     -Name "second-PC kit embeds source git metadata" `
+    -Verifier "second-PC kit source contract" `
+    -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcKitJsonOutputOk = Test-SecondPcKitJsonOutputContract -ScriptPath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcKitJsonOutputOk `
+    -Message "second-PC multi-device kit generator must support the go/no-go next action command with -Json and report zip hash/metadata paths"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC kit generator supports Json next action" `
     -Verifier "second-PC kit source contract" `
     -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
     -ShouldPass $true `
@@ -4440,6 +5519,18 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$finalOperatorPacketFullProductRoadmapOk = Test-FinalOperatorPacketFullProductRoadmapContract -ScriptPath (Join-Path $scriptDir "prepare-final-operator-gate-packet.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $finalOperatorPacketFullProductRoadmapOk `
+    -Message "final operator packet must ship the current full-product roadmap, V34 proof tools, relay failure-injection guidance, and support gate retirement state"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "final operator packet surfaces current full-product blockers and proof paths" `
+    -Verifier "final operator packet full-product source contract" `
+    -FixturePath (Join-Path $scriptDir "prepare-final-operator-gate-packet.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
 $finalOperatorPacketHandoffStatusTargetedRuntimeCpuOk = Test-FinalOperatorPacketHandoffStatusTargetedRuntimeCpuContract -ScriptPath (Join-Path $scriptDir "verify-final-operator-gate-packet.ps1")
 $invocation = New-StaticVerifierInvocation `
     -Ok $finalOperatorPacketHandoffStatusTargetedRuntimeCpuOk `
@@ -4472,6 +5563,42 @@ Add-CaseResult `
     -Cases $cases `
     -Name "second-PC kit includes route reachability diagnostic handoff" `
     -Verifier "second-PC route reachability source contract" `
+    -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcKitPrivateMeshPhysicalPeerEvidenceOk = Test-SecondPcKitPrivateMeshPhysicalPeerEvidenceContract -ScriptPath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcKitPrivateMeshPhysicalPeerEvidenceOk `
+    -Message "second-PC transfer kit must include Private Mesh proof tools and document the target-side physical-peer evidence handoff"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC kit includes Private Mesh physical-peer proof handoff" `
+    -Verifier "second-PC Private Mesh physical-peer source contract" `
+    -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcKitV34SelfHealProofOk = Test-SecondPcKitV34SelfHealProofContract -ScriptPath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcKitV34SelfHealProofOk `
+    -Message "second-PC transfer kit must include V34 self-heal proof recorder/verifier tools and physical stale-state runbook guidance"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC kit includes V34 self-heal proof tools and runbook" `
+    -Verifier "second-PC V34 self-heal source contract" `
+    -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$secondPcKitRelayTransportProofOk = Test-SecondPcKitRelayTransportProofContract -ScriptPath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1")
+$invocation = New-StaticVerifierInvocation `
+    -Ok $secondPcKitRelayTransportProofOk `
+    -Message "second-PC transfer kit must include relay transport status/record/verify tools and direct-blocked physical proof runbook guidance"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "second-PC kit includes relay transport proof tools and runbook" `
+    -Verifier "second-PC relay transport source contract" `
     -FixturePath (Join-Path $scriptDir "prepare-multidevice-test-kit.ps1") `
     -ShouldPass $true `
     -Invocation $invocation
@@ -4785,6 +5912,18 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$goNoGoFullProductSpecReadinessContractOk = Test-GoNoGoFullProductSpecReadinessContract -ScriptPath $releaseGoNoGoWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $goNoGoFullProductSpecReadinessContractOk `
+    -Message "go/no-go must emit fail-closed full product spec readiness lanes for design, fleet proof, relay transport, brain product, V34 self-heal, Store, and support/operator evidence"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "go-no-go surfaces full product spec readiness lanes" `
+    -Verifier "full product spec readiness source contract" `
+    -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
 $goNoGoPublicMetadataFailureDetailOk = Test-GoNoGoPublicMetadataFailureDetailContract -ScriptPath $releaseGoNoGoWriter
 $invocation = New-StaticVerifierInvocation `
     -Ok $goNoGoPublicMetadataFailureDetailOk `
@@ -4794,6 +5933,18 @@ Add-CaseResult `
     -Name "go-no-go public metadata blocker includes actionable failure detail" `
     -Verifier "public metadata blocker source contract" `
     -FixturePath $releaseGoNoGoWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$publicMetadataDnsRepairPlannerOk = Test-PublicMetadataDnsRepairPlannerContract -ScriptPath $publicMetadataDnsRepairPlanner
+$invocation = New-StaticVerifierInvocation `
+    -Ok $publicMetadataDnsRepairPlannerOk `
+    -Message "public metadata DNS repair planner must be non-mutating, emit schema musu.public_metadata_dns_repair_plan.v1, run canonical verifier diagnostics, and surface Vercel DNS/TLS repair steps"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "public metadata DNS repair planner is safe and actionable" `
+    -Verifier "public metadata DNS repair planner source contract" `
+    -FixturePath $publicMetadataDnsRepairPlanner `
     -ShouldPass $true `
     -Invocation $invocation
 
@@ -4823,6 +5974,18 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$manifestPackageVersionOk = Test-ReleaseCandidateManifestPackageVersionContract -ManifestScriptPath $releaseCandidateManifestWriter
+$invocation = New-StaticVerifierInvocation `
+    -Ok $manifestPackageVersionOk `
+    -Message "release manifest must map rc public versions such as 1.15.0-rc.22 to current 4-segment package artifacts such as 1.15.0.22"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "release manifest maps rc version to package artifact version" `
+    -Verifier "release manifest package version source contract" `
+    -FixturePath $releaseCandidateManifestWriter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
 $frontendPollingAuditDependencyExclusionOk = Test-FrontendPollingAuditDependencyExclusionContract -ScriptPath $frontendPollingAuditor
 $invocation = New-StaticVerifierInvocation `
     -Ok $frontendPollingAuditDependencyExclusionOk `
@@ -4846,6 +6009,42 @@ Add-CaseResult `
     -Name "readiness audit reuses prechecked Store MSIX desktop entrypoint" `
     -Verifier "readiness store bundle entrypoint reuse source contract" `
     -FixturePath $desktopReleaseReadinessAuditor `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$desktopReadinessCurrentMsixVersionOk = Test-DesktopReadinessCurrentMsixVersionContract -ReadinessScriptPath $desktopReleaseReadinessAuditor
+$invocation = New-StaticVerifierInvocation `
+    -Ok $desktopReadinessCurrentMsixVersionOk `
+    -Message "desktop readiness audit must derive local and Store-reviewed MSIX artifact names from VERSION instead of accepting stale 1.15.0.0 files"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "desktop readiness maps release version to current MSIX artifacts" `
+    -Verifier "desktop readiness package version source contract" `
+    -FixturePath $desktopReleaseReadinessAuditor `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$operatorActionPackCurrentStoreMsixOk = Test-OperatorActionPackCurrentStoreMsixContract -ScriptPath $operatorActionPackPreparer
+$invocation = New-StaticVerifierInvocation `
+    -Ok $operatorActionPackCurrentStoreMsixOk `
+    -Message "operator action pack must copy and document the current Store-reviewed MSIX from the verified bundle instead of hardcoding 1.15.0.0"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "operator action pack requires current Store-reviewed MSIX" `
+    -Verifier "operator action pack Store MSIX source contract" `
+    -FixturePath $operatorActionPackPreparer `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$storeSubmissionBundleNoBumpOk = Test-StoreSubmissionBundlePreparerNoBumpContract -ScriptPath $storeSubmissionBundlePreparer
+$invocation = New-StaticVerifierInvocation `
+    -Ok $storeSubmissionBundleNoBumpOk `
+    -Message "Store submission bundle preparer must expose -NoBump so operators can regenerate the current release artifact without forcing the next rc version"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "Store submission bundle preparer forwards NoBump" `
+    -Verifier "store submission bundle NoBump source contract" `
+    -FixturePath $storeSubmissionBundlePreparer `
     -ShouldPass $true `
     -Invocation $invocation
 
@@ -5262,6 +6461,18 @@ Add-CaseResult `
     -ShouldPass $true `
     -Invocation $invocation
 
+$releaseRelayTransportDesignGateContractOk = Test-ReleaseRelayTransportDesignGateContract -ScriptPath $releaseRelayTransportDesignGate
+$invocation = New-StaticVerifierInvocation `
+    -Ok $releaseRelayTransportDesignGateContractOk `
+    -Message "Release relay transport design gate must keep runtime marker false until real quic_relay_tunnel byte transit, quic_tls_1_3 proof, payload delivery proof, and two-PC failure-injection evidence exist"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "release relay transport design gate is explicit" `
+    -Verifier "Release relay transport design gate source contract" `
+    -FixturePath $releaseRelayTransportDesignGate `
+    -ShouldPass $true `
+    -Invocation $invocation
+
 $rustRendezvousPath = Join-Path $repoRoot "musu-rs\src\bridge\rendezvous.rs"
 $rustRelayPayloadDrainPath = Join-Path $repoRoot "musu-rs\src\bridge\handlers\relay_payload.rs"
 $p2pReleaseRelayTunnelRuntimeHookContractOk = Test-P2pReleaseRelayTunnelRuntimeHookContract `
@@ -5426,6 +6637,425 @@ Add-CaseResult -Cases $cases -Name "msix rejects developer alias shadow warning 
 $fixture = Write-Fixture -Name "msix-shadow-warning-explicit-accept" -Object (New-MsixInstallEvidence -Shadowed -WarningMode)
 $invocation = Invoke-Verifier -ScriptPath $msixVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-AliasShadowingMode", "warn-explicit-windowsapps", "-Json")
 Add-CaseResult -Cases $cases -Name "msix accepts developer alias shadow warning only with explicit verifier mode" -Verifier "verify-msix-install-evidence.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$validDirectRouteEvidence = [pscustomobject]@{
+    schema = "musu.route_evidence.v1"
+    version = $ExpectedVersion
+    source_node_id = "hugh_second"
+    target_node_id = "hugh-main"
+    session_id = $null
+    route_kind = "lan"
+    candidate_addr = "192.168.1.192:4387"
+    handshake_ms = 39
+    total_attempt_ms = 2054
+    peer_identity_verified = $false
+    encryption = "none_http_bearer"
+    payload_transited_musu_infra = $false
+    result = "success"
+    failure_class = $null
+    recorded_at = $now.ToString("o")
+}
+$fixture = Write-Fixture -Name "direct-route-valid-packaged-lan" -Object $validDirectRouteEvidence
+$invocation = Invoke-Verifier -ScriptPath $directRouteVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedSourceNodeName", "hugh_second", "-ExpectedTargetNodeName", "hugh-main", "-Json")
+Add-CaseResult -Cases $cases -Name "direct route accepts packaged LAN work-targetability proof" -Verifier "verify-direct-route-evidence.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$failedDirectRouteEvidence = Copy-JsonObject -Object $validDirectRouteEvidence
+$failedDirectRouteEvidence.result = "failed"
+$failedDirectRouteEvidence.failure_class = "submit_http_status_401"
+$fixture = Write-Fixture -Name "direct-route-rejects-failed-result" -Object $failedDirectRouteEvidence
+$invocation = Invoke-Verifier -ScriptPath $directRouteVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedSourceNodeName", "hugh_second", "-ExpectedTargetNodeName", "hugh-main", "-Json")
+Add-CaseResult -Cases $cases -Name "direct route rejects failed route evidence" -Verifier "verify-direct-route-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$loopbackDirectRouteEvidence = Copy-JsonObject -Object $validDirectRouteEvidence
+$loopbackDirectRouteEvidence.candidate_addr = "127.0.0.1:4387"
+$fixture = Write-Fixture -Name "direct-route-rejects-loopback-candidate" -Object $loopbackDirectRouteEvidence
+$invocation = Invoke-Verifier -ScriptPath $directRouteVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedSourceNodeName", "hugh_second", "-ExpectedTargetNodeName", "hugh-main", "-Json")
+Add-CaseResult -Cases $cases -Name "direct route rejects loopback candidate address" -Verifier "verify-direct-route-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "store-release-valid-with-signed-install-and-entrypoint" -Object (New-StoreReleaseEvidence)
+$invocation = Invoke-Verifier -ScriptPath $storeReleaseVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "store release accepts Partner Center approval bound to Store-signed install and desktop entrypoint proof" -Verifier "verify-store-release-evidence.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$fixture = Write-Fixture -Name "store-release-missing-install-proof" -Object (New-StoreReleaseEvidence -MissingInstallEvidence)
+$invocation = Invoke-Verifier -ScriptPath $storeReleaseVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "store release rejects Partner Center approval without Store-signed install proof" -Verifier "verify-store-release-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "store-release-local-sideload-install-proof" -Object (New-StoreReleaseEvidence -InstallStartupContract "local-sideload-manual")
+$invocation = Invoke-Verifier -ScriptPath $storeReleaseVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "store release rejects local sideload install proof" -Verifier "verify-store-release-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "store-release-missing-entrypoint-proof" -Object (New-StoreReleaseEvidence -MissingEntrypointEvidence)
+$invocation = Invoke-Verifier -ScriptPath $storeReleaseVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "store release rejects approval without installed desktop entrypoint proof" -Verifier "verify-store-release-evidence.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "brain-product-valid" -Object (New-BrainProductProofEvidence)
+$invocation = Invoke-Verifier -ScriptPath $brainProductVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "brain product accepts release-grade hidden brain proof" -Verifier "verify-brain-product-proof.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$weakBrainProof = [pscustomobject]@{
+    schema = "musu.brain_product_proof.v1"
+    ok = $true
+    version = $ExpectedVersion
+    health_ok = $true
+    task_ingest_ok = $true
+    recall_capture_ux_ok = $true
+}
+$fixture = Write-Fixture -Name "brain-product-weak-token-only-shape" -Object $weakBrainProof
+$invocation = Invoke-Verifier -ScriptPath $brainProductVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "brain product rejects legacy weak boolean-only proof" -Verifier "verify-brain-product-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "brain-product-public-base-url" -Object (New-BrainProductProofEvidence -PublicBaseUrl)
+$invocation = Invoke-Verifier -ScriptPath $brainProductVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "brain product rejects public brain HTTP surface evidence" -Verifier "verify-brain-product-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "brain-product-missing-capture-recall" -Object (New-BrainProductProofEvidence -MissingCaptureRecall)
+$invocation = Invoke-Verifier -ScriptPath $brainProductVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "brain product rejects capture proof without recall result" -Verifier "verify-brain-product-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$v34CaptureHomeBefore = Join-Path $OutputRoot "v34-snapshot-capture-home-before"
+$v34CaptureHomeAfter = Join-Path $OutputRoot "v34-snapshot-capture-home-after"
+New-Item -ItemType Directory -Force -Path $v34CaptureHomeBefore, $v34CaptureHomeAfter | Out-Null
+$v34CaptureStaleHeartbeat = $now.AddMinutes(-20).ToString("o")
+$v34CaptureCache = [pscustomobject]@{
+    nodes = @([pscustomobject]@{
+        node_id = "hugh-main"
+        name = "hugh-main"
+        addr = "192.168.1.192:4387"
+        capabilities = @()
+        last_heartbeat = $v34CaptureStaleHeartbeat
+        meta = [pscustomobject]@{
+            candidate_endpoints = @(
+                [pscustomobject]@{ kind = "lan"; addr = "192.168.1.192:4387"; scheme = "http" },
+                [pscustomobject]@{ kind = "relay"; addr = "relay.musu.pro:443"; relay_url = "wss://relay.musu.pro/api/v1/relay/connect" }
+            )
+        }
+    })
+    fetched_at = $now.ToString("o")
+    registry_url = "https://musu.pro"
+}
+$v34CaptureCache | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $v34CaptureHomeBefore "nodes.cache.json") -Encoding UTF8
+$v34CaptureCache | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $v34CaptureHomeAfter "nodes.cache.json") -Encoding UTF8
+@'
+[[peers]]
+addr = "192.168.1.192:2957"
+name = "hugh-main"
+added_at = "2026-06-27T00:00:00Z"
+
+[[peers]]
+addr = "192.168.1.192:4387"
+name = "hugh-main"
+added_at = "2026-06-27T00:01:00Z"
+
+[[peers]]
+addr = "10.0.0.42:9999"
+name = "lan-only-box"
+added_at = "2026-06-27T00:02:00Z"
+'@ | Set-Content -LiteralPath (Join-Path $v34CaptureHomeBefore "manual_peers.toml") -Encoding UTF8
+@'
+[[peers]]
+addr = "192.168.1.192:4387"
+name = "hugh-main"
+added_at = "2026-06-27T00:01:00Z"
+
+[[peers]]
+addr = "10.0.0.42:9999"
+name = "lan-only-box"
+added_at = "2026-06-27T00:02:00Z"
+'@ | Set-Content -LiteralPath (Join-Path $v34CaptureHomeAfter "manual_peers.toml") -Encoding UTF8
+
+$v34CapturedTtlBefore = Join-Path $OutputRoot "v34-captured-ttl-before.json"
+$invocation = Invoke-Verifier -ScriptPath $v34SnapshotCapture -Arguments @("-SnapshotKind", "ttl", "-Stage", "before", "-MusuHome", $v34CaptureHomeBefore, "-TargetNodeName", "hugh-main", "-HeartbeatTtlSec", "300", "-OutputPath", $v34CapturedTtlBefore, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 snapshot capture emits TTL before canonical snapshot" -Verifier "capture-v34-source-snapshot.ps1" -FixturePath $v34CapturedTtlBefore -ShouldPass $true -Invocation $invocation
+
+$v34CapturedBootBefore = Join-Path $OutputRoot "v34-captured-boot-before.json"
+$invocation = Invoke-Verifier -ScriptPath $v34SnapshotCapture -Arguments @("-SnapshotKind", "boot", "-Stage", "before", "-MusuHome", $v34CaptureHomeBefore, "-OutputPath", $v34CapturedBootBefore, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 snapshot capture emits boot before canonical snapshot" -Verifier "capture-v34-source-snapshot.ps1" -FixturePath $v34CapturedBootBefore -ShouldPass $true -Invocation $invocation
+
+$v34CapturedBootAfter = Join-Path $OutputRoot "v34-captured-boot-after.json"
+$invocation = Invoke-Verifier -ScriptPath $v34SnapshotCapture -Arguments @("-SnapshotKind", "boot", "-Stage", "after", "-MusuHome", $v34CaptureHomeAfter, "-BootPrunedManualPeerCount", "1", "-OutputPath", $v34CapturedBootAfter, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 snapshot capture emits boot after canonical snapshot with pruned count" -Verifier "capture-v34-source-snapshot.ps1" -FixturePath $v34CapturedBootAfter -ShouldPass $true -Invocation $invocation
+
+$v34TtlBeforeSnapshot = Write-Fixture -Name "v34-source-ttl-before-snapshot" -Object ([pscustomobject]@{
+    schema = "musu.v34_ttl_snapshot.v1"
+    stale_row_injected = $true
+    stale_row_count = 1
+    heartbeat_ttl_sec = 300
+    stale_row_last_seen_at = $now.AddMinutes(-20).ToString("o")
+    rows = @([pscustomobject]@{ node = "hugh-main"; stale = $true })
+})
+$v34TtlAfterSnapshot = Write-Fixture -Name "v34-source-ttl-after-snapshot" -Object ([pscustomobject]@{
+    schema = "musu.v34_ttl_snapshot.v1"
+    stale_row_count = 0
+    heartbeat_ttl_sec = 300
+    registry_current_excludes_stale_rows = $true
+    expired_rows_hidden = $true
+    rows = @()
+})
+$v34BootBeforeSnapshot = Write-Fixture -Name "v34-source-boot-before-snapshot" -Object ([pscustomobject]@{
+    schema = "musu.v34_boot_snapshot.v1"
+    cache_available = $true
+    manual_peer_count = 4
+    stale_manual_peer_present = $true
+    lan_only_manual_peer_present = $true
+    same_name_current_candidate_present = $true
+    manual_peers = @("stale", "lan", "current", "other")
+})
+$v34BootAfterSnapshot = Write-Fixture -Name "v34-source-boot-after-snapshot" -Object ([pscustomobject]@{
+    schema = "musu.v34_boot_snapshot.v1"
+    cache_available = $true
+    manual_peer_count = 3
+    pruned_manual_peer_count = 1
+    stale_manual_peer_present = $false
+    lan_only_manual_peer_present = $true
+    same_name_current_candidate_present = $true
+    manual_peers = @("lan", "current", "other")
+})
+$v34SourceArtifactOutputRoot = Join-Path $OutputRoot "v34-source-artifact-recorder-output"
+$invocation = Invoke-Verifier -ScriptPath $v34SourceArtifactRecorder -Arguments @(
+    "-Version", $ExpectedVersion,
+    "-OutputRoot", $v34SourceArtifactOutputRoot,
+    "-TtlBeforeSnapshotPath", $v34TtlBeforeSnapshot,
+    "-TtlAfterSnapshotPath", $v34TtlAfterSnapshot,
+    "-BootBeforeSnapshotPath", $v34BootBeforeSnapshot,
+    "-BootAfterSnapshotPath", $v34BootAfterSnapshot,
+    "-TtlStaleRowInjected", "1",
+    "-TtlRegistryCurrentExcludesStaleRows", "1",
+    "-TtlExpiredRowsHidden", "1",
+    "-TtlStaleRowCountBefore", "1",
+    "-TtlStaleRowCountAfter", "0",
+    "-TtlHeartbeatTtlSec", "300",
+    "-TtlStaleRowLastSeenAt", $now.AddMinutes(-20).ToString("o"),
+    "-BootCacheAvailable", "1",
+    "-BootStaleManualPeerRemoved", "1",
+    "-BootLanOnlyManualPeerPreserved", "1",
+    "-BootSameNameCurrentCandidatePreserved", "1",
+    "-BootManualPeerCountBefore", "4",
+    "-BootManualPeerCountAfter", "3",
+    "-BootPrunedManualPeerCount", "1",
+    "-Json"
+)
+Add-CaseResult -Cases $cases -Name "V34 source artifact recorder emits TTL and boot source evidence" -Verifier "record-v34-source-artifacts.ps1" -FixturePath $v34TtlBeforeSnapshot -ShouldPass $true -Invocation $invocation
+
+$v34BadTtlBeforeSnapshot = Write-Fixture -Name "v34-source-bad-ttl-before-snapshot" -Object ([pscustomobject]@{
+    schema = "musu.v34_ttl_snapshot.fixture.v1"
+    stale_row_injected = $true
+    stale_row_count = 1
+    heartbeat_ttl_sec = 300
+    stale_row_last_seen_at = $now.AddMinutes(-20).ToString("o")
+    rows = @([pscustomobject]@{ node = "hugh-main"; stale = $true })
+})
+$badInvocation = Invoke-Verifier -ScriptPath $v34SourceArtifactRecorder -Arguments @(
+    "-Version", $ExpectedVersion,
+    "-OutputRoot", (Join-Path $OutputRoot "v34-source-artifact-bad-schema-output"),
+    "-TtlBeforeSnapshotPath", $v34BadTtlBeforeSnapshot,
+    "-TtlAfterSnapshotPath", $v34TtlAfterSnapshot,
+    "-BootBeforeSnapshotPath", $v34BootBeforeSnapshot,
+    "-BootAfterSnapshotPath", $v34BootAfterSnapshot,
+    "-TtlStaleRowInjected", "1",
+    "-TtlRegistryCurrentExcludesStaleRows", "1",
+    "-TtlExpiredRowsHidden", "1",
+    "-TtlStaleRowCountBefore", "1",
+    "-TtlStaleRowCountAfter", "0",
+    "-TtlHeartbeatTtlSec", "300",
+    "-TtlStaleRowLastSeenAt", $now.AddMinutes(-20).ToString("o"),
+    "-BootCacheAvailable", "1",
+    "-BootStaleManualPeerRemoved", "1",
+    "-BootLanOnlyManualPeerPreserved", "1",
+    "-BootSameNameCurrentCandidatePreserved", "1",
+    "-BootManualPeerCountBefore", "4",
+    "-BootManualPeerCountAfter", "3",
+    "-BootPrunedManualPeerCount", "1",
+    "-Json"
+)
+Add-CaseResult -Cases $cases -Name "V34 source artifact recorder rejects noncanonical snapshot schema" -Verifier "record-v34-source-artifacts.ps1" -FixturePath $v34BadTtlBeforeSnapshot -ShouldPass $false -Invocation $badInvocation
+
+$fixture = Write-Fixture -Name "v34-self-heal-valid" -Object (New-V34SelfHealProofEvidence)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal accepts release-grade physical stale proof" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$fixture = Write-Fixture -Name "v34-self-heal-bad-source-snapshot-schema" -Object (New-V34SelfHealProofEvidence -BadSourceSnapshotSchema)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects source artifacts with noncanonical snapshot schema" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+
+$v34RouteEvidence = [pscustomobject]@{
+    schema = "musu.route_evidence.v1"
+    version = $ExpectedVersion
+    source_node_id = "hugh_second"
+    target_node_id = "hugh-main"
+    session_id = $null
+    result = "success"
+    route_kind = "lan"
+    candidate_addr = "192.168.1.192:4387"
+    handshake_ms = 39
+    total_attempt_ms = 2054
+    peer_identity_verified = $false
+    encryption = "none_http_bearer"
+    payload_transited_musu_infra = $false
+    failure_class = $null
+    recorded_at = $now.ToString("o")
+}
+$fixture = Write-Fixture -Name "v34-self-heal-recorder-route-evidence" -Object $v34RouteEvidence
+$v34TtlSourceEvidence = [pscustomobject]@{
+    schema = "musu.v34_ttl_prune_source.v1"
+    version = $ExpectedVersion
+    source_type = "operator_snapshot_pair"
+    stale_row_injected = $true
+    registry_current_excludes_stale_rows = $true
+    expired_rows_hidden = $true
+    stale_row_count_before = 1
+    stale_row_count_after = 0
+    heartbeat_ttl_sec = 300
+    stale_row_last_seen_at = $now.AddMinutes(-20).ToString("o")
+    before_snapshot_sha256 = "4444444444444444444444444444444444444444444444444444444444444444"
+    before_snapshot = [pscustomobject]@{
+        schema = "musu.v34_ttl_snapshot.v1"
+        stale_row_injected = $true
+        stale_row_count = 1
+        heartbeat_ttl_sec = 300
+        stale_row_last_seen_at = $now.AddMinutes(-20).ToString("o")
+        rows = @([pscustomobject]@{ node = "hugh-main"; stale = $true })
+    }
+    after_snapshot_sha256 = "5555555555555555555555555555555555555555555555555555555555555555"
+    after_snapshot = [pscustomobject]@{
+        schema = "musu.v34_ttl_snapshot.v1"
+        stale_row_count = 0
+        heartbeat_ttl_sec = 300
+        registry_current_excludes_stale_rows = $true
+        expired_rows_hidden = $true
+        rows = @()
+    }
+}
+$v34TtlSourceFixture = Write-Fixture -Name "v34-self-heal-recorder-ttl-source" -Object $v34TtlSourceEvidence
+$v34BootSourceEvidence = [pscustomobject]@{
+    schema = "musu.v34_boot_reconcile_source.v1"
+    version = $ExpectedVersion
+    source_type = "operator_snapshot_pair"
+    cache_available = $true
+    manual_peer_count_before = 4
+    manual_peer_count_after = 3
+    pruned_manual_peer_count = 1
+    stale_manual_peer_removed = $true
+    lan_only_manual_peer_preserved = $true
+    same_name_current_candidate_preserved = $true
+    before_snapshot_sha256 = "6666666666666666666666666666666666666666666666666666666666666666"
+    before_snapshot = [pscustomobject]@{
+        schema = "musu.v34_boot_snapshot.v1"
+        cache_available = $true
+        manual_peer_count = 4
+        stale_manual_peer_present = $true
+        lan_only_manual_peer_present = $true
+        same_name_current_candidate_present = $true
+        manual_peers = @("stale", "lan", "current", "other")
+    }
+    after_snapshot_sha256 = "7777777777777777777777777777777777777777777777777777777777777777"
+    after_snapshot = [pscustomobject]@{
+        schema = "musu.v34_boot_snapshot.v1"
+        cache_available = $true
+        manual_peer_count = 3
+        pruned_manual_peer_count = 1
+        stale_manual_peer_present = $false
+        lan_only_manual_peer_present = $true
+        same_name_current_candidate_present = $true
+        manual_peers = @("lan", "current", "other")
+    }
+}
+$v34BootSourceFixture = Write-Fixture -Name "v34-self-heal-recorder-boot-source" -Object $v34BootSourceEvidence
+$v34RecorderOutputRoot = Join-Path $OutputRoot "v34-self-heal-recorder-output"
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealRecorder -Arguments @(
+    "-Version", $ExpectedVersion,
+    "-ExpectedPackageVersion", $expectedPackageVersion,
+    "-OutputRoot", $v34RecorderOutputRoot,
+    "-SourceNodeName", "hugh_second",
+    "-TargetNodeName", "hugh-main",
+    "-SelectedCandidateAddr", "192.168.1.192:4387",
+    "-RouteEvidencePath", $fixture,
+    "-TtlSourceEvidencePath", $v34TtlSourceFixture,
+    "-BootSourceEvidencePath", $v34BootSourceFixture,
+    "-TtlStaleRowInjected", "1",
+    "-TtlRegistryCurrentExcludesStaleRows", "1",
+    "-TtlExpiredRowsHidden", "1",
+    "-TtlStaleRowCountBefore", "1",
+    "-TtlStaleRowCountAfter", "0",
+    "-TtlHeartbeatTtlSec", "300",
+    "-TtlStaleRowLastSeenAt", $now.AddMinutes(-20).ToString("o"),
+    "-BootCacheAvailable", "1",
+    "-BootStaleManualPeerRemoved", "1",
+    "-BootLanOnlyManualPeerPreserved", "1",
+    "-BootSameNameCurrentCandidatePreserved", "1",
+    "-BootManualPeerCountBefore", "4",
+    "-BootManualPeerCountAfter", "3",
+    "-BootPrunedManualPeerCount", "1",
+    "-RoutePhysicalTwoNodeEvidence", "1",
+    "-RouteStaleCandidateInjected", "1",
+    "-RouteStaleCandidateWasFirst", "1",
+    "-RouteSelectedReachableCandidateBeforeStale", "1",
+    "-RouteDuplicateTaskExecutionPrevented", "1",
+    "-RouteChecked", "1",
+    "-RouteTaskPostCount", "1",
+    "-Json"
+)
+Add-CaseResult -Cases $cases -Name "V34 self-heal recorder emits verifier-passing release proof" -Verifier "record-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $true -Invocation $invocation
+
+$weakV34Proof = [pscustomobject]@{
+    schema = "musu.v34_self_heal_proof.v1"
+    ok = $true
+    version = $ExpectedVersion
+    ttl_prune_ok = $true
+    boot_reconcile_ok = $true
+    stale_candidate_e2e_ok = $true
+}
+$fixture = Write-Fixture -Name "v34-self-heal-weak-boolean-only-shape" -Object $weakV34Proof
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects weak boolean-only proof" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-duplicate-task" -Object (New-V34SelfHealProofEvidence -DuplicateTask)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects duplicate task execution proof" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-unroutable-selected-candidate" -Object (New-V34SelfHealProofEvidence -UnroutableSelectedCandidate)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects unroutable selected candidate proof" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-port-zero-selected-candidate" -Object (New-V34SelfHealProofEvidence -PortZeroSelectedCandidate)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects port-zero selected candidate proof" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-negative-port-selected-candidate" -Object (New-V34SelfHealProofEvidence -NegativePortSelectedCandidate)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects negative-port selected candidate proof" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-url-loopback-selected-candidate" -Object (New-V34SelfHealProofEvidence -UrlLoopbackSelectedCandidate)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects URL loopback selected candidate proof" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-route-candidate-mismatch" -Object (New-V34SelfHealProofEvidence -RouteEvidenceCandidateMismatch)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects route evidence candidate mismatch" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-route-node-mismatch" -Object (New-V34SelfHealProofEvidence -RouteEvidenceNodeMismatch)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects route evidence node mismatch" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-route-version-mismatch" -Object (New-V34SelfHealProofEvidence -RouteEvidenceVersionMismatch)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects route evidence version mismatch" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-missing-source-artifacts" -Object (New-V34SelfHealProofEvidence -MissingSourceArtifacts)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects proof without TTL and boot source artifacts" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-missing-source-artifact-paths" -Object (New-V34SelfHealProofEvidence -MissingSourceArtifactPaths)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects proof without source artifact paths" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-bad-source-type" -Object (New-V34SelfHealProofEvidence -BadSourceType)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects non-operator source artifact type" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
+
+$fixture = Write-Fixture -Name "v34-self-heal-minimal-route-evidence" -Object (New-V34SelfHealProofEvidence -MinimalRouteEvidence)
+$invocation = Invoke-Verifier -ScriptPath $v34SelfHealVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedPackageVersion", $expectedPackageVersion, "-Json")
+Add-CaseResult -Cases $cases -Name "V34 self-heal rejects minimal synthetic route evidence" -Verifier "verify-v34-self-heal-proof.ps1" -FixturePath $fixture -ShouldPass $false -Invocation $invocation -RequireParsed
 
 $fixture = Write-Fixture -Name "p2p-valid" -Object $validP2p
 $invocation = Invoke-Verifier -ScriptPath $p2pVerifier -Arguments @("-EvidencePath", $fixture, "-ExpectedVersion", $ExpectedVersion, "-ExpectedBaseUrl", "https://musu.pro", "-Json")

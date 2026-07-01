@@ -761,3 +761,25 @@ This prevents stale relay leases and changed relay URLs from becoming valid
 release payload/connect preflight inputs. It still does not implement payload
 transport; `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=false` and
 `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` remain correct.
+
+## 2026-06-30 Rust relay lease transport intent alignment
+
+The web relay lease contract and Rust runtime/client DTO now use the same
+transport intent vocabulary.
+
+- `POST /api/v1/p2p/relay/lease` accepts optional `transport_intent`.
+- Rust `P2pRelayLeaseRequest` has optional `transport_intent`.
+- Rust `RelayTransportIntent` serializes `store_forward_queue` and
+  `release_tunnel`.
+- Existing direct-failure and callback relay fallback builders explicitly send
+  `store_forward_queue`.
+- `release_tunnel` remains a typed future runtime intent, not proof of transport
+  completion.
+
+Spec interpretation:
+
+- omitted or explicit `store_forward_queue` means preview store-forward queue;
+- explicit `release_tunnel` must stay fail-closed until the real
+  `quic_relay_tunnel` byte path and `musu_quic_tls_transport` proof exist;
+- the release marker must remain false while the not-implemented runtime branch
+  is active.

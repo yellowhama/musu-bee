@@ -613,7 +613,7 @@ test("keeps relay route evidence non release grade when fallback attempts unavai
   });
 });
 
-test("keeps transport-proof relay route evidence non release grade until payload endpoint is wired", async () => {
+test("keeps transport-proof relay route evidence non release grade until transport runtime is wired", async () => {
   await withRouteEvidenceToken(async () => {
     const { GET, POST } = await loadModule("relay-route-backed-transport-proof-endpoint-blocked");
     const lease = await seedRelayLeaseForEvidence();
@@ -641,7 +641,7 @@ test("keeps transport-proof relay route evidence non release grade until payload
     const body = (await res.json()) as { release_grade: boolean; blockers: string[] };
     assert.equal(body.release_grade, false);
     assert.match(body.blockers.join(","), /relay_route_transport_not_wired/);
-    assert.match(body.blockers.join(","), /relay_route_payload_endpoint_not_wired/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_route_payload_endpoint_not_wired/);
     assert.match(body.blockers.join(","), /relay_route_transport_proof_not_stored/);
 
     const getRes = await GET(getReq("?route_kind=relay&release_grade=true&limit=10"));
@@ -696,7 +696,7 @@ test("does not accept inline relay transport proof unless it is backed by the pr
       /relay_route_transport_proof_store_backend_not_release_grade/
     );
     assert.match(body.blockers.join(","), /relay_route_transport_not_wired/);
-    assert.match(body.blockers.join(","), /relay_route_payload_endpoint_not_wired/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_route_payload_endpoint_not_wired/);
   });
 });
 
@@ -786,7 +786,7 @@ test("accepts stored delivered relay payload proof while keeping file-store proo
     );
     assert.match(blockers, /relay_fallback_payload_delivery_proof_stored_not_release_grade/);
     assert.match(blockers, /relay_fallback_payload_store_backend_not_release_grade/);
-    assert.match(blockers, /relay_route_payload_endpoint_not_wired/);
+    assert.doesNotMatch(blockers, /relay_route_payload_endpoint_not_wired/);
   });
 });
 
@@ -836,7 +836,7 @@ test("keeps target-drain preview relay evidence non release grade even with deli
     assert.match(blockers, /transport_not_release_grade_quic_tls/);
     assert.match(blockers, /relay_route_missing_transport_proof/);
     assert.match(blockers, /relay_route_transport_not_wired/);
-    assert.match(blockers, /relay_route_payload_endpoint_not_wired/);
+    assert.doesNotMatch(blockers, /relay_route_payload_endpoint_not_wired/);
   });
 });
 

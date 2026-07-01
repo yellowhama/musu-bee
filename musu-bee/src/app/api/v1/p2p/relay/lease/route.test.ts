@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -19,6 +20,7 @@ const ENV_KEYS = [
   "UPSTASH_REDIS_REST_TOKEN",
   "UPSTASH_REDIS_REST_URL",
   "MUSU_P2P_CONTROL_TOKEN",
+  "MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS",
   "MUSU_P2P_CONTROL_TOKEN_SHA256",
   "MUSU_P2P_CONTROL_TOKEN_SHA256S",
   "MUSU_P2P_RELAY_ENABLED",
@@ -31,6 +33,10 @@ const ENV_KEYS = [
   "MUSU_ROUTE_EVIDENCE_TOKEN",
   "MUSU_TOKEN",
 ] as const;
+
+function sha256(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
 
 const leaseRequest = {
   session_id: "rv_test",
@@ -141,7 +147,7 @@ test("denies relay lease by default with explicit policy blockers", async () => 
     assert.equal(body.relay_control_plane_wired, true);
     assert.equal(body.relay_transport_wired, false);
     assert.equal(body.relay_connect_endpoint_wired, true);
-    assert.equal(body.relay_payload_endpoint_wired, false);
+    assert.equal(body.relay_payload_endpoint_wired, true);
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_default_data_path, false);
     assert.equal(body.relay_lease_store_configured, true);
@@ -183,6 +189,89 @@ test("issues a store-and-forward relay lease once env policy is enabled", async 
     assert.equal(body.relay_payload_queue_endpoint_wired, true);
     assert.equal(body.relay_lease_store_configured, true);
     assert.deepEqual(body.blockers, []);
+  });
+});
+
+test("release tunnel lease intent stays fail-closed until tunnel runtime exists", async () => {
+  await withRelayEnv(async () => {
+    const { POST } = await loadModule("release-tunnel-intent");
+    enableRelayLeasePolicy();
+
+    const res = await POST(postReq({
+      ...leaseRequest,
+      transport_intent: "release_tunnel",
+    }));
+    assert.equal(res.status, 409);
+    const body = (await res.json()) as {
+      lease_issued: boolean;
+      owner_scoped: boolean;
+      relay_transport_wired: boolean;
+      relay_tunnel_runtime_implemented: boolean;
+      relay_payload_endpoint_wired: boolean;
+      relay_payload_queue_endpoint_wired: boolean;
+      transport_intent: string;
+      blockers: string[];
+    };
+    assert.equal(body.lease_issued, false);
+    assert.equal(body.owner_scoped, true);
+    assert.equal(body.relay_transport_wired, false);
+    assert.equal(body.relay_tunnel_runtime_implemented, false);
+    assert.equal(body.relay_payload_endpoint_wired, true);
+    assert.equal(body.relay_payload_queue_endpoint_wired, true);
+    assert.equal(body.transport_intent, "release_tunnel");
+    assert.match(body.blockers.join(","), /relay_transport_not_wired/);
+    assert.match(body.blockers.join(","), /relay_tunnel_runtime_not_implemented/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_payload_queue_endpoint_not_wired/);
+    assert.doesNotMatch(body.blockers.join(","), /relay_transport_kind_not_release_grade/);
+  });
+});
+
+test("rejects unknown relay transport intent", async () => {
+  await withRelayEnv(async () => {
+    const { POST } = await loadModule("invalid-transport-intent");
+    enableRelayLeasePolicy();
+
+    const res = await POST(postReq({
+      ...leaseRequest,
+      transport_intent: "websocket_tunnel",
+    }));
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as {
+      ok: boolean;
+      error: string;
+      issues: Array<{ path: string; message: string }>;
+    };
+    assert.equal(body.ok, false);
+    assert.equal(body.error, "invalid_relay_lease_request");
+    assert.equal(body.issues[0]?.path, "transport_intent");
+  });
+});
+
+test("rejects relay lease when bearer token is bound to another source node", async () => {
+  await withRelayEnv(async () => {
+    const { POST } = await loadModule("source-node-auth-binding");
+    enableRelayLeasePolicy();
+    process.env.MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS = `sha256:${sha256("test-token")}=pc-a`;
+
+    const res = await POST(postReq({
+      ...leaseRequest,
+      source_node_id: "pc-c",
+    }));
+    assert.equal(res.status, 403);
+    const body = (await res.json()) as {
+      ok: boolean;
+      lease_issued: boolean;
+      source_node_auth_bound: boolean;
+      error: string;
+      bound_source_node_id: string;
+      declared_source_node_id: string;
+    };
+    assert.equal(body.ok, false);
+    assert.equal(body.lease_issued, false);
+    assert.equal(body.source_node_auth_bound, true);
+    assert.equal(body.error, "source_node_id_auth_mismatch");
+    assert.equal(body.bound_source_node_id, "pc-a");
+    assert.equal(body.declared_source_node_id, "pc-c");
   });
 });
 

@@ -21,6 +21,7 @@ const ENV_KEYS = [
   "UPSTASH_REDIS_REST_TOKEN",
   "UPSTASH_REDIS_REST_URL",
   "MUSU_P2P_CONTROL_TOKEN",
+  "MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS",
   "MUSU_P2P_CONTROL_TOKEN_SHA256",
   "MUSU_P2P_CONTROL_TOKEN_SHA256S",
   "MUSU_P2P_RENDEZVOUS_STORE_PATH",
@@ -148,6 +149,33 @@ test("creates and reads a rendezvous session", async () => {
     assert.equal(fetched.session_id, session.session_id);
     assert.equal(fetched.owner_key, session.owner_key);
     assert.deepEqual(fetched.path_selection_order, session.path_selection_order);
+  });
+});
+
+test("rejects rendezvous creation when bearer token is bound to another source node", async () => {
+  await withRendezvousEnv(async () => {
+    const { POST } = await loadCreate("source-node-auth-binding");
+    process.env.MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS = `sha256:${sha256("test-token")}=pc-a`;
+
+    const res = await POST(postReq({
+      source_node_id: "pc-c",
+      target_node_id: "pc-b",
+    }));
+    assert.equal(res.status, 403);
+    const body = (await res.json()) as {
+      ok: boolean;
+      accepted: boolean;
+      source_node_auth_bound: boolean;
+      error: string;
+      bound_source_node_id: string;
+      declared_source_node_id: string;
+    };
+    assert.equal(body.ok, false);
+    assert.equal(body.accepted, false);
+    assert.equal(body.source_node_auth_bound, true);
+    assert.equal(body.error, "source_node_id_auth_mismatch");
+    assert.equal(body.bound_source_node_id, "pc-a");
+    assert.equal(body.declared_source_node_id, "pc-c");
   });
 });
 

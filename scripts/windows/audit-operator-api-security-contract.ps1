@@ -129,7 +129,7 @@ Add-Check -Scope "source" -Name "room work order outbound pickup inbox is owner-
     -Message "Room work-order API supports owner-scoped durable inbox query and Desktop outbound claim without requiring hosted MUSU.PRO to call user localhost."
 
 Add-Check -Scope "source" -Name "rendezvous sessions are owner-scoped" `
-    -Passed ($p2pRendezvousStore.Contains("owner_key: string") -and $p2pRendezvousStore.Contains("isSession(session) && session.owner_key === ownerKey") -and $p2pRendezvousCreate.Contains("p2pControlPrincipal(req).owner_key") -and $p2pRendezvousCreate.Contains("owner_key: ownerKey") -and $p2pRendezvousRead.Contains("getRendezvousSession(id, ownerKey)") -and $p2pRendezvousCandidates.Contains("updateRendezvousSession(id, ownerKey") -and $p2pRendezvousApprove.Contains("updateRendezvousSession(id, ownerKey") -and $p2pRendezvousClose.Contains("updateRendezvousSession(id, ownerKey") -and $roomRendezvous.Contains("owner_key: ownerKey")) `
+    -Passed ($p2pRendezvousStore.Contains("owner_key: string") -and $p2pRendezvousStore.Contains("isSession(session) && session.owner_key === ownerKey") -and (($p2pRendezvousCreate.Contains("p2pControlPrincipal(req).owner_key")) -or ($p2pRendezvousCreate.Contains("const principal = p2pControlPrincipal(req)") -and $p2pRendezvousCreate.Contains("const ownerKey = principal.owner_key"))) -and $p2pRendezvousCreate.Contains("owner_key: ownerKey") -and $p2pRendezvousRead.Contains("getRendezvousSession(id, ownerKey)") -and $p2pRendezvousCandidates.Contains("updateRendezvousSession(id, ownerKey") -and $p2pRendezvousApprove.Contains("updateRendezvousSession(id, ownerKey") -and $p2pRendezvousClose.Contains("updateRendezvousSession(id, ownerKey") -and $roomRendezvous.Contains("owner_key: ownerKey")) `
     -Path "musu-bee\src\lib\p2pRendezvousStore.ts" `
     -Message "Rendezvous sessions are bound to the authenticated P2P control owner and cross-owner reads/mutations return not found."
 
@@ -159,7 +159,7 @@ Add-Check -Scope "tests" -Name "room work order outbound pickup regression test"
     -Message "Route tests cover queued outbound pickup, owner-scoped inbox listing, target Desktop claim, and cross-owner claim isolation."
 
 Add-Check -Scope "tests" -Name "relay connect auth and lease regression test" `
-    -Passed ($packageJson.Contains("src/app/api/v1/relay/connect/route.test.ts") -and $relayConnectTest.Contains("requires P2P control auth before reporting relay connect preflight status") -and $relayConnectTest.Contains("verifies relay lease but rejects payload transit while payload endpoint is unwired") -and $relayConnectTest.Contains('assert.equal(res.status, 401)') -and $relayConnectTest.Contains('assert.equal(body.error, "unauthorized")')) `
+    -Passed ($packageJson.Contains("src/app/api/v1/relay/connect/route.test.ts") -and $relayConnectTest.Contains("requires P2P control auth before reporting relay connect preflight status") -and $relayConnectTest.Contains("verifies relay lease but rejects payload transit while release tunnel runtime is unwired") -and $relayConnectTest.Contains('assert.equal(res.status, 401)') -and $relayConnectTest.Contains('assert.equal(body.error, "unauthorized")')) `
     -Path "musu-bee\src\app\api\v1\relay\connect\route.test.ts" `
     -Message "P2P tests cover relay connect auth and lease-bound preflight while payload transport remains fail-closed."
 

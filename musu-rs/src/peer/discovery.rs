@@ -10,11 +10,13 @@
 //!   - Registry degraded → cached snapshot TTL 7-day
 //!   - Registry absent → manual peers + nodes.toml only
 
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::net::IpAddr;
 
 // ── Cached Registry ──────────────────────────────────────────────────
 
@@ -102,6 +104,17 @@ pub struct ManualPeer {
     pub added_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ManualPeerReconcileReport {
+    pub cache_available: bool,
+    pub registry_node_count: usize,
+    pub registry_route_addr_count: usize,
+    pub before_count: usize,
+    pub after_count: usize,
+    pub pruned_count: usize,
+    pub changed: bool,
+}
+
 impl ManualPeerList {
     pub fn load(musu_home: &Path) -> Self {
         let path = musu_home.join(MANUAL_PEERS_FILENAME);
@@ -156,6 +169,80 @@ pub fn validate_peer_addr(addr: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn is_remote_usable_addr(addr: &str) -> bool {
+    let addr = addr.trim();
+    if addr.is_empty() {
+        return false;
+    }
+    let host = if let Some(rest) = addr.strip_prefix('[') {
+        rest.find(']').map(|idx| &rest[..idx]).unwrap_or(rest)
+    } else {
+        addr.rsplit_once(':').map(|(host, _)| host).unwrap_or(addr)
+    };
+    let normalized = host
+        .trim()
+        .trim_matches(&['[', ']'][..])
+        .trim_end_matches('.');
+    if normalized.is_empty() || normalized.eq_ignore_ascii_case("localhost") {
+        return false;
+    }
+    match normalized.parse::<IpAddr>() {
+        Ok(IpAddr::V4(ip)) => !ip.is_loopback() && !ip.is_unspecified(),
+        Ok(IpAddr::V6(ip)) => {
+            if let Some(mapped) = ip.to_ipv4_mapped() {
+                !mapped.is_loopback() && !mapped.is_unspecified()
+            } else {
+                !ip.is_loopback() && !ip.is_unspecified()
+            }
+        }
+        Err(_) => true,
+    }
+}
+
+fn cache_node_route_addrs(node: &CachedNode) -> Vec<String> {
+    let mut addrs = Vec::new();
+    if is_remote_usable_addr(&node.addr) {
+        addrs.push(node.addr.clone());
+    }
+
+    let Some(candidates) = node
+        .meta
+        .as_ref()
+        .and_then(|meta| meta.get("candidate_endpoints"))
+        .and_then(|value| value.as_array())
+    else {
+        return addrs;
+    };
+
+    for candidate in candidates {
+        let kind = candidate
+            .get("kind")
+            .and_then(|value| value.as_str())
+            .unwrap_or("");
+        if matches!(kind, "relay" | "failed") {
+            continue;
+        }
+
+        let addr = if kind == "direct_quic" {
+            candidate
+                .get("public_addr")
+                .and_then(|value| value.as_str())
+                .or_else(|| candidate.get("addr").and_then(|value| value.as_str()))
+        } else {
+            candidate.get("addr").and_then(|value| value.as_str())
+        };
+        let Some(addr) = addr.map(str::trim).filter(|addr| !addr.is_empty()) else {
+            continue;
+        };
+        if !is_remote_usable_addr(addr) || addrs.iter().any(|existing| existing.as_str() == addr) {
+            continue;
+        }
+        addrs.push(addr.to_string());
+    }
+
+    addrs
+}
+
 // ── Resolved Peer ────────────────────────────────────────────────────
 
 /// A unified peer record from any source.
@@ -185,29 +272,45 @@ pub enum PeerSource {
 ///   3. Manual peers
 ///   4. nodes.toml
 ///
-/// Deduplicates by addr (first source wins). NOTE: this intentionally keeps
-/// multiple records that share a node NAME but differ by addr (e.g. a machine
-/// re-registered on a new ephemeral port) — routing/failover in
-/// `bridge::router::select_peer_for_route` relies on trying alternate addrs for
-/// the same name. The fleet DISPLAY path collapses same-name ghosts separately
-/// (see `bridge::handlers::fleet`); do not add a name-collapse here.
+/// Deduplicates by addr (first source wins). Registry candidate endpoints may
+/// expose multiple routable addrs for one node name; manual/nodes.toml records
+/// with a registry-owned name are treated as stale fallback data and skipped.
+/// The fleet DISPLAY path still owns user-facing same-name collapse.
 /// V30 WS-A (Critic H-2 / Auditor MEDIUM): reconcile a manual peer list against
-/// the live registry (node_name → current addr). Drops only TRUE reinstall
-/// ghosts — a manual record whose name the registry knows but at a DIFFERENT
+/// the live registry (node_name -> current addr). Drops only TRUE reinstall
+/// ghosts: a manual record whose name the registry knows but at a different
 /// address. Records the registry doesn't know (LAN-only manual peers) and
 /// nameless ad-hoc records are always kept. The caller MUST guard with a
 /// non-empty registry: an empty registry snapshot means "no info", never "all
-/// peers gone", so this fn is a no-op when `registry` is empty (every name maps
-/// to nothing → `None => true` keeps everything). Returns (reconciled, pruned).
+/// peers gone", so this fn is a no-op when `registry` is empty. Returns
+/// (reconciled, pruned).
 pub fn reconcile_manual_against_registry(
+    manual: ManualPeerList,
+    registry: &HashMap<String, String>,
+) -> (ManualPeerList, usize) {
+    let mut registry_addrs: HashMap<String, HashSet<String>> = HashMap::new();
+    for (name, addr) in registry {
+        registry_addrs
+            .entry(name.clone())
+            .or_default()
+            .insert(addr.clone());
+    }
+    reconcile_manual_against_registry_addrs(manual, &registry_addrs)
+}
+
+/// V34 candidate-set reconcile: a registry node can have multiple routable
+/// candidates. Keep a same-name manual peer if it matches any current registry
+/// route address; prune only same-name addresses that are absent from the
+/// current candidate set.
+pub fn reconcile_manual_against_registry_addrs(
     mut manual: ManualPeerList,
-    registry: &std::collections::HashMap<String, String>,
+    registry: &HashMap<String, HashSet<String>>,
 ) -> (ManualPeerList, usize) {
     let before = manual.peers.len();
     manual.peers.retain(|p| match &p.name {
         Some(name) => match registry.get(name) {
-            // same name, different addr in registry → stale reinstall ghost, drop
-            Some(reg_addr) => reg_addr == &p.addr,
+            // Same name, absent from every current candidate -> stale ghost, drop.
+            Some(route_addrs) => route_addrs.contains(&p.addr),
             // name not in registry → LAN-only manual peer, keep
             None => true,
         },
@@ -215,6 +318,73 @@ pub fn reconcile_manual_against_registry(
     });
     let pruned = before - manual.peers.len();
     (manual, pruned)
+}
+
+fn cached_registry_route_addr_sets(nodes: &[CachedNode]) -> HashMap<String, HashSet<String>> {
+    let mut registry = HashMap::new();
+    for node in nodes {
+        let route_addrs = cache_node_route_addrs(node);
+        if route_addrs.is_empty() {
+            continue;
+        }
+        registry
+            .entry(node.name.clone())
+            .or_insert_with(HashSet::new)
+            .extend(route_addrs);
+    }
+    registry
+}
+
+/// V34 boot/local reconcile. On process start, use the still-valid cached
+/// registry as the most recent server truth and remove same-name manual ghosts
+/// before the first heartbeat succeeds. This is deliberately a no-op when the
+/// cache is missing, expired, or has no routable candidates.
+pub fn reconcile_manual_peers_with_cached_registry(
+    musu_home: &Path,
+) -> Result<ManualPeerReconcileReport> {
+    let manual = ManualPeerList::load(musu_home);
+    let before_count = manual.peers.len();
+    let Some(cache) = CachedRegistry::load(musu_home) else {
+        return Ok(ManualPeerReconcileReport {
+            cache_available: false,
+            registry_node_count: 0,
+            registry_route_addr_count: 0,
+            before_count,
+            after_count: before_count,
+            pruned_count: 0,
+            changed: false,
+        });
+    };
+
+    let registry = cached_registry_route_addr_sets(&cache.nodes);
+    let registry_route_addr_count = registry.values().map(|addrs| addrs.len()).sum();
+    if registry.is_empty() {
+        return Ok(ManualPeerReconcileReport {
+            cache_available: true,
+            registry_node_count: 0,
+            registry_route_addr_count,
+            before_count,
+            after_count: before_count,
+            pruned_count: 0,
+            changed: false,
+        });
+    }
+
+    let (reconciled, pruned_count) = reconcile_manual_against_registry_addrs(manual, &registry);
+    let after_count = reconciled.peers.len();
+    if pruned_count > 0 {
+        reconciled.save(musu_home)?;
+    }
+
+    Ok(ManualPeerReconcileReport {
+        cache_available: true,
+        registry_node_count: registry.len(),
+        registry_route_addr_count,
+        before_count,
+        after_count,
+        pruned_count,
+        changed: pruned_count > 0,
+    })
 }
 
 pub fn resolve_all_peers(musu_home: &Path) -> Vec<ResolvedPeer> {
@@ -234,8 +404,20 @@ pub fn resolve_all_peers(musu_home: &Path) -> Vec<ResolvedPeer> {
     // Source 1: cached registry (authoritative)
     if let Some(cache) = CachedRegistry::load(musu_home) {
         for node in &cache.nodes {
+            let route_addrs = cache_node_route_addrs(node);
+            if route_addrs.is_empty() {
+                tracing::warn!(
+                    node = %node.name,
+                    addr = %node.addr,
+                    "ignoring cached registry node with no routable candidate addr"
+                );
+                continue;
+            }
             registry_names.insert(node.name.clone());
-            if seen.insert(node.addr.clone()) {
+            for addr in route_addrs {
+                if !seen.insert(addr.clone()) {
+                    continue;
+                }
                 let mut meta = node.meta.clone().unwrap_or_else(|| serde_json::json!({}));
                 if !meta.is_object() {
                     meta = serde_json::json!({});
@@ -247,7 +429,7 @@ pub fn resolve_all_peers(musu_home: &Path) -> Vec<ResolvedPeer> {
                     );
                 }
                 result.push(ResolvedPeer {
-                    addr: node.addr.clone(),
+                    addr,
                     name: Some(node.name.clone()),
                     source: PeerSource::Cache,
                     meta: Some(meta),
@@ -358,6 +540,19 @@ mod tests {
         assert!(list.remove("192.168.1.50:8070"));
         assert_eq!(list.peers.len(), 0);
         assert!(!list.remove("ghost"));
+    }
+
+    #[test]
+    fn remote_usable_addr_rejects_loopback_and_wildcard_cache_addrs() {
+        assert!(!is_remote_usable_addr("127.0.0.1:8070"));
+        assert!(!is_remote_usable_addr("localhost:8070"));
+        assert!(!is_remote_usable_addr("0.0.0.0:8070"));
+        assert!(!is_remote_usable_addr("[::1]:8070"));
+        assert!(!is_remote_usable_addr("[::ffff:127.0.0.1]:8070"));
+        assert!(!is_remote_usable_addr("[::ffff:0.0.0.0]:8070"));
+        assert!(is_remote_usable_addr("192.168.1.50:8070"));
+        assert!(is_remote_usable_addr("[fd7a:115c:a1e0::1]:8070"));
+        assert!(is_remote_usable_addr("peer.example.test:443"));
     }
 
     #[test]
@@ -478,6 +673,117 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
+    /// V33 audit: old cache files written before the public_url fix may contain
+    /// `127.0.0.1:{port}` for a remote node. Such a row must not become a route
+    /// candidate and must not suppress a valid same-name manual LAN peer.
+    #[test]
+    fn resolve_ignores_unroutable_cached_registry_rows() {
+        let dir = std::env::temp_dir().join(format!("musu-test-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let cache = CachedRegistry {
+            nodes: vec![CachedNode {
+                node_id: "hugh-main".into(),
+                name: "hugh-main".into(),
+                addr: "127.0.0.1:13397".into(),
+                capabilities: vec![],
+                last_heartbeat: Some(Utc::now()),
+                meta: Some(serde_json::json!({
+                    "public_url": "http://127.0.0.1:13397",
+                    "last_seen": "2026-06-26T03:30:39Z"
+                })),
+            }],
+            fetched_at: Utc::now(),
+            registry_url: "https://musu.pro".into(),
+        };
+        cache.save(&dir).unwrap();
+
+        let mut manual = ManualPeerList::default();
+        manual.add("192.168.1.192:9497".into(), Some("hugh-main".into()));
+        manual.save(&dir).unwrap();
+
+        let peers = resolve_all_peers(&dir);
+        assert!(
+            !peers.iter().any(|p| p.addr == "127.0.0.1:13397"),
+            "stale loopback cache row must not survive"
+        );
+        assert!(
+            peers
+                .iter()
+                .any(|p| p.addr == "192.168.1.192:9497" && p.name.as_deref() == Some("hugh-main")),
+            "valid manual peer must survive when the same-name cache row is unusable"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// V34 additive candidate-set: a registry row may carry more than one
+    /// usable address for the same stable node_name. The resolver must expose
+    /// all direct candidates so the route selector can race/order LAN vs
+    /// tailnet, while still rejecting loopback and relay-display-only entries.
+    #[test]
+    fn resolve_expands_cached_registry_candidate_endpoints() {
+        let dir = std::env::temp_dir().join(format!("musu-test-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let cache = CachedRegistry {
+            nodes: vec![CachedNode {
+                node_id: "studio-pc".into(),
+                name: "studio-pc".into(),
+                addr: "192.168.1.20:8070".into(),
+                capabilities: vec![],
+                last_heartbeat: Some(Utc::now()),
+                meta: Some(serde_json::json!({
+                    "candidate_endpoints": [
+                        {
+                            "kind": "lan",
+                            "addr": "192.168.1.20:8070",
+                            "observed_at": "2026-06-27T00:00:00Z",
+                            "scheme": "http"
+                        },
+                        {
+                            "kind": "tailscale",
+                            "addr": "100.64.1.20:8070",
+                            "observed_at": "2026-06-27T00:00:01Z",
+                            "scheme": "http"
+                        },
+                        {
+                            "kind": "lan",
+                            "addr": "127.0.0.1:8070",
+                            "observed_at": "2026-06-27T00:00:02Z"
+                        },
+                        {
+                            "kind": "relay",
+                            "addr": "relay.musu.pro:443",
+                            "observed_at": "2026-06-27T00:00:03Z",
+                            "relay_url": "wss://relay.musu.pro/api/v1/relay/connect"
+                        }
+                    ]
+                })),
+            }],
+            fetched_at: Utc::now(),
+            registry_url: "https://musu.pro".into(),
+        };
+        cache.save(&dir).unwrap();
+
+        let peers = resolve_all_peers(&dir);
+        let addrs: Vec<&str> = peers.iter().map(|peer| peer.addr.as_str()).collect();
+
+        assert!(addrs.contains(&"192.168.1.20:8070"));
+        assert!(addrs.contains(&"100.64.1.20:8070"));
+        assert!(!addrs.contains(&"127.0.0.1:8070"));
+        assert!(!addrs.contains(&"relay.musu.pro:443"));
+        assert_eq!(
+            peers
+                .iter()
+                .filter(|peer| peer.name.as_deref() == Some("studio-pc"))
+                .count(),
+            2
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     /// V30 WS-A: a genuine LAN-only manual peer (name NOT in the registry) must
     /// survive — the registry-authority rule only drops names the registry owns.
     #[test]
@@ -549,10 +855,69 @@ mod tests {
         let (out, pruned) = reconcile_manual_against_registry(manual, &registry);
         assert_eq!(pruned, 1, "exactly the stale ghost is removed");
         let addrs: Vec<&str> = out.peers.iter().map(|p| p.addr.as_str()).collect();
-        assert!(!addrs.contains(&"192.168.1.192:2957"), "stale ghost dropped");
+        assert!(
+            !addrs.contains(&"192.168.1.192:2957"),
+            "stale ghost dropped"
+        );
         assert!(addrs.contains(&"192.168.1.192:8001"), "current addr kept");
         assert!(addrs.contains(&"10.0.0.42:9999"), "LAN-only peer kept");
         assert!(addrs.contains(&"10.0.0.43:1"), "nameless peer kept");
+    }
+
+    #[test]
+    fn boot_reconcile_prunes_stale_manual_but_keeps_current_candidate_set() {
+        let dir = std::env::temp_dir().join(format!("musu-test-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let cache = CachedRegistry {
+            nodes: vec![CachedNode {
+                node_id: "hugh-main".into(),
+                name: "hugh-main".into(),
+                addr: "192.168.1.192:8001".into(),
+                capabilities: vec![],
+                last_heartbeat: Some(Utc::now()),
+                meta: Some(serde_json::json!({
+                    "candidate_endpoints": [
+                        { "kind": "lan", "addr": "192.168.1.192:8001" },
+                        { "kind": "tailscale", "addr": "100.64.1.192:8001" }
+                    ]
+                })),
+            }],
+            fetched_at: Utc::now(),
+            registry_url: "https://musu.pro".into(),
+        };
+        cache.save(&dir).unwrap();
+
+        let mut manual = ManualPeerList::default();
+        manual.add("192.168.1.192:2957".into(), Some("hugh-main".into())); // stale old port
+        manual.add("100.64.1.192:8001".into(), Some("hugh-main".into())); // current candidate
+        manual.add("10.0.0.42:9999".into(), Some("lan-only-box".into()));
+        manual.add("10.0.0.43:9999".into(), None);
+        manual.save(&dir).unwrap();
+
+        let report = reconcile_manual_peers_with_cached_registry(&dir).unwrap();
+        assert!(report.cache_available);
+        assert!(report.changed);
+        assert_eq!(report.registry_node_count, 1);
+        assert_eq!(report.registry_route_addr_count, 2);
+        assert_eq!(report.before_count, 4);
+        assert_eq!(report.after_count, 3);
+        assert_eq!(report.pruned_count, 1);
+
+        let reconciled = ManualPeerList::load(&dir);
+        let addrs: Vec<&str> = reconciled.peers.iter().map(|p| p.addr.as_str()).collect();
+        assert!(
+            !addrs.contains(&"192.168.1.192:2957"),
+            "stale same-name old port is pruned"
+        );
+        assert!(
+            addrs.contains(&"100.64.1.192:8001"),
+            "same-name current secondary candidate is kept"
+        );
+        assert!(addrs.contains(&"10.0.0.42:9999"), "LAN-only peer kept");
+        assert!(addrs.contains(&"10.0.0.43:9999"), "nameless peer kept");
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

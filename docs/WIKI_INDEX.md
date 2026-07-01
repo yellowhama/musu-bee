@@ -243,6 +243,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | wiki/532 | Desktop single-instance release gate | 2026-06-02 | `DESKTOP_SINGLE_INSTANCE_RELEASE_GATE_2026_06_02.md` | active |
 | wiki/533 | Fresh MSIX primary evidence audit | 2026-06-02 | `RELEASE_1_15_0_RC1_FRESH_MSIX_EVIDENCE_AUDIT_2026_06_02.md` | active |
 | wiki/534 | CLI pipe hardening and public site deploy audit | 2026-06-02 | `RELEASE_1_15_0_RC1_CLI_PIPE_SITE_DEPLOY_AUDIT_2026_06_02.md` | active |
+| — | Agent manual — deploy the musu.pro site (Vercel CLI: pull/build/deploy; push→CI runs same CLI) | 2026-06-26 | `AGENT_DEPLOY_MUSU_PRO_SITE.md` | active |
 | wiki/535 | Packaged CLI/runtime evidence audit | 2026-06-02 | `RELEASE_1_15_0_RC1_PACKAGED_CLI_RUNTIME_EVIDENCE_2026_06_02.md` | active |
 | wiki/536 | Process attribution and Node count audit | 2026-06-02 | `PROCESS_ATTRIBUTION_NODE_COUNT_AUDIT_2026_06_02.md` | active |
 | wiki/537 | Fresh mDNS runtime evidence audit | 2026-06-02 | `RELEASE_1_15_0_RC1_FRESH_MDNS_RUNTIME_EVIDENCE_AUDIT_2026_06_02.md` | active |
@@ -259,7 +260,7 @@ V23.5 sub-WS detail plans + closures, per `V23_5_MASTER_PLAN_2026_05_19.md` §6:
 | — | Final operator gate packet/action pack generator/verifier/completion runner/status | 2026-05-29 | `scripts/windows/prepare-final-operator-gate-packet.ps1`, `scripts/windows/verify-final-operator-gate-packet.ps1`, `scripts/windows/prepare-operator-action-pack.ps1`, `scripts/windows/verify-operator-action-pack.ps1`, `scripts/windows/complete-final-operator-gates.ps1`, `scripts/windows/show-final-release-handoff-status.ps1`, `scripts/windows/show-second-pc-return-card.ps1`, `scripts/windows/import-second-pc-return.ps1` | active |
 | — | MSIX install evidence capture/verifier/recorder | 2026-05-29 | `scripts/windows/capture-msix-install-evidence.ps1`, `scripts/windows/verify-msix-install-evidence.ps1`, `scripts/windows/record-msix-install-evidence.ps1` | active |
 | — | Second-PC handoff collector, release-check wrapper, and return importer | 2026-05-29 | `scripts/windows/collect-second-pc-handoff.ps1`, `scripts/windows/run-second-pc-release-check.ps1`, `scripts/windows/import-second-pc-return.ps1` | active |
-| — | Store release evidence verifier/recorder | 2026-05-29 | `scripts/windows/verify-store-release-evidence.ps1`, `scripts/windows/record-store-release-verification.ps1` | active |
+| — | Store release evidence verifier/recorder | 2026-05-29; hardened 2026-06-28 | `scripts/windows/verify-store-release-evidence.ps1`, `scripts/windows/record-store-release-verification.ps1` | active |
 | — | Store submission bundle verifier | 2026-05-30 | `scripts/windows/verify-store-submission-bundle.ps1` | active |
 | — | MSIX desktop entrypoint audit | 2026-05-31 | `scripts/windows/audit-msix-desktop-entrypoint.ps1`, `evidence/msix-desktop-entrypoint/1.15.0-rc.1/20260531-214327-HUGH_SECOND.store-msix-runtime-only.evidence.json`, `evidence/msix-desktop-entrypoint/1.15.0-rc.1/20260531-224328-HUGH_SECOND.store-msix-desktop-artifact.evidence.json`, `evidence/msix-desktop-entrypoint/1.15.0-rc.1/20260531-232229-HUGH_SECOND.local-sideload-installed.evidence.json`, `evidence/msix-desktop-entrypoint/1.15.0-rc.1/20260531-232229-HUGH_SECOND.store-reviewed-contract-mismatch.evidence.json` | active |
 | — | Packaged desktop single-instance audit | 2026-06-02 | `scripts/windows/audit-musu-desktop-single-instance.ps1`, `.local-build/desktop-single-instance/musu-desktop-single-instance-20260602-005439-HUGH_SECOND.json` | active |
@@ -374,6 +375,9 @@ State lock: `1.15.0-rc.1` is beta-ready for the single-machine Windows local ope
 | wiki/453 | Research — Ben AI-OS 5 skills (vault hygiene patterns) | 2026-05-18 | `RESEARCH_BEN_AI_OS_5_SKILLS_2026_05_18.md` | complete |
 | wiki/455 | Research — HTML over Markdown (Tariq) | 2026-05-18 | `RESEARCH_HTML_OVER_MARKDOWN_2026_05_18.md` | complete |
 | wiki/456 | Research — 3-layer audit + HTML wiki memory | 2026-05-18 | `RESEARCH_3LAYER_AND_HTML_WIKI_MEMORY_2026_05_18.md` | complete |
+| — | musu-brain 통합 thesis — 완제품 1대 (메인보드+칩: brain Go 바이너리 그대로, musu가 데이터·lifecycle·UX 묶음) | 2026-06-26 | `BRAIN_INTEGRATION_THESIS_2026_06_26.md` | active |
+| — | MUSU product purpose and implementation gate — one trustworthy multi-PC work surface | 2026-06-27 | `PRODUCT_PURPOSE_AND_IMPLEMENTATION_GATE_2026_06_27.md` | active |
+| — | MUSU product readiness code audit — false-online fixes, current blockers, next proof packet | 2026-06-27 | `MUSU_PRODUCT_READINESS_CODE_AUDIT_2026_06_27.md` | active |
 | wiki/457 | Brainstorm — Paperclip observer closure | 2026-05-18 | `BRAINSTORM_PAPERCLIP_OBSERVER_2026_05_18.md` | complete |
 | wiki/458 | Musu architecture overview (HTML — first HTML wiki page) | 2026-05-18 | `MUSU_ARCHITECTURE_2026_05_18.html` | complete |
 | wiki/517 | Brainstorm — Multi-Machine Binding Architecture | 2026-05-24 | `BRAINSTORM_MULTI_MACHINE_BINDING_2026_05_24.md` | complete |
@@ -8494,5 +8498,3309 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   remove`, `self-eviction caller_ip fail-closed`, `this_pc_programs`, `cockpit
   desktop density`, `order box de-hero`, `specialist program badge`, `Option
   C-plus`, `fleet as one device cockpit`, `command surface Claude Code MCP`.
+
+- 2026-06-26 fleet rc.21 stale-registry audit + brain bonding:
+  `docs/FLEET_AND_BRAIN_BONDING_AUDIT_NEXT_STEPS_2026_06_26.md` records the
+  qualitative audit after rc.21 fleet stale-row hardening and the first
+  `musu-brain` motherboard+chip integration pass. Search terms should include
+  `fleet rc.21 brain bonding`, `musu-brain.pin.json`, `MUSU_KNOWLEDGE_INGEST`,
+  `~/.musu/brain`, `writer::runner::finalize`, `POST /v1/sources`,
+  `pin+VCS gate`, `token ACL verifier pending`, `desktop-latest rc21 resolved`,
+  and `hugh-main physical proof pending`.
+
+- 2026-06-26 brain integration thesis implementation update:
+  `docs/BRAIN_INTEGRATION_THESIS_2026_06_26.md` is no longer only a pre-code
+  thesis. It now records implemented bonding: Tauri externalBin sidecar,
+  sidecar build from `F:\musu_2nd_brain`, `~/.musu/brain` lifecycle, token
+  bootstrap, runtime `MUSU_KNOWLEDGE_*` env, task-completion ingest, and
+  `knowledge_*` naming to avoid the existing Rust `brain` orchestrator. Search
+  terms should include `motherboard chip`, `hidden brain`, `knowledge namespace`,
+  `no shared SQLite`, `LocalState forbidden`, and `brain native semver pending`.
+
+- 2026-06-27 V34 discovery/stale first bonding:
+  `docs/V34_DISCOVERY_STALE_THESIS_2026_06_26.md` now records the first
+  candidate-set implementation slices. Bridge cloud heartbeat publishes
+  `meta.candidate_endpoints` from the advertised bridge URL plus Tailscale /
+  private-mesh IP when present, and now includes every non-virtual usable LAN
+  interface candidate via `local_lan_advertise_hosts` /
+  `local_candidate_endpoints_for_route_hosts`. Server registry
+  `POST /api/v1/nodes/register` adds the request's usable forwarded/source IP
+  as `kind: "observed_source_ip"` without replacing `public_url`, and rejects
+  loopback/wildcard observed candidates. `peer::discovery` expands cached
+  registry candidates into multiple route candidates for the same stable
+  `node_name` while rejecting relay/failed/loopback candidates. Remote-usable
+  host checks now also reject IPv4-mapped loopback/wildcard hosts such as
+  `[::ffff:127.0.0.1]` and `[::ffff:0.0.0.0]` in TS registry write/list and
+  Rust resolver/cache paths, and the same rule now covers `musu doctor` /
+  `musu nodes` warning helpers plus
+  `verify-fleet-audit-contract.ps1 -SelfTestRemoteUsable`. `forward.rs`
+  now runs a short read-only `/api/fleet/node-status` preflight over the first
+  direct route candidates and moves reachable candidates ahead of stale ones
+  before sending a single `/api/tasks/forward` POST. Server registry `listNodes`
+  now separates 7-day storage retention from current presence by filtering
+  `last_seen` with `MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC` /
+  `nodeRegistryHeartbeatTtlSeconds`, while `deleteNodeByName` still removes hidden
+  stale rows. `src/app/api/health/route.ts` now supplies the production workflow's
+  public `GET /api/health` contract (`musu.site_health.v1`) after live
+  `https://musu.pro/api/health` returned 404. `verify-musu-pro-install-channel.ps1`
+  now includes that health schema/version check, so old production site code cannot
+  pass merely because installer URLs return 200. 2026-06-27 production follow-up
+  published guarded `desktop-latest` rc.21 assets and deployed Vercel production
+  `dpl_E7TrT4SfZm2kEaVvnM4DpW43i9nj`; live `verify-musu-pro-install-channel.ps1 -Json`
+  is now `ok=true`, `failure_count=0`, and fleet audit is `warn_count=0`.
+  Search terms should include
+  `v34_additive_candidate_set_v1`, `cache_node_route_addrs`,
+  `resolve_expands_cached_registry_candidate_endpoints`,
+  `observed_source_ip`, `x-forwarded-for`, `local_lan_advertise_hosts`,
+  `local_candidate_endpoints_for_route_hosts`, `candidate_endpoints`, and
+  `single public_url self-report`, `route_preflight_url_for_peer`,
+  `reorder_route_candidates_by_preflight`, `nodeRegistryHeartbeatTtlSeconds`,
+  `MUSU_NODE_REGISTRY_HEARTBEAT_TTL_SEC`, `last_seen presence TTL`,
+  `IPv4-mapped loopback`, `::ffff:127.0.0.1`, `::ffff:0.0.0.0`,
+  `SelfTestRemoteUsable`, `cloud_public_url_warning_flags_any_loopback_registry_row`,
+  `musu.site_health.v1`, `GET /api/health`, `install-channel health version gate`,
+  `publish-desktop-latest-assets.ps1 -ConfirmUpload`, `dpl_E7TrT4SfZm2kEaVvnM4DpW43i9nj`,
+  `install-channel ok=true`, `fleet audit warn_count=0`, and
+  `stale first candidate`.
+
+- 2026-06-27 continuation audit refresh:
+  PR #34 current branch lineage is mergeable with code/test checks green and
+  `design-gate` still failing pending a real `Design: Approved` approval token.
+  The design issue URL and PNG artifact URLs are present; GitHub issue #35 has
+  an evidence-refresh comment but no explicit approval comment. Local verification
+  after repairing missing npm bin shims passed
+  `npx tsx --test src/app/api/health/route.test.ts src/lib/nodeRegistryStore.test.ts src/app/api/v1/nodes/register/route.test.ts src/app/public-metadata-contract.test.ts`
+  at 38/38, `npm run test:public-release` at 11/11, and
+  `cargo test registry_last_seen_to_heartbeat --lib` at 1/1. Follow-up production
+  deployment published `desktop-latest` rc.21 assets, added `.vercelignore` so generated
+  Windows build artifacts do not poison Vercel deploys, and verified live
+  `verify-musu-pro-install-channel.ps1 -Json` at `ok=true`, `failure_count=0`.
+  Search terms should include
+  `PR #34 design-gate`, `current branch lineage`, `38/38`, `11/11`, `1/1 registry_last_seen`,
+  `npm bin shims`, `issue #35 evidence refresh comment no approval`,
+  `.vercelignore`, `remote Vercel build`, `dpl_E7TrT4SfZm2kEaVvnM4DpW43i9nj`,
+  `desktop-latest rc21 published`, and `musu.pro install-channel ok`.
+
+- 2026-06-27 public fleet repair route:
+  `https://musu.pro/repair-fleet.ps1` now proxies the canonical
+  `scripts/windows/repair-fleet-node-public-url.ps1` from the fixed
+  `desktop-latest` release asset. Production deploy
+  `dpl_3S5URjmeZomLD7c6zcffrNHrcSY2` is aliased to `https://musu.pro`; live route
+  probe returned HTTP 200, length 7195, with
+  `musu.fleet_node_public_url_repair.v1` and `ExpectedNodeName` present. This closes the repo-copy gap for the main PC:
+  after `irm https://musu.pro/install.ps1 | iex`, the operator can run
+  `& ([scriptblock]::Create((irm https://musu.pro/repair-fleet.ps1))) -ExpectedNodeName hugh-main -Json`
+  to restart/check the packaged bridge, verify LAN-usable advertised/cloud URLs,
+  and emit `musu.fleet_node_public_url_repair.v1` evidence. The release publisher
+  now uploads `repair-fleet-node-public-url.ps1`, the desktop canary is
+  `musu.desktop_release_canary.v6` and checks hosted repair script hash/schema,
+  and `verify-musu-pro-install-channel.ps1` checks live `/repair-fleet.ps1`.
+  Search terms should include `repair-fleet.ps1`,
+  `DESKTOP_REPAIR_FLEET_SCRIPT_URL`, `musu.desktop_release_canary.v6`,
+  `repair_fleet_script`, `repo-free fleet repair`, `dpl_3S5URjmeZomLD7c6zcffrNHrcSY2`, and
+  `ExpectedNodeName hugh-main`.
+
+- 2026-06-27 brain ingest token ACL gate:
+  Tauri now restricts `~/.musu/brain/runtime/musu-ingest.token` before writing it on Windows
+  and re-restricts the file when reusing an existing token. `verify-fleet-audit-contract.ps1`
+  now has `-RequireBrainToken`, which makes the brain token presence + restricted ACL a
+  hard verifier gate after packaged first-run. Default fleet audit keeps passing on machines
+  that have not launched the brain bootstrap yet by reporting the brain gate as skipped.
+  Search terms should include `musu-ingest.token`, `RequireBrainToken`,
+  `brain_ingest_token_acl_restricted`, `knowledge token ACL`, and
+  `~/.musu/brain/runtime/musu-ingest.token`.
+
+- 2026-06-27 rc.22 install-channel release audit:
+  `docs/RELEASE_1_15_0_RC22_INSTALL_CHANNEL_AUDIT_NEXT_STEPS_2026_06_27.md`
+  records the release-channel follow-up that ships the brain token ACL hardening
+  through hosted `desktop-latest` and `musu.pro`. The public channel is now
+  `1.15.0-rc.22` / `MSIX 1.15.0.22`; Vercel production deployment
+  `dpl_ALoaFRtPhb18RkfEc6WmaDJUFijR` is aliased to `https://musu.pro`;
+  `verify-musu-pro-install-channel.ps1 -Json`, desktop canary, and default fleet
+  audit pass. The first rc.22 build exposed a real brain pin mismatch
+  (`f7678af...` vs clean HEAD `2f036728...`), so `musu-brain.pin.json` now pins
+  `2f036728a9e6d5840634666d7442be87d302f083`. GitHub release asset stable URLs
+  served stale rc.21 immediately after `--clobber`, so public release URLs,
+  generated `.appinstaller` `Uri` / `MainPackage Uri`, and `Install-MUSU.ps1`
+  appinstaller download now carry `?rc=1.15.0.22`. Windows PowerShell 5.1 remote
+  `irm/iex` validation then exposed an unbraced appinstaller URL interpolation bug, so
+  `Install-MUSU.ps1` now enables TLS 1.2 and builds the download URL as
+  `${ReleaseBase}/${AppInstallerFileName}?rc=${expectedPackageVersion}`; hardened
+  hosted script length is `16587`. Fleet audit now also fails stale installed packages:
+  second initially failed as `installed_package_version=1.15.0.21` vs expected
+  `1.15.0.22`, then was updated with the rc.22 appinstaller to
+  `blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc`. Packaged first-run proof on
+  `hugh_second` now passes `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json`
+  with `brain_token_present=true`, `bridge_bind_addr=0.0.0.0:11105`, and
+  `advertised_public_url=http://192.168.1.154:11105`. Stale diagnostics require
+  explicit `-ExpectedPackageVersion` or `-AllowInstalledPackageVersionMismatch`.
+  `build-msix.ps1 -NoBump -PreflightOnly` now checks version coherence + brain
+  pin/clean checkout before the long release build.
+  Search terms should include
+  `rc22 install channel`, `1.15.0.22`, `desktop-latest cache buster`,
+  `musu.appinstaller?rc=1.15.0.22`, `dpl_ALoaFRtPhb18RkfEc6WmaDJUFijR`,
+  `brain pin mismatch`, `2f036728a9e6d5840634666d7442be87d302f083`, and
+  `PreflightOnly`, `Enable-ModernTls`, `Install-MUSU appinstaller URL braces`,
+  `ValidateReleaseOnly remote irm iex`, `installed_package_version_matches_release`,
+  `AllowInstalledPackageVersionMismatch`,
+  `brain_token_present=true`, `0.0.0.0:11105`, `192.168.1.154:11105`,
+  `RELEASE_1_15_0_RC22_INSTALL_CHANNEL_AUDIT_NEXT_STEPS`.
+
+- 2026-06-27 public fleet node proof wrapper:
+  `docs/FLEET_NODE_PROOF_RUNBOOK_2026_06_27.md` records the repo-free physical
+  PC proof path for `hugh-main`. New route `https://musu.pro/fleet-proof.ps1`
+  emits `schema=musu.fleet_node_proof.v1` and wraps hosted
+  `Install-MUSU.ps1 -ValidateReleaseOnly`, hosted `repair-fleet.ps1`, installed
+  package-version proof, bridge/registry remote-usability checks, optional
+  `ExpectedDirectPeerName` direct route proof, and `RequireBrainToken` ACL proof.
+  The intended main-PC command after install and first launch is
+  `& ([scriptblock]::Create((irm https://musu.pro/fleet-proof.ps1))) -ExpectedNodeName hugh-main -ExpectedDirectPeerName hugh_second -RequireBrainToken -Json`.
+  Vercel remote source deployment `dpl_FULnchJY31ELsyCG46qN1dDtzpVZ` is aliased
+  to `https://musu.pro`; live probe returned HTTP 200, length `16747`, schema
+  present, and expected package `1.15.0.22` present. `verify-musu-pro-install-channel.ps1`
+  now checks live `/fleet-proof.ps1` and passes with `ok=true`, `failure_count=0`,
+  so old production site code cannot pass install-channel verification without
+  the full proof wrapper. Local Windows Node 24.8.0 prebuilt Vercel build hit
+  `Unable to find lambda for route: /app/dashboard`; remote source deploy
+  succeeded, matching CI's safer deploy path. Search terms should include `fleet-proof.ps1`,
+  `musu.fleet_node_proof.v1`, `ExpectedDirectPeerName`, `RequireBrainToken`,
+  `hugh-main`, `hugh_second`, `installed_package_version=1.15.0.22`,
+  `brain token ACL proof`, `repo-free physical main proof`,
+  `dpl_FULnchJY31ELsyCG46qN1dDtzpVZ`, and `Unable to find lambda for route: /app/dashboard`.
+
+- 2026-06-27 product purpose and implementation gate:
+  `docs/PRODUCT_PURPOSE_AND_IMPLEMENTATION_GATE_2026_06_27.md` records the
+  current product purpose in implementation terms: MUSU should make the user's
+  computers behave like one trustworthy work surface, while `musu.pro`
+  coordinates install/rendezvous/proof and MUSU Desktop remains the local
+  executor. It maps the pasted audit findings to current evidence:
+  `registry_last_seen_to_heartbeat` preserves registry `last_seen`, remote
+  loopback/wildcard `public_url` values are rejected or ignored, relay-display
+  peers are not counted in `online_nodes`, and the remote-usable self-test
+  passes with `ok=true`, `fail_count=0`. The 2026-06-27 continuation added fresh
+  `hugh_second` proof: `verify-fleet-audit-contract.ps1 -RequireBrainToken -Json`
+  passed with `bridge_bind_addr=0.0.0.0:11105`,
+  `advertised_public_url=http://192.168.1.154:11105`, `online_nodes=1`,
+  `direct_healthy_nodes=1`, and ACL gates passing for `tls/key.pem`,
+  `private_mesh.toml`, and `~/.musu/brain/runtime/musu-ingest.token`. The 2026-06-27
+  proof refresh added physical `hugh-main` hosted `fleet-proof.ps1` evidence:
+  `ok=true`, `fail_count=0`, `warn_count=0`, package `1.15.0.22`,
+  `bridge_bind_addr=0.0.0.0:4387`, `advertised_public_url=http://192.168.1.192:4387`,
+  `online_nodes=2`, `direct_healthy_nodes=2`, expected peer `hugh_second`, and
+  `brain_ingest_token_acl_restricted`. The main product blocker is now PR #34
+  design approval, not physical two-PC direct proof. Search terms should include
+  `product purpose implementation
+  gate`, `one trustworthy work surface`, `registry_last_seen_to_heartbeat`,
+  `remote usable selftest`, `relay-display not online`, `hugh-main proof green`,
+  `bridge_bind_addr 0.0.0.0:11105`, `192.168.1.154:11105`,
+  `bridge_bind_addr 0.0.0.0:4387`, `192.168.1.192:4387`,
+  `tls_key_acl_restricted`, `private_mesh_acl_restricted`,
+  `brain_ingest_token_acl_restricted`, `direct_healthy_nodes=2`, and
+  `musu.fleet_node_proof.v1`.
+
+- 2026-06-27 PR #34 design approval packet:
+  `docs/DESIGN_BRIEF_PR34_FLEET_INSTALL_2026_06_27.md` records the UI scope and
+  approval checklist for `/download`, `/install`, `/fleet`, and `/dashboard/fleet`;
+  approval is requested in GitHub issue #35. The install UI scope now includes
+  the hosted `fleet-proof.ps1` proof command on `/download` and `/install`, so
+  the public user path can proceed from one-line install to release-grade JSON
+  evidence instead of stopping at `package-status` / `nodes`.
+  Local screenshots from `127.0.0.1:3000` are committed at
+  `docs/design-artifacts/pr34-download.png`, `docs/design-artifacts/pr34-install.png`,
+  and `docs/design-artifacts/pr34-fleet.png`. This is not approval; the remaining
+  gate has the design issue URL and artifact URLs, but still requires an explicit
+  CEO/design approval comment and `Design: Approved` in the PR body. Search terms should include
+  `DESIGN_BRIEF_PR34_FLEET_INSTALL`, `pr34-download.png`, `pr34-install.png`,
+  `pr34-fleet.png`, `issue #35`, `approval requested not yet approved`, and
+  `Design: Approved`, `fleet-proof command on install pages`, and
+  `release-grade JSON evidence`.
+
+- 2026-06-27 product readiness code audit:
+  `docs/MUSU_PRODUCT_READINESS_CODE_AUDIT_2026_06_27.md` records the current
+  purpose-aligned code audit after the pasted runtime findings. The code-level
+  false-freshness bugs are fixed: registry `last_seen` is no longer replaced by
+  fetch time, loopback/wildcard/port-0 `public_url` values are rejected, unusable
+  cached registry rows do not suppress valid peers, and relay-display is not
+  counted in `online_nodes`. The audit also records the public install-page
+  follow-up: `/download` and `/install` now expose `fleet-proof.ps1`, with a
+  public metadata contract test keeping the command visible. The audit now records
+  physical `hugh-main` `fleet-proof.ps1` JSON saved under
+  `docs/evidence/fleet-proof/1.15.0-rc.22/hugh-main-20260627T010201Z.fleet-proof.json`;
+  current rc.22 two-PC direct readiness is green, and the remaining blocker is
+  real PR #34 design approval. Search
+  terms should include `MUSU_PRODUCT_READINESS_CODE_AUDIT`,
+  `false-online fixes`, `registry_last_seen_to_heartbeat`,
+  `online_nodes_direct_only`, `hugh-main proof green`,
+  `issue #35 approval missing`, `fleet-proof.ps1 public install pages`,
+  `hugh-main-20260627T010201Z.fleet-proof.json`, and
+  `next action packet`.
+
+- 2026-06-27 hugh-main hosted fleet proof accepted:
+  Physical main PC proof is now saved at
+  `docs/evidence/fleet-proof/1.15.0-rc.22/hugh-main-20260627T010201Z.fleet-proof.json`.
+  It was generated by
+  `& ([scriptblock]::Create((irm https://musu.pro/fleet-proof.ps1))) -ExpectedNodeName hugh-main -ExpectedDirectPeerName hugh_second -RequireBrainToken -Json`
+  and returned `schema=musu.fleet_node_proof.v1`, `ok=true`, `fail_count=0`,
+  `warn_count=0`, `installed_package_version=1.15.0.22`,
+  `package_full_name=blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc`,
+  `bridge_bind_addr=0.0.0.0:4387`, `advertised_public_url=http://192.168.1.192:4387`,
+  `online_nodes=2`, `direct_healthy_nodes=2`, `remote_cloud_warning_count=0`,
+  expected direct peer `hugh_second`, and `brain_ingest_token_acl_restricted`.
+  Follow-up `musu status --json` from `hugh_second` also showed both
+  `hugh_second` and `hugh-main` healthy via direct routes. This closes the
+  rc.22 two-physical-machine direct proof blocker; PR #34 design approval,
+  Store readiness, and real relay transport remain separate unproven claims.
+  The same status was propagated into
+  `docs/RELEASE_1_15_0_RC22_INSTALL_CHANNEL_AUDIT_NEXT_STEPS_2026_06_27.md`,
+  `docs/HANDOFF_2026_06_26_REINSTALL_RESILIENCE_V29_V31.md`, and
+  `docs/V34_DISCOVERY_STALE_THESIS_2026_06_26.md` so older handoff/next-step
+  text no longer says `hugh-main` physical proof is missing.
+  Indexer refresh after this proof/doc sync:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  3313 files and 3847 symbols. Recall query
+  `hugh-main-20260627T010201Z.fleet-proof.json` returns the runbook, rc.22
+  release next steps, evidence JSON, readiness audit, V34 thesis, and handoff.
+  Search terms should include `hugh-main hosted fleet proof accepted`,
+  `0.0.0.0:4387`, `192.168.1.192:4387`, `direct_healthy_nodes=2`,
+  `online_nodes=2`, `remote_cloud_warning_count=0`, and
+  `brain_ingest_token_acl_restricted`, `release next steps proof complete`,
+  `handoff rc22 proof complete`, and `V34 physical two-PC proof status`.
+
+- 2026-06-27 PR #34 rc.22 proof code audit and next steps:
+  `docs/PR34_RC22_TWO_PC_PROOF_CODE_AUDIT_NEXT_STEPS_2026_06_27.md` is the
+  consolidated handoff for the current work. It records the evidence baseline,
+  product spec deltas, system-design findings, code audit, qualitative
+  evaluation, updated docs, LLM/wiki/index status, and next action packet after
+  the physical `hugh-main` proof. Current judgment: rc.22 two-PC direct fleet
+  readiness is proven by hosted machine JSON, but PR #34 design approval, Store
+  readiness, real relay transport, and full brain health/task-ingest evidence
+  remain separate unproven claims. Final index refresh for this doc:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  3314 files and 3847 symbols. Search terms should include
+  `PR34_RC22_TWO_PC_PROOF_CODE_AUDIT_NEXT_STEPS`,
+  `qualitative evaluation`, `product spec deltas`,
+  `current rc.22 direct fleet claim is good`,
+  `Design: Pending`, `issue #35 approval`, `hugh-main-20260627T010201Z`,
+  `Store readiness not proven`, `relay transport not proven`, and
+  `brain health task ingest evidence`.
+
+- 2026-06-27 design-gate token hardening:
+  `scripts/design-gate/evaluate.cjs` now accepts `Design: Approved` only as a
+  standalone status line. This fixes the PR-body bypass where a pending PR could
+  mention `` `Design: Approved` `` inside an instruction and make design-gate
+  pass. Regression coverage lives in `scripts/design-gate/evaluate.test.cjs`,
+  and `.github/workflows/design-gate.yml` now runs
+  `node --test scripts/design-gate/*.test.cjs` before PR evidence evaluation.
+  Search terms should include `standalone status line`, `Design: Pending`,
+  `Design: Approved instruction bypass`, `design-gate token hardening`, and
+  `Run design-gate evaluator tests`.
+
+- 2026-06-27 full product spec completion roadmap:
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md` is the
+  canonical answer to whether MUSU is fully complete against the whole product
+  spec. Current answer: no, not yet. `1.15.0-rc.22` proves the two-PC direct
+  fleet slice on `hugh-main` and `hugh_second`, and fresh packaged launch now
+  proves hidden brain health/task-ingest/capture recall on `HUGH_SECOND`. Full
+  product completion still requires PR #34 design approval, Store or trusted
+  distribution evidence, real delegated-work relay transport, V34 stale
+  self-heal proof, and either support mailbox evidence or a formal retirement of
+  that historical gate. `PRODUCT_PURPOSE_AND_IMPLEMENTATION_GATE` now points to
+  this roadmap and scopes the current claim to rc.22 direct fleet readiness plus
+  hidden-brain fresh-launch readiness. Search terms should include
+  `MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP`, `full product not complete`,
+  `two-PC direct fleet slice`, `relay transport not complete`,
+  `brain product proof pass`, `Store trusted distribution evidence`,
+  `V34 stale self-heal`, and `support mailbox retire gate`.
+
+- 2026-06-27 full product readiness gate implementation:
+  `scripts/windows/write-release-go-no-go.ps1` now emits
+  `full_product_spec_ready` and `musu.full_product_spec_readiness.v1` with
+  explicit fail-closed lanes for design approval, install/package proof,
+  direct two-PC fleet proof, relay transport, brain product proof, V34 stale
+  self-heal, Store distribution, and support/operator evidence. Current local
+  gate shape after later 2026-06-28 evidence updates is
+  `full_product_spec_ready=false` with
+  `fleet_node_proof_verified=true`, `fleet_install_channel_proof_verified=true`,
+  `fleet_brain_token_acl_verified=true`, `brain_product_verified=true`, and
+  `release_candidate_manifest_generated=true`, while design, relay transport,
+  V34 self-heal, Store, and support lanes remain blockers.
+  `write-release-candidate-manifest.ps1` now reports an
+  empty/missing artifact candidate as a clear missing-artifact error, and
+  `write-release-go-no-go.ps1` turns manifest generation failure into a JSON
+  blocker instead of crashing before output. Regression coverage is in
+  `scripts/windows/test-release-evidence-verifiers.ps1` via
+  `go-no-go surfaces full product spec readiness lanes`. Search terms should
+  include `musu.full_product_spec_readiness.v1`, `full_product_spec_ready`,
+  `release-candidate-manifest blocker`, `fleet_node_proof_verified`,
+  `relay_transport_product_verified=false`, `brain_product_verified=true`,
+  `v34_stale_self_heal_verified=false`, and `go-no-go surfaces full product spec
+  readiness lanes`.
+
+- 2026-06-28 release manifest package-version gate:
+  `scripts/windows/write-release-candidate-manifest.ps1` now maps public rc
+  versions to current 4-segment MSIX package versions before selecting release
+  artifacts, e.g. `1.15.0-rc.22` -> `1.15.0.22`. This prevents stale
+  `musu_1.15.0.0_*` artifacts from satisfying the current rc.22 manifest. A
+  local go/no-go check at this point reported `full_product_spec_ready=false`,
+  complete lanes `2`, incomplete lanes `6`, and
+  `release_candidate_manifest_generated=false` because the current
+  `musu_1.15.0.22_x64_store-reviewed-immediate-registration.msix` artifact is
+  missing; this intermediate failing snapshot is superseded by the current
+  Store-reviewed bundle regeneration entry below. Regression coverage is in
+  `scripts/windows/test-release-evidence-verifiers.ps1` via
+  `release manifest maps rc version to package artifact version`. Search terms
+  should include `Convert-PublicVersionToPackageVersion`,
+  `1.15.0-rc.22 -> 1.15.0.22`, `current Store-reviewed MSIX missing`, and
+  `release manifest package version source contract`.
+
+- 2026-06-28 Store artifact current-version gate expansion:
+  `scripts/windows/audit-desktop-release-readiness.ps1` and
+  `scripts/windows/prepare-operator-action-pack.ps1` now derive Store/local
+  MSIX names from `VERSION` instead of hardcoding `1.15.0.0`. The readiness
+  audit only accepts a Store submission bundle that contains the expected
+  current Store-reviewed MSIX, and the operator action pack refuses Partner
+  Center upload instructions unless the verified bundle contains the current
+  artifact. Intermediate local readiness evidence reported local sideload MSIX
+  and desktop entrypoint passing, but `Store-reviewed MSIX` and `Store submission
+  bundle` failing because `musu_1.15.0.22_x64_store-reviewed-immediate-registration.msix`
+  was still missing; this is superseded by the current Store-reviewed bundle
+  regeneration entry below. Regression coverage is in
+  `scripts/windows/test-release-evidence-verifiers.ps1` via
+  `desktop readiness maps release version to current MSIX artifacts` and
+  `operator action pack requires current Store-reviewed MSIX`. Search terms
+  should include `current Store submission bundle`, `operator action pack
+  Store MSIX source contract`, `desktop readiness package version source
+  contract`, and `musu_1.15.0.22_x64_store-reviewed-immediate-registration.msix`.
+
+- 2026-06-28 current Store-reviewed bundle regenerated:
+  The Store submission bundle preparer now accepts `-NoBump` and captures child
+  PowerShell stderr without treating normal Cargo stderr as a terminating error.
+  `musu-bee/src-tauri/musu-brain.pin.json` now points at current
+  `F:\musu_2nd_brain` HEAD `311aefa35ad1c25a3c9b04994c0f3387e147a54a`.
+  Running `prepare-store-submission-bundle.ps1 -Configuration release
+  -Architecture x64 -NoBump` generated
+  `.local-build\msix\submission-bundles\store-reviewed-20260628-005038` with
+  `musu_1.15.0.22_x64_store-reviewed-immediate-registration.msix`.
+  `verify-store-submission-bundle.ps1` reports `ok=true`, `fail_count=0`;
+  `audit-desktop-release-readiness.ps1` reports `runtime_package_ready=true`
+  and `msix_desktop_entrypoint_ready=true`; `write-release-candidate-manifest.ps1`
+  now succeeds with artifact_count `7`. Full product remains No-Go because
+  design approval, real relay transport, V34 self-heal, Store approval/
+  Store-signed install proof, and support/operator evidence remain incomplete.
+  Search terms should include `Store submission bundle preparer
+  forwards NoBump`, `store-reviewed-20260628-005038`, `brain pin 311aefa`, and
+  `release_candidate_manifest_generated=true`.
+
+- 2026-06-28 brain product proof gate hardening and evidence:
+  `scripts/windows/record-brain-product-proof.ps1` and
+  `scripts/windows/verify-brain-product-proof.ps1` now define the release-grade
+  hidden brain proof lane. `write-release-go-no-go.ps1` no longer accepts weak
+  `musu.brain_product_proof.v1` files that only set boolean fields; it invokes
+  the verifier and requires packaged `musu-brain.exe`, observed sidecar process,
+  `~/.musu/brain` data root, restricted `musu-ingest.token` ACL, loopback-only
+  `http://127.0.0.1:8080`, `/health`, real `/v1/sources` task ingest,
+  `/v1/process`, `/v1/query`, real `/v1/clips` capture ingest, and capture
+  recall results. Local diagnostic recorder output on `HUGH_SECOND` first wrote
+  non-release artifacts under
+  `.local-build/brain-product/20260628-013600-HUGH_SECOND.*` and failed with
+  `fail_count=14`: package identity was correct, but the already-running stale
+  desktop process had not spawned `musu-brain`. After stopping stale packaged
+  processes and launching the installed AppX fresh, the official proof
+  `docs/evidence/brain-product/1.15.0-rc.22/20260628-014357-HUGH_SECOND.brain-product-proof.json`
+  and verification
+  `docs/evidence/brain-product/1.15.0-rc.22/20260628-014357-HUGH_SECOND.brain-product-verification.json`
+  passed with `ok=true`, `fail_count=0`; current go/no-go reports
+  `brain_product_verified=true`, `complete_lane_count=3`, and
+  `incomplete_lane_count=5`. This proves fresh packaged launch, not a separate
+  upgrade-in-place sidecar self-heal claim.
+  Regression coverage is in `scripts/windows/test-release-evidence-verifiers.ps1`
+  via `brain product accepts release-grade hidden brain proof`,
+  `brain product rejects legacy weak boolean-only proof`,
+  `brain product rejects public brain HTTP surface evidence`, and
+  `brain product rejects capture proof without recall result`. Search terms
+  should include `musu.brain_product_proof.v1`, `verify-brain-product-proof.ps1`,
+  `record-brain-product-proof.ps1`, `weak boolean-only proof`, `~/.musu/brain`,
+  `musu-ingest.token`, `no musu-brain sidecar process observed`,
+  `HUGH_SECOND brain product proof fail_count=14`,
+  `20260628-014357-HUGH_SECOND.brain-product-proof`, and
+  `brain_product_verified=true`.
+
+- 2026-06-28 V34 self-heal gate hardening + boot reconcile + recorder:
+  V34 is still not fully complete, but the implementation/gate moved forward.
+  `musu-rs/src/peer/discovery.rs` now has
+  `reconcile_manual_peers_with_cached_registry`, a boot/local reconcile path
+  that uses a still-valid cached registry as server truth and prunes same-name
+  stale manual peer ghosts before first cloud heartbeat. The reconcile is
+  candidate-set aware, so same-name manual peers matching any current registry
+  route candidate are preserved. `musu-rs/src/bridge/mod.rs` calls this during
+  bridge startup independent of cloud token availability.
+  `scripts/windows/verify-v34-self-heal-proof.ps1` now rejects weak
+  `musu.v34_self_heal_proof.v1` boolean-only JSON and requires structured TTL
+  prune, boot reconcile, stale-first route preflight, physical two-node, and
+  exactly-one task execution evidence; `write-release-go-no-go.ps1` invokes this
+  verifier before setting `v34_stale_self_heal_verified=true`.
+  `scripts/windows/record-v34-self-heal-proof.ps1` is now the canonical physical
+  proof recorder: it writes `musu.v34_self_heal_proof.v1`, immediately runs the
+  verifier, emits hashes/summary output, and fails closed instead of relying on
+  hand-written JSON. It also binds the selected candidate to the embedded route
+  evidence candidate and requires distinct physical node names. Regression:
+  `boot_reconcile_prunes_stale_manual_but_keeps_current_candidate_set`,
+  `V34 self-heal accepts release-grade physical stale proof`,
+  `V34 self-heal recorder emits verifier-passing release proof`,
+  `V34 self-heal rejects weak boolean-only proof`,
+  `V34 self-heal rejects duplicate task execution proof`, and
+  `V34 self-heal rejects unroutable selected candidate proof`. Current status
+  remains `v34_stale_self_heal_verified=false` until physical evidence is
+  recorded under `docs/evidence/v34-self-heal/1.15.0-rc.22/`. Search terms
+  should include `verify-v34-self-heal-proof.ps1`,
+  `record-v34-self-heal-proof.ps1`,
+  `reconcile_manual_peers_with_cached_registry`, `candidate-set aware reconcile`,
+  `same-name stale manual ghost`, `stale-first route preflight`, and
+  `v34_stale_self_heal_verified=false`.
+
+- 2026-06-28 relay runtime source contract hardening:
+  Relay transport is still not complete and `relay_transport_product_verified`
+  must remain false until physical release-grade relay proof exists. The Rust
+  source contract is stricter: `musu-rs/src/bridge/rendezvous.rs` now exposes
+  `release_relay_tunnel_submission_contract`,
+  `validate_release_relay_tunnel_submission`, and
+  `submit_release_relay_tunnel_payload` for the release tunnel submit side.
+  The contract is bound to `quic_relay_tunnel`, `quic_tls_1_3`, and
+  `musu_quic_tls_transport`; it rejects non-`wss://` relay URLs,
+  non-fingerprint peer public keys, non-`forwarded_task_envelope` payloads, and
+  invalid SHA-256 payload bindings, then remains fail-closed with
+  `release_relay_tunnel_runtime_not_implemented` until the real runtime
+  transport lands. The target accept-side proof remains in
+  `musu-rs/src/bridge/handlers/relay_payload.rs`. Verification:
+  `bridge::rendezvous::tests::release_relay_tunnel_submission_contract_is_release_grade_and_fail_closed`
+  passed, and `scripts/windows/test-release-evidence-verifiers.ps1 -Json` now
+  reports `ok=true`, `case_count=191`, `failed_case_count=0`. Search terms
+  should include `release_relay_tunnel_submission_contract`,
+  `submit_release_relay_tunnel_payload`, `quic_relay_tunnel`,
+  `quic_tls_1_3`, `musu_quic_tls_transport`,
+  `release_relay_tunnel_runtime_not_implemented`, and
+  `relay_transport_product_verified=false`.
+
+- 2026-06-28 support operator gate retirement:
+  The historical `musu@musu.pro` external mailbox delivery proof is retired as a
+  mandatory full-product blocker, but only for the mailbox delivery proof. It
+  does not retire support availability, the configured support email, the public
+  support route, the privacy route, or public release metadata. Formal decision:
+  `docs/SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28.md`. New tooling:
+  `scripts/windows/record-support-operator-gate-retirement.ps1` and
+  `scripts/windows/verify-support-operator-gate-retirement.ps1`. The verifier
+  requires `musu.support_operator_gate_retirement.v1`, current live
+  `musu.store_public_metadata_verification.v2` proof from `https://musu.pro`,
+  verified support/privacy pages, verified public-config, and
+  `support_availability_retired=false`. `write-release-go-no-go.ps1` now closes
+  `support_operator_evidence` when either real mailbox delivery evidence or
+  formal retirement evidence verifies. Current evidence:
+  `docs/evidence/support-operator-gate-retirement/1.15.0-rc.22/20260628-033452-support-operator-gate-retirement.support-operator-gate-retirement.json`
+  and matching verification with `ok=true`, `fail_count=0`. Latest local
+  go/no-go reports `support_operator_gate_retirement_verified=true` and
+  `support_operator_evidence_verified=true`; remaining full-product blockers are
+  `design_approval`, `relay_transport`, `v34_stale_self_heal`, and
+  `store_distribution`. Search terms should include
+  `support_operator_gate_retirement_verified`,
+  `support_operator_evidence_verified`,
+  `record-support-operator-gate-retirement.ps1`,
+  `verify-support-operator-gate-retirement.ps1`,
+  `support_mailbox_delivery_evidence_only`, and
+  `SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28`.
+
+- 2026-06-28 direct route work-targetability mesh bearer fix:
+  The current two-PC fleet proof remains healthy, but a live delegated route
+  probe from `hugh_second` to `hugh-main` exposed a stricter product blocker:
+  route selection chose the direct LAN candidate `192.168.1.192:4387`, then
+  submit failed with `submit_http_status_401 Unauthorized` / invalid bearer.
+  Evidence was written under
+  `.local-build\v34-self-heal\route-probe\20260628-035659-hugh_second-to-hugh-main.route-evidence.json`.
+  Root cause: `musu-rs/src/install/cli_commands.rs` used the local
+  per-machine bridge token for remote route submission, while the remote bridge
+  accepts the account-wide mesh bearer. Source fix: remote routes now prefer
+  `MUSU_TOKEN` / `read_mesh_bearer(home)` and only fall back to the bridge
+  token; local routes keep bridge-token behavior. Verification passed:
+  `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`, targeted
+  route-token tests
+  `remote_route_token_prefers_mesh_bearer_over_local_bridge_token`,
+  `remote_route_token_prefers_mesh_bearer_over_env_bridge_token`, and
+  `remote_route_token_accepts_musu_token_env_as_shared_bearer_override`,
+  plus single-file rustfmt and `git diff --check`. A rebuilt debug CLI route
+  probe then succeeded and wrote
+  `.local-build\v34-self-heal\route-probe\20260628-042218-hugh_second-to-hugh-main.debug-route-evidence.json`
+  with `result=success`, `route_kind=lan`, and
+  `candidate_addr=192.168.1.192:4387`. This source/debug proof is now
+  superseded by the packaged direct route proof below.
+  Search terms should include `submit_http_status_401 Unauthorized`,
+  `invalid bearer`, `get_route_token`, `get_outbound_peer_token`,
+  `read_mesh_bearer`, `remote_route_token_prefers_mesh_bearer`,
+  `hugh_second-to-hugh-main.route-evidence`,
+  `hugh_second-to-hugh-main.debug-route-evidence`, and
+  `direct delegated-work route`.
+
+- 2026-06-28 packaged direct route proof gate:
+  The direct delegated-work route lane is closed for the current rc.22 package
+  over direct LAN. `musu-bee/src-tauri/musu-brain.pin.json` now pins the clean
+  `F:\musu_2nd_brain` HEAD
+  `027eec841613ff2e0b16df26f55066ab207ab4ec`. The package was rebuilt with
+  `build-msix.ps1 -Configuration release -Architecture x64 -StartupContract
+  local-sideload-manual -NoBump`, installed with
+  `install-and-verify-msix.ps1 -StartupContract local-sideload-manual
+  -ReplaceExisting`, and verified as
+  `blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc`. Packaged route evidence:
+  `docs/evidence/direct-route/1.15.0-rc.22/20260628-050231-HUGH_SECOND-to-hugh-main.packaged-direct-route-evidence.json`
+  with `result=success`, `source_node_id=hugh_second`,
+  `target_node_id=hugh-main`, `route_kind=lan`,
+  `candidate_addr=192.168.1.192:4387`, and
+  `payload_transited_musu_infra=false`. Packaged install evidence:
+  `docs/evidence/msix-install/1.15.0-rc.22/20260628-050309-HUGH_SECOND.evidence.json`
+  plus matching verification and summary. New verifier:
+  `scripts/windows/verify-direct-route-evidence.ps1`; go/no-go now reports
+  `direct_route_verified=true` and `direct_delegated_work_route=pass`. It is
+  covered by `scripts/windows/test-release-evidence-verifiers.ps1 -Json` with
+  direct-route accept/reject cases and current `ok=true`, `case_count=191`,
+  `failed_case_count=0`. This is
+  direct LAN work-targetability proof, not relay fallback or peer-identity
+  transport proof: the evidence records `peer_identity_verified=false`,
+  `encryption=none_http_bearer`, and `release_grade_transport=false`. Current
+  full-product blockers remain `design_approval`, `relay_transport`,
+  `v34_stale_self_heal`, and `store_distribution`. Search terms should include
+  `verify-direct-route-evidence.ps1`, `direct_route_verified`,
+  `direct_delegated_work_route`, `packaged-direct-route-evidence`,
+  `hugh_second-to-hugh-main.packaged-direct-route-evidence`, and
+  `payload_transited_musu_infra=false`.
+
+- 2026-06-28 V34 CLI route stale-candidate preflight:
+  Follow-up product audit found that bridge forwarding already had candidate
+  preflight/reorder behavior, but the user-facing `musu route` CLI still
+  selected one candidate and submitted directly. `musu-rs/src/install/cli_commands.rs`
+  now builds the explicit-target candidate set, probes remote candidates with
+  bounded `GET /api/fleet/node-status` using the outbound peer token, moves
+  reachable candidates before stale failed candidates, and submits the delegated
+  task only once to avoid duplicate execution. Auto-route with no explicit target
+  preserves the previous single-selection behavior. Verification passed:
+  `cli_route_candidates_include_all_matching_target_routes`,
+  `cli_route_preflight_moves_reachable_candidate_before_stale_first_candidate`,
+  `cli_route_preflight_preserves_order_when_no_candidate_is_reachable`,
+  single-file rustfmt, and
+  `cargo check --manifest-path .\musu-rs\Cargo.toml --bin musu -j 1`.
+  This closes a source-level V34 stale-first gap, but does not close the release
+  lane: `v34_stale_self_heal_verified=false` until a rebuilt package has
+  physical stale registry/cache/manual-peer evidence and exactly-one task
+  execution proof. Latest local go/no-go after this update still reports
+  `full_product_spec_ready=false`, `complete_lane_count=5`,
+  `incomplete_lane_count=4`, and incomplete lanes `design_approval`,
+  `relay_transport`, `v34_stale_self_heal`, and `store_distribution`.
+  Search terms should include
+  `cli_route_candidates_for_route`,
+  `prioritize_cli_route_candidates_by_preflight`,
+  `reorder_cli_route_candidates_by_preflight`,
+  `probe_cli_route_candidate`,
+  `cli_route_preflight_moves_reachable_candidate_before_stale_first_candidate`,
+  `cli_route_preflight_preserves_order_when_no_candidate_is_reachable`,
+  `cli_route_candidates_include_all_matching_target_routes`,
+  `node-status preflight`, and `v34_stale_self_heal_verified=false`.
+
+- 2026-06-28 V34 self-heal proof route-evidence binding hardening:
+  `scripts/windows/verify-v34-self-heal-proof.ps1` now re-checks that the
+  embedded `musu.route_evidence.v1` is bound to the V34 wrapper. The verifier
+  requires route evidence `version` to match the release version,
+  `source_node_id` and `target_node_id` to match `route_preflight`
+  source/target names, `candidate_addr` to match
+  `selected_candidate_addr`, route kind to be direct (`lan`, `tailscale`, or
+  `direct_quic`), and `payload_transited_musu_infra=false`. It also requires
+  `source_evidence.route_evidence_candidate_matches_selected=true`,
+  `source_evidence.node_pair_distinct=true`, and
+  `source_evidence.route_evidence_candidate_addr` to match the selected
+  candidate. Regression harness `scripts/windows/test-release-evidence-verifiers.ps1`
+  now includes `V34 self-heal rejects route evidence candidate mismatch`,
+  `V34 self-heal rejects route evidence node mismatch`, and
+  `V34 self-heal rejects route evidence version mismatch`; latest run reports
+  `ok=true`, `case_count=194`, and `failed_case_count=0`. This hardens the
+  V34 release proof shape but does not close the lane:
+  `v34_stale_self_heal_verified=false` until rebuilt packaged physical
+  stale-state evidence is recorded. Search terms should include
+  `source_evidence.route_evidence_candidate_matches_selected`,
+  `route evidence candidate mismatch`, `route evidence node mismatch`,
+  `route evidence version mismatch`,
+  `route_preflight.route_evidence.source_node_id`,
+  `route_preflight.route_evidence.target_node_id`, and
+  `payload_transited_musu_infra=false`.
+
+- 2026-06-28 V34 second-PC proof kit update:
+  `scripts/windows/prepare-multidevice-test-kit.ps1` now ships
+  `record-v34-self-heal-proof.ps1` and `verify-v34-self-heal-proof.ps1` in the
+  transfer kit, and the generated README has a dedicated
+  `V34 stale self-heal proof` runbook. The runbook makes this separate from
+  normal route reachability/multi-device smoke, requires real two-node stale
+  registry/cache/manual-peer evidence, requires stale-first route candidate
+  recovery, and requires exactly-one delegated task execution through
+  `RouteDuplicateTaskExecutionPrevented` plus `RouteTaskPostCount 1`. It also
+  preserves the route-evidence binding contract:
+  `musu.route_evidence.v1`, same version/source/target/candidate,
+  `payload_transited_musu_infra=false`, and
+  `route_evidence_candidate_matches_selected`. Regression harness
+  `scripts/windows/test-release-evidence-verifiers.ps1` now includes
+  `second-PC kit includes V34 self-heal proof tools and runbook`; latest run
+  reports `ok=true`, `case_count=195`, and `failed_case_count=0`. This improves
+  the physical proof collection path but does not close the lane:
+  `v34_stale_self_heal_verified=false` until rebuilt packaged physical evidence
+  is committed under `docs/evidence/v34-self-heal/1.15.0-rc.22/`. Search terms
+  should include `second-PC kit includes V34 self-heal proof tools and runbook`,
+  `V34 stale self-heal proof`, `record-v34-self-heal-proof.ps1`,
+  `verify-v34-self-heal-proof.ps1`, `RouteStaleCandidateWasFirst`,
+  `RouteDuplicateTaskExecutionPrevented`, `RouteTaskPostCount 1`,
+  `route_evidence_candidate_matches_selected`, and
+  `v34_stale_self_heal_verified=false`.
+
+- 2026-06-28 final operator packet full-product alignment:
+  `scripts/windows/prepare-final-operator-gate-packet.ps1` now copies the
+  current full-product roadmap, `SUPPORT_OPERATOR_GATE_RETIREMENT_2026_06_28`,
+  and `V34_DISCOVERY_STALE_THESIS_2026_06_26` into the packet docs. It also
+  ships `record-v34-self-heal-proof.ps1`, `verify-v34-self-heal-proof.ps1`,
+  and `verify-direct-route-evidence.ps1` with the packet scripts. The generated
+  packet README now names the current four full-product blockers:
+  `design approval evidence for PR #34`, `real delegated-work relay transport
+  proof`, `V34 stale registry/cache/manual-peer physical self-heal proof`, and
+  `Store distribution approval and Store-signed install evidence`. The old
+  support mailbox delivery gate is explicitly not a remaining blocker for this
+  packet because formal support-operator retirement plus public support/privacy
+  metadata satisfy the current support/operator lane. The packet now includes
+  `Gate D - V34 stale self-heal physical proof` and
+  `Gate E - Relay transport failure-injection proof`; the relay gate remains
+  diagnostic until direct-blocked two-PC evidence contains
+  `musu.relay_transport_proof.v1`, route evidence with relay proof attached,
+  and `musu.relay_payload_delivery_proof.v1`. Regression harness now includes
+  `final operator packet surfaces current full-product blockers and proof
+  paths`; latest run reports `ok=true`, `case_count=196`, and
+  `failed_case_count=0`. This improves handoff correctness but does not close
+  `relay_transport_product_verified=false` or
+  `v34_stale_self_heal_verified=false`. Search terms should include
+  `final operator packet surfaces current full-product blockers and proof
+  paths`, `Current full-product blockers`, `Gate D - V34 stale self-heal
+  physical proof`, `Gate E - Relay transport failure-injection proof`,
+  `record-v34-self-heal-proof.ps1`, `record-p2p-control-plane-evidence.ps1
+  -BaseUrl https://musu.pro -Json`, and
+  `musu.relay_payload_delivery_proof.v1`.
+
+- 2026-06-28 Store release evidence hardening:
+  `scripts/windows/record-store-release-verification.ps1` and
+  `scripts/windows/verify-store-release-evidence.ps1` now require
+  Microsoft Store approval evidence to be bound to physical Store install and
+  launch proof. A valid Store release record must include
+  `-StoreSignedInstallEvidencePath`, `-StoreDesktopEntrypointEvidencePath`,
+  `-StoreInstallObservedAt`, and `-StoreLaunchObservedAt`; the embedded install
+  proof must be `musu.msix_install_evidence.v1` for
+  `store-reviewed-immediate-registration`, and the embedded desktop proof must
+  be `musu.msix_desktop_entrypoint_audit.v1` proving the installed Start-menu
+  app launches `musu-desktop.exe`. This prevents Partner Center approval
+  timestamps alone from flipping `store_release_verified=true`. Search terms
+  should include `StoreSignedInstallEvidencePath`,
+  `StoreDesktopEntrypointEvidencePath`, `store_install_source`,
+  `musu.msix_install_evidence.v1`, and
+  `musu.msix_desktop_entrypoint_audit.v1`.
+
+- 2026-06-28 V34 artifact-bound proof contract:
+  follow-up audit found that the V34 proof was stricter than boolean-only JSON
+  but the recorder still accepted operator-entered TTL and boot-reconcile
+  booleans without binding those claims to source artifacts.
+  `scripts/windows/record-v34-source-artifacts.ps1` now records the required
+  TTL and boot source artifacts from actual before/after snapshot JSON files.
+  Follow-up hardening on the same gate now requires those embedded snapshots to
+  use canonical schemas `musu.v34_ttl_snapshot.v1` and
+  `musu.v34_boot_snapshot.v1`, with counts/flags/timestamps bound to the source
+  evidence before the recorder or final verifier accepts the proof.
+  `scripts/windows/record-v34-self-heal-proof.ps1` now requires
+  `-TtlSourceEvidencePath` and `-BootSourceEvidencePath`, embeds the source
+  JSON in `source_evidence`, records SHA256 hashes, and fails closed if those
+  source fields do not match the wrapper. TTL source evidence must use schema
+  `musu.v34_ttl_prune_source.v1`; boot source evidence must use schema
+  `musu.v34_boot_reconcile_source.v1`.
+  `scripts/windows/verify-v34-self-heal-proof.ps1` now checks source schemas,
+  source artifact hashes, source snapshot hashes, embedded before/after
+  snapshots, TTL/boot source-to-wrapper field bindings, route evidence SHA256
+  metadata, route binding, distinct node pair, and exactly-one task execution.
+  The multi-device kit, final operator packet, and go/no-go next action now show
+  the snapshot capture helper, source artifact recorder, and required TTL/boot
+  source artifact paths.
+  Regression harness now includes
+  `V34 source artifact recorder emits TTL and boot source evidence` and
+  `V34 self-heal rejects proof without TTL and boot source artifacts`; latest
+  run reports `ok=true`, `case_count=208`, and `failed_case_count=0`. This
+  hardens the proof contract but does not close the lane:
+  `v34_stale_self_heal_verified=false` until a rebuilt packaged physical
+  stale-state proof with source artifacts is committed under
+  `docs/evidence/v34-self-heal/1.15.0-rc.22/`. Search terms should include
+  `record-v34-source-artifacts.ps1`, `TtlSourceEvidencePath`, `BootSourceEvidencePath`,
+  `musu.v34_ttl_prune_source.v1`, `musu.v34_boot_reconcile_source.v1`,
+  `before_snapshot_sha256`, `after_snapshot_sha256`,
+  `ttl_source_evidence_matches_parameters`,
+  `boot_source_evidence_matches_parameters`,
+  `route_evidence_sha256`, and
+  `V34 self-heal rejects proof without TTL and boot source artifacts`.
+
+- 2026-06-28 V34 source snapshot capture helper:
+  follow-up audit found that the V34 proof contract was strict, but operators
+  still had to hand-produce canonical before/after snapshot JSON.
+  `scripts/windows/capture-v34-source-snapshot.ps1` now reads physical
+  `~/.musu/nodes.cache.json` and `~/.musu/manual_peers.toml` state and writes
+  canonical `musu.v34_ttl_snapshot.v1` or `musu.v34_boot_snapshot.v1` JSON.
+  TTL capture computes stale row counts from `last_heartbeat` and
+  `-HeartbeatTtlSec`; boot capture classifies stale same-name ghosts, current
+  same-name candidates, LAN-only manual peers, and nameless ad hoc peers
+  against the cached registry candidate set. Boot `after` capture requires
+  `-BootPrunedManualPeerCount` so the after snapshot binds to the source
+  artifact recorder. The multi-device kit and final operator packet now ship the
+  helper and show capture commands before `record-v34-source-artifacts.ps1`.
+  Operators must pass the exact `stale_row_last_seen_at` emitted by the
+  TTL-before snapshot into `record-v34-source-artifacts.ps1` because PowerShell
+  can normalize JSON timestamps to the local offset while preserving the same
+  instant.
+  Regression harness now executes
+  `V34 snapshot capture emits TTL before canonical snapshot`,
+  `V34 snapshot capture emits boot before canonical snapshot`, and
+  `V34 snapshot capture emits boot after canonical snapshot with pruned count`;
+  latest run reports `ok=true`, `case_count=208`, and `failed_case_count=0`.
+  Additional integration smoke fed helper-emitted TTL/boot before/after
+  snapshots directly into `record-v34-source-artifacts.ps1` and the recorder
+  accepted them.
+  Search terms should include `capture-v34-source-snapshot.ps1`,
+  `musu.v34_source_snapshot_capture.v1`, `BootPrunedManualPeerCount`,
+  `stale_same_name_manual_peer`, and `V34 snapshot capture emits boot after
+  canonical snapshot with pruned count`.
+
+- 2026-06-28 V34 route evidence shape hardening:
+  follow-up audit found that `verify-v34-self-heal-proof.ps1` bound embedded
+  `musu.route_evidence.v1` to the V34 wrapper but could still accept a minimal
+  synthetic route evidence fragment. The verifier now also requires positive
+  `total_attempt_ms`, empty `failure_class` on success, parseable/current
+  `recorded_at`, and non-empty `source_evidence.route_evidence_path`.
+  `scripts/windows/test-release-evidence-verifiers.ps1` now includes
+  `V34 self-heal rejects minimal synthetic route evidence`; latest run reports
+  `ok=true`, `case_count=209`, and `failed_case_count=0`. This hardens the
+  V34 proof contract but does not close the lane:
+  `v34_stale_self_heal_verified=false` until rebuilt packaged physical
+  stale-state evidence is committed under
+  `docs/evidence/v34-self-heal/1.15.0-rc.22/`. Search terms should include
+  `route evidence attempt timing`, `route evidence recorded timestamp`,
+  `route evidence failure class`, `source evidence route path`, and
+  `V34 self-heal rejects minimal synthetic route evidence`.
+
+- 2026-06-28 relay second-PC proof kit alignment:
+  the final operator packet already documented the relay failure-injection gate,
+  but the second-PC multi-device kit did not carry the same physical proof path.
+  `scripts/windows/prepare-multidevice-test-kit.ps1` now copies
+  `show-musu-pro-p2p-env-status.ps1`,
+  `record-p2p-control-plane-evidence.ps1`, and
+  `verify-p2p-control-plane-evidence.ps1`; the generated README has a
+  `Relay transport failure-injection proof` section requiring a direct-blocked
+  two-PC run, `musu.relay_transport_proof.v1`, `musu.route_evidence.v1` with
+  relay proof attached, and `musu.relay_payload_delivery_proof.v1`. The section
+  explicitly keeps `relay_transport_product_verified=false` until real
+  QUIC/TLS relay runtime and verifier-passing physical evidence exist.
+  Regression harness now includes
+  `second-PC kit includes relay transport proof tools and runbook`; latest run
+  reports `ok=true`, `case_count=208`, and `failed_case_count=0`. Search terms
+  should include `relay second-PC proof kit alignment`,
+  `Relay transport failure-injection proof`,
+  `record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -Json`, and
+  `musu.relay_payload_delivery_proof.v1`.
+
+- 2026-06-28 static readiness audit closure:
+  follow-up audit closed three source-level blockers without changing the full
+  product No-Go status. The frontend polling contract marker now names bounded
+  EventSource behavior instead of browser auto-retry and
+  `audit-frontend-polling-contract.ps1 -Json` reports `ok=true`, `fail_count=0`.
+  The Rust background-loop audit now explicitly allows the bridge mesh bearer
+  token watcher in `musu-rs/src/bridge/mod.rs`, and the bridge comment no longer
+  trips the indexer-watch false positive; `audit-rust-background-loop-contract.ps1`
+  reports `ok=true`, `fail_count=0`. The P2P store-forward relay source contract
+  now rejects release relay tunnel submissions with blank `source_node_id`,
+  `target_node_id`, or `tunnel_id` before the fail-closed runtime marker;
+  `audit-p2p-store-forward-relay-contract.ps1` reports `ok=true`,
+  `fail_count=0`. App-level tests passed with `npm run test:runtime-polling`
+  (`20/20`) and `npm run test:p2p` (`124/124`). A targeted Rust unit test was
+  attempted but the local Windows compile failed with `rustc-LLVM ERROR: out of
+  memory` followed by cascading missing-prelude errors, so it is not counted as
+  release proof. `cargo fmt --check` still reports pre-existing crate-wide
+  rustfmt drift outside this change. Local HTTPS verification of
+  `https://musu.pro/privacy` and public config currently fails from this PC with
+  a Cloudflare/TLS reset, so current canonical local public metadata evidence is
+  still not green. Full-product blockers remain design approval, real relay
+  transport, V34 physical self-heal proof, Store distribution proof, and current
+  local public metadata verification. Search terms should include
+  `dashboard axis pages use bounded EventSource instead of browser auto-retry`,
+  `audit-rust-background-loop-contract ok=true`, `release_relay_tunnel_source_node_id_missing`,
+  `release_relay_tunnel_target_node_id_missing`,
+  `release_relay_tunnel_id_missing`, `rustc-LLVM ERROR: out of memory`, and
+  `public_metadata_ok=false`.
+
+- 2026-06-28 local packaged runtime evidence refresh:
+  process ownership initially failed only because the bridge registry recorded
+  the correct wildcard bind `0.0.0.0:8211` and
+  `audit-musu-process-ownership.ps1` tried to use that wildcard as the HTTP
+  client `/health` target. The audit now preserves the recorded registry address
+  but normalizes wildcard health probes to loopback, producing
+  `HTTP 200 via 127.0.0.1:8211`. Accepted rc.22 local package evidence now
+  includes
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260628-100747-HUGH_SECOND.process-ownership.json`,
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260628-100802-HUGH_SECOND.startup-single-instance.json`,
+  nested
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260628-100802-HUGH_SECOND.startup-single-instance.process-ownership.json`,
+  and
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260628-100827-HUGH_SECOND.desktop-single-instance.json`.
+  These close HUGH_SECOND process ownership, startup single-instance, and
+  desktop repeated activation evidence for the current package; they do not
+  replace two-machine runtime CPU/matrix, private-mesh packaged proof, public
+  metadata, Store, relay transport, V34, or design approval. Search terms should
+  include `Resolve-LocalHttpHealthAddr`, `HTTP 200 via 127.0.0.1:8211`,
+  `20260628-100747-HUGH_SECOND.process-ownership`,
+  `20260628-100802-HUGH_SECOND.startup-single-instance`, and
+  `20260628-100827-HUGH_SECOND.desktop-single-instance`.
+
+- 2026-06-28 rc.22 single-machine packaged smoke refresh:
+  fresh HUGH_SECOND single-machine smoke now passes for the current rc.22
+  packaged WindowsApps runtime. The accepted evidence is
+  `docs/evidence/single-machine/1.15.0-rc.22/20260628-101659-HUGH_SECOND.evidence.json`
+  with matching verification
+  `docs/evidence/single-machine/1.15.0-rc.22/20260628-101659-HUGH_SECOND.verification.json`
+  and summary
+  `docs/evidence/single-machine/1.15.0-rc.22/20260628-101659-HUGH_SECOND.summary.md`.
+  It records `allow_developer_runtime=false`, `single_machine_surface=local-bridge-only`,
+  bridge `http://127.0.0.1:8211`, packaged
+  `C:\Users\empty\AppData\Local\Microsoft\WindowsApps\musu.exe`, CLI route
+  checked, `ok=true`, and `fail_count=0`. This removes the fresh
+  single-machine blocker once committed, but the product remains No-Go on
+  second-PC multi-device, private-mesh packaged proof, two-machine CPU/matrix,
+  public metadata, Store, relay transport, V34, and design approval. Search
+  terms should include `20260628-101659-HUGH_SECOND.evidence.json`,
+  `single_machine_surface=local-bridge-only`, `allow_developer_runtime=false`,
+  `single_machine_verified=true`, and `bridge http://127.0.0.1:8211`.
+
+- 2026-06-28 rc.22 HUGH_SECOND runtime CPU evidence refresh:
+  fresh packaged runtime CPU evidence now exists for HUGH_SECOND. The
+  desktop-open idle CPU evidence is
+  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260628-102430-HUGH_SECOND.desktop-open.evidence.json`
+  and reports `ok=true`, `git_dirty=false`, `sample_seconds=60.019`,
+  two MUSU processes, six owned WebView2 helpers, `hot_process_count=0`, and
+  working set `411.02MB`. The full runtime CPU scenario matrix is
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260628-103303-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  and verifies `startup-open`, `runtime-started`, `dashboard-open`,
+  `desktop-open`, and `post-route` from clean git state with target
+  `hugh-main` and route token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_103303`. This advances the CPU lanes to
+  HUGH_SECOND-side evidence only; the release gate remains No-Go until matching
+  second physical machine evidence is recorded. Search terms should include
+  `20260628-102430-HUGH_SECOND.desktop-open`,
+  `20260628-103303-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_103303`,
+  `runtime_idle_cpu_valid_machines`, and `runtime_cpu_scenario_matrix`.
+
+- 2026-06-28 public metadata apex TLS NO-GO:
+  `docs/PUBLIC_METADATA_APEX_TLS_NO_GO_2026_06_28.md` records the current
+  system-design audit finding for `https://musu.pro`: the canonical apex host
+  resets the TLS handshake from `HUGH_SECOND`, so
+  `verify-store-public-metadata.ps1 -Json` fails with
+  `failure_kinds=request_failed` for `/privacy`, `/support`, and
+  `/api/public-config`. `www.musu.pro` completes TLS but only returns a Vercel
+  `307` redirect back to the failing apex. DNS authority is currently
+  Cloudflare (`blakely.ns.cloudflare.com`, `weston.ns.cloudflare.com`) while
+  `vercel domains inspect musu.pro` reports intended nameservers
+  `ns1.vercel-dns.com` and `ns2.vercel-dns.com`. This is a product-spec NO-GO
+  until apex HTTPS is repaired and the canonical public metadata verifier plus
+  go/no-go pass. Search terms should include
+  `PUBLIC_METADATA_APEX_TLS_NO_GO_2026_06_28`,
+  `apex TLS handshake reset`, `failure_kinds=request_failed`,
+  `blakely.ns.cloudflare.com`, and `ns1.vercel-dns.com`.
+
+- 2026-06-28 rc.22 second-PC kit refresh after public metadata audit:
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md` records the concise handoff for
+  `hugh-main`. Regenerated `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260628-110054.zip`
+  from clean commit `552b239eef0ced04f3a08658c5dc82ced2a90145`.
+  `kit-build-metadata.json` records branch `feat/v33-residual-finalize`,
+  `dirty=false`, and version `1.15.0-rc.22`. The kit includes
+  `run-second-pc-release-check.ps1`, CPU idle/matrix capture and verifier
+  scripts, route preflight, V34 source/proof scripts, relay/P2P control-plane
+  evidence scripts, and multidevice recorder/verifier scripts. For `hugh-main`,
+  the release-grade second-PC CPU/matrix command should target this machine:
+  `powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RouteReachabilityTarget hugh_second -RuntimeCpuRouteTarget hugh_second -FailOnRouteReachabilityDiagnostic -FailOnRuntimeCpuScenarioMatrix`.
+  This prepares the second physical machine evidence path but does not close it
+  until the return zip is imported and the canonical verifiers pass. Search
+  terms should include `musu-multidevice-1.15.0-rc.22-20260628-110054`,
+  `RuntimeCpuRouteTarget hugh_second`, and
+  `552b239eef0ced04f3a08658c5dc82ced2a90145`. This kit is now historical;
+  the current handoff points to the later `20260628-204644` kit.
+
+- 2026-06-28 product spec completion audit refresh:
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md` recorded the then-current
+  full-spec NO-GO state from `HUGH_SECOND`. That go/no-go reported
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=15`, `public_metadata_ok=false`,
+  `p2p_control_plane_verified=false`, and
+  `relay_transport_product_verified=false`. The post-code-commit gate at
+  `2026-06-28T11:56:33.9311548+09:00` records clean commit
+  `fb90715d60303ac463e609b9543de14687f16261` and
+  is superseded by the later 13:53 current-HEAD evidence refresh below.
+  `manifest_git.dirty=false`; local packaged evidence lanes such as
+  single-machine smoke, process ownership, startup single-instance, desktop
+  repeated activation, and CPU evidence must be refreshed for the current
+  package/source before the gate counts them again. Fresh
+  `audit-p2p-store-forward-relay-contract.ps1 -Json` reports
+  `schema=musu.p2p_store_forward_relay_contract.v1`, `ok=true`,
+  `fail_count=0`, proving the P2P source contract is fail-closed and
+  internally consistent. Fresh `show-musu-pro-p2p-env-status.ps1 -Json`
+  remains `ok=false` with `release_relay_payload_endpoint_implemented=false`,
+  `release_relay_tunnel_runtime_implemented=false`,
+  `preview_store_forward_payload_queue_non_release_grade=true`, and missing
+  KV/Upstash plus live relay route/transport/delivery proof. Fresh
+  `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` remains
+  `ok=false`, `fail_count=3`, `failure_kinds=request_failed` for `/privacy`,
+  `/support`, and `/api/public-config`. Search terms should include
+  `PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28`,
+  `release_relay_tunnel_runtime_implemented=false`,
+  `missing_kv_rest_api_url_or_upstash_redis_rest_url`, and
+  `failure_kinds=request_failed`.
+
+- 2026-06-28 Private Mesh physical peer evidence handoff:
+  `docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md` records the
+  source fix and remaining packaged release proof path. `musu mesh
+  physical-peer-evidence` no longer requires `mesh.node_name` in
+  `~/.musu/private_mesh.toml` when live `tailscale status --json`
+  `Self.HostName` is available, and it prefers live `tailscale ip -4` over
+  stale persisted `verification.local_tailnet_ip`. Local debug CLI evidence on
+  `HUGH_SECOND` generated
+  `.local-build\private-mesh-physical-peer\20260628-codex\hugh_second.physical-peer-evidence.json`
+  with `node_name_source=tailscale.status.Self.HostName`,
+  `tailnet_ip_source=tailscale.ip`, `tailnet_ip=100.64.0.1`, and
+  `persisted_tailnet_ip=100.64.0.2`. Targeted `cargo test --lib
+  parse_tailnet_status_hostname` passed 2 tests. A broad filtered Cargo test on
+  this Windows host failed due paging-file/linker memory limits (`os error
+  1455`, `LNK1102`), so narrow checks should use `CARGO_BUILD_JOBS=1` and
+  `--lib`. This does not close `private_mesh_packaged_release_proof_verified`;
+  next steps are rebuild/install package on both PCs, generate target evidence
+  on `hugh-main`, run `run-private-mesh-release-proof.ps1`, verify/import the
+  archive, and rerun go/no-go. Search terms should include
+  `PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28`,
+  `node_name_source`, `tailnet_ip_source`, `persisted_tailnet_ip=100.64.0.2`,
+  `parse_tailnet_status_hostname`, `os error 1455`, and `LNK1102`.
+
+- 2026-06-28 current packaged local evidence and go/no-go refresh:
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md` and
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md` now record
+  the post-rebuild gate at `2026-06-28T12:55:54.4409984+09:00`. The local
+  sideload MSIX
+  `.local-build\msix\output\musu_1.15.0.22_x64_local-sideload-manual.msix`
+  was rebuilt and installed on HUGH_SECOND; it was last written
+  `2026-06-28T12:26:06+09:00` and is `40710731` bytes. Fresh current-package
+  evidence is committed for single-machine smoke
+  `20260628-122829-HUGH_SECOND`, process ownership
+  `20260628-122848-HUGH_SECOND`, startup single-instance
+  `20260628-122855-HUGH_SECOND`, desktop repeated activation
+  `20260628-122908-HUGH_SECOND`, desktop-open idle CPU
+  `20260628-123156-HUGH_SECOND`, and runtime CPU scenario matrix
+  `20260628-123157-HUGH_SECOND`. That go/no-go reported
+  `full_product_spec_ready=false` and `ready_for_public_desktop_release=false`,
+  but blockers dropped to `10` with `single_machine_verified=true`,
+  `process_ownership_verified=true`, `startup_single_instance_verified=true`,
+  `desktop_single_instance_verified=true`, and
+  `runtime_cpu_second_pc_route_attempt_verified=true`. Remaining blockers are
+  real second-PC multi-device proof, packaged Private Mesh release proof
+  archive, two-machine runtime idle CPU/matrix proof, public metadata, Store
+  release evidence, P2P control-plane relay proof, design approval, real relay
+  transport, and V34 physical stale self-heal proof. This older snapshot is
+  superseded by the later `20260628-133347-HUGH_SECOND` current-HEAD refresh.
+  Search terms should
+  include `20260628-122829-HUGH_SECOND`, `20260628-123157-HUGH_SECOND`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_123157`, `blockers=10`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`, and
+  `private_mesh_packaged_release_proof_verified=false`.
+
+- 2026-06-28 current second-PC kit supersedes the 11:00 kit:
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md` now points `hugh-main` to
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-204644.zip`.
+  `kit-build-metadata.json` records `version=1.15.0-rc.22`, branch
+  `feat/v33-residual-finalize`, commit
+  `8e82fae46eb25b59171627627cab5dcfba7e847f`, and `dirty=false`.
+  `prepare-multidevice-test-kit.ps1 -Json` now emits
+  `musu.multidevice_test_kit_prepare.v1` with `zip_sha256` and
+  `metadata_path`, persists
+  `.local-build\multi-device-test-kit\latest-prepare-output.json`, and fixes
+  the go/no-go next action command without leaving a stale latest pointer. The
+  current generated kit SHA256 is
+  `6718085a3765f6159e1f9571974e477f343a5825c536d99267d86335b22d0396`.
+  The command for `hugh-main` remains:
+  `powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RouteReachabilityTarget hugh_second -RuntimeCpuRouteTarget hugh_second -FailOnRouteReachabilityDiagnostic -FailOnRuntimeCpuScenarioMatrix`.
+  This advances the physical evidence path but does not close second-PC
+  multi-device or two-machine CPU/matrix blockers until the return zip is
+  imported and verified. Search terms should include
+  `musu-multidevice-1.15.0-rc.22-20260628-204644`,
+  `6718085a3765f6159e1f9571974e477f343a5825c536d99267d86335b22d0396`,
+  `musu.multidevice_test_kit_prepare.v1`, and
+  `8e82fae46eb25b59171627627cab5dcfba7e847f`.
+
+- 2026-06-28 clean-HEAD go/no-go after second-PC kit JSON fix:
+  `write-release-go-no-go.ps1 -Json` wrote
+  `.local-build\go-no-go\after-second-pc-kit-json-refresh.json` at
+  `2026-06-28T14:24:39.8780563+09:00` for commit
+  `bcbaba71492722f1ebcf4435800789e959ea88ab`, `manifest_git.dirty=false`,
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, and `warnings=1`. Local package evidence lanes stayed green:
+  `single_machine_verified=true`, `process_ownership_verified=true`,
+  `startup_single_instance_verified=true`,
+  `desktop_single_instance_verified=true`, and
+  `runtime_cpu_second_pc_route_attempt_verified=true`. Remaining blockers are
+  still real second-PC multi-device proof, packaged Private Mesh archive,
+  two-machine idle CPU/matrix proof, public metadata DNS/edge proof, Store
+  release evidence, P2P control-plane release relay proof, design approval,
+  real delegated-work relay transport, and V34 stale self-heal proof. Search
+  terms should include `after-second-pc-kit-json-refresh.json`,
+  `2026-06-28T14:24:39.8780563+09:00`,
+  `bcbaba71492722f1ebcf4435800789e959ea88ab`, and `blockers=10`.
+
+- 2026-06-28 P2P control-plane evidence integrity refresh:
+  `record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -AllowUnverified -Json`
+  wrote
+  `docs/evidence/p2p-control-plane/1.15.0-rc.22/20260628-143223-musu.pro.evidence.json`,
+  `.sha256`, `.verification.json`, and `.summary.md`. Strict verification with
+  `verify-p2p-control-plane-evidence.ps1 -RequireIntegrity` reports
+  `ok=false`, `fail_count=39`, `evidence_integrity_status=verified`, and
+  `evidence_integrity_ok=true`. This replaces the stale sidecar-missing P2P
+  evidence warning candidate, but the release lane remains NO-GO because
+  `relay_transport_wired=false`,
+  `relay_transport_payload_endpoint_wired=false`,
+  `relay_payload_transport_proven=false`, and route/proof/delivery counts are
+  zero. Search terms should include `20260628-143223-musu.pro.evidence.json`,
+  `evidence_integrity_status=verified`, `fail_count=39`,
+  `relay_payload_transport_proven=false`, and
+  `p2p-control-plane-integrity`.
+
+- 2026-06-28 clean-HEAD go/no-go after P2P integrity refresh:
+  `write-release-go-no-go.ps1 -Json` wrote
+  `.local-build\go-no-go\after-p2p-integrity-refresh.json` at
+  `2026-06-28T14:36:32.5281353+09:00` for commit
+  `6d28c0e3f5fe7042638b25f261dbaae69e086e14`, `manifest_git.dirty=false`,
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, and `warnings=0`. The fresh P2P integrity sidecar is verified
+  (`p2p_control_plane_evidence_integrity_status=verified`,
+  `p2p_control_plane_evidence_integrity_ok=true`), but
+  `p2p_control_plane_verified=false` and
+  `relay_transport_product_verified=false`; the product remains NO-GO.
+
+- 2026-06-28 desktop-latest asset cache-buster:
+  the guarded publisher uploaded the current rc.22 `musu-desktop-x64.msix` to
+  GitHub `desktop-latest`; release metadata reports `40710731` bytes. Because
+  the old package-version-only URL could still return stale CDN content, desktop
+  public release URLs in `musu-bee/src/lib/publicRelease.ts` now append
+  `asset=74972ffac7768076c5a04c5e1e800e0a452cdf399719c664f0059545ef9d54c1`.
+  `scripts/windows/canary-desktop-release.ps1 -Json` passes with `ok=true` and
+  `failure_count=0` in
+  `docs/evidence/desktop-release-canary/1.15.0-rc.22/20260628-1455-desktop-release-canary-after-cachebuster.json`.
+  This advances the install/download artifact lane but does not fix the
+  `https://musu.pro` apex DNS/TLS public metadata blocker.
+
+- 2026-06-28 public metadata DNS diagnostic contract:
+  `scripts/windows/verify-store-public-metadata.ps1` now emits
+  `dns_diagnostics` and adds `dns_nameserver_mismatch` to `failure_kinds` when
+  canonical `https://musu.pro` public metadata fetches fail while authoritative
+  nameservers do not match the expected Vercel DNS set. Fresh evidence at
+  `2026-06-28T13:13:06.2166826+09:00` reports `ok=false`, `fail_count=3`,
+  `failure_kinds=request_failed,dns_nameserver_mismatch`,
+  `nameserver_matches_expected=false`, `provider_guess=cloudflare`, current
+  nameservers `blakely.ns.cloudflare.com` and `weston.ns.cloudflare.com`, and
+  expected nameservers `ns1.vercel-dns.com` and `ns2.vercel-dns.com`. Vercel
+  production deployment `dpl_FULnchJY31ELsyCG46qN1dDtzpVZ` is `Ready` and
+  aliases `https://musu.pro`, so the remaining Store/public metadata blocker is
+  the canonical apex DNS/edge proof path, not page-source text. Search terms
+  should include `dns_diagnostics`, `dns_nameserver_mismatch`,
+  `nameserver_matches_expected=false`, `provider_guess=cloudflare`,
+  `blakely.ns.cloudflare.com`, `weston.ns.cloudflare.com`,
+  `ns1.vercel-dns.com`, `ns2.vercel-dns.com`,
+  `dpl_FULnchJY31ELsyCG46qN1dDtzpVZ`, and `store-public-metadata`.
+
+- 2026-06-28 public metadata edge TLS diagnostic contract:
+  `scripts/windows/verify-store-public-metadata.ps1` now also emits
+  `edge_tls_diagnostics` with apex TLS, `www` TLS, and direct Vercel apex edge
+  SNI probes. Fresh evidence
+  `docs/evidence/store-public-metadata/1.15.0-rc.22/20260628-153929-musu-pro-public-metadata-edge-diagnostics.json`
+  has SHA256
+  `31185299722926F368589E1638578E45FF24207DC09FA587860E19458534F343`, reports
+  `failure_kinds=request_failed,dns_nameserver_mismatch,apex_tls_handshake_failed,vercel_edge_apex_tls_failed`,
+  records apex TLS failure, records `www.musu.pro` TLS success, and records zero
+  passing direct Vercel edge apex TLS probes. Search terms should include
+  `edge_tls_diagnostics`, `apex_tls_handshake_failed`,
+  `vercel_edge_apex_tls_failed`,
+  `20260628-153929-musu-pro-public-metadata-edge-diagnostics.json`, and
+  `31185299722926F368589E1638578E45FF24207DC09FA587860E19458534F343`.
+
+- 2026-06-28 post-push cache-buster/deploy status:
+  commit `4462b8e6d9acfdf99bd560b86be7e9c69e32a66c` pushed to PR #34. GitHub
+  checks passed for `Deploy musu-bee to Vercel`, `Tests`, `E2E Tests`, `SaaS
+  Route Gate`, and `Landing CEO Approval Gate`, but `Design Gate` failed. Fresh
+  post-deploy public metadata verification still reports
+  `request_failed,dns_nameserver_mismatch` against `https://musu.pro`, with
+  Cloudflare nameservers instead of the expected Vercel DNS pair. Search terms
+  should include `4462b8e6`,
+  `asset=74972ffac7768076c5a04c5e1e800e0a452cdf399719c664f0059545ef9d54c1`,
+  `post-push cache-buster deploy status`, `Design Gate failed`, and
+  `dns_nameserver_mismatch`.
+
+- 2026-06-28 clean-HEAD full product gate correction:
+  after commit `9a68e69796337da5d3e91f4c98bd6496ee15409a`,
+  `write-release-go-no-go.ps1 -Json` generated
+  `.local-build\go-no-go\latest.json` at
+  `2026-06-28T13:25:19.9894351+09:00` with
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=15`, `warnings=1`, and `manifest_git.dirty=false`. The prior
+  10-blocker shape was tied to source commit `44fe2392`; the public metadata
+  diagnostic commit made that packaged HUGH_SECOND evidence stale by design.
+  Reopened freshness lanes are `single-machine`, `process-ownership`,
+  `startup-single-instance`, `desktop-single-instance`, and
+  `runtime-cpu-second-pc-route-attempt`. This is not a new runtime regression;
+  it meant current-HEAD packaged evidence had to be rerun before the gate could
+  return to the previous 10 substantive physical/external blockers. That rerun
+  is recorded in the next 13:53 entry. Search
+  terms should include `blockers=15`, `manifest_git.dirty=false`,
+  `single-machine freshness reopened`, `runtime-cpu-second-pc-route-attempt`,
+  `9a68e69796337da5d3e91f4c98bd6496ee15409a`, and
+  `44fe239241263f43c12be9af60fd6cae6d134104`.
+
+- 2026-06-28 HUGH_SECOND current-HEAD packaged evidence refresh:
+  fresh current-HEAD evidence restored the local freshness lanes after the
+  public metadata diagnostic commits. New evidence files are
+  `20260628-133347-HUGH_SECOND.evidence.json`,
+  `20260628-133347-HUGH_SECOND.process-ownership.json`,
+  `20260628-133347-HUGH_SECOND.startup-single-instance.json`,
+  `20260628-133347-HUGH_SECOND.desktop-single-instance.json`,
+  `20260628-134854-HUGH_SECOND.desktop-open.evidence.json`, and
+  `20260628-133611-HUGH_SECOND.runtime-cpu-scenario-matrix.json`.
+  `verify-single-machine-evidence.ps1` and
+  `verify-runtime-cpu-scenario-matrix.ps1` both report `ok=true`,
+  `fail_count=0`; the matrix route probe targeted `hugh-main` and returned
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_133611`. The clean go/no-go at
+  `2026-06-28T13:53:13.4340964+09:00` on commit
+  `a58a9fb039f9d39a7272f21474c75ac8aff8ab01` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, `warnings=1`, `manifest_git.dirty=false`,
+  `single_machine_verified=true`, `process_ownership_verified=true`,
+  `startup_single_instance_verified=true`, `desktop_single_instance_verified=true`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`, and
+  `runtime_idle_cpu_valid_machines=1/2 [HUGH_SECOND]`. Remaining blockers are
+  multi-device, Private Mesh packaged release proof, two-machine CPU/matrix,
+  store-public-metadata DNS mismatch, Store release, P2P control-plane, design
+  approval, relay transport, and V34 stale self-heal. Search terms should
+  include `20260628-133347-HUGH_SECOND`, `20260628-134854-HUGH_SECOND`,
+  `20260628-133611-HUGH_SECOND`, `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_133611`,
+  `blockers=10`, `runtime_idle_cpu_valid_machines=1/2`, and
+  `a58a9fb039f9d39a7272f21474c75ac8aff8ab01`.
+
+- 2026-06-28 public metadata DNS repair planner:
+  `scripts/windows/plan-musu-pro-public-metadata-dns-repair.ps1` adds a
+  non-mutating `musu.public_metadata_dns_repair_plan.v1` operator plan for the
+  `https://musu.pro` apex DNS/TLS blocker. Evidence
+  `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260628-160524-musu-pro-dns-repair-plan.json`
+  records `release_blocker_present=true`,
+  `ready_for_public_metadata_verifier=false`, `will_mutate_external_dns=false`,
+  Cloudflare nameservers, Cloudflare apex A/AAAA records, missing Vercel apex A
+  `76.76.21.21`, missing `www.musu.pro` CNAME `cname.vercel-dns-0.com`, apex
+  TLS failure, `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. The
+  go/no-go `store-public-metadata` next action now points to this planner before
+  the canonical verifier. Search terms should include
+  `public metadata DNS repair planner`,
+  `musu.public_metadata_dns_repair_plan.v1`,
+  `20260628-160524-musu-pro-dns-repair-plan.json`, and
+  `3B99B6F35E7E190D9C75B775E4B753568CA1500F2CE7498A1D80CF44173560C8`.
+
+- 2026-06-28 latest second-PC kit pointer and P2P env recheck:
+  `prepare-multidevice-test-kit.ps1` now writes the same
+  `musu.multidevice_test_kit_prepare.v1` JSON to
+  `.local-build\multi-device-test-kit\latest-prepare-output.json` via tmp file
+  then move. Verifier regression `test-release-evidence-verifiers.ps1 -Json`
+  passed with `ok=true`, `case_count=211`, and `failed_case_count=0`. Fresh P2P
+  env status at `2026-06-28T16:20:30.6528544+09:00` remains `ok=false` with
+  `release_relay_payload_endpoint_implemented=false`,
+  `release_relay_tunnel_runtime_implemented=false`,
+  `release_tunnel_payload_endpoint_missing=true`, missing KV/Upstash release
+  storage, and no live relay route/transport/delivery proof. This updates the
+  operator handoff but does not close the product release blockers. Search terms
+  should include `latest-prepare-output.json`, `067a22c4`,
+  `musu-multidevice-1.15.0-rc.22-20260628-163218.zip`,
+  `192b0e949efb84781dc6e028010a59c2bdd54fc9f05f66af793c60b2f4741b6f`,
+  `release_tunnel_payload_endpoint_missing=true`, and `failed_case_count=0`.
+
+- 2026-06-28 clean-HEAD go/no-go after latest kit pointer refresh:
+  `write-release-go-no-go.ps1 -Json` wrote
+  `.local-build\go-no-go\after-second-pc-latest-pointer-refresh.json` and
+  `.local-build\go-no-go\latest.json` at
+  `2026-06-28T16:37:04.1596814+09:00` for commit
+  `0bb6dbcda5cdd68b5eef6c5a13cb9a966d139f54`. It reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, `warnings=0`, and `manifest_git.dirty=false`. Remaining
+  blocker areas are `multi-device`, `private-mesh-packaged-release-proof`,
+  `runtime-idle-cpu`, `runtime-cpu-scenario-matrix`, `store-public-metadata`,
+  `store-release`, `p2p-control-plane`, `design-approval`, `relay-transport`,
+  and `v34-stale-self-heal`. Search terms should include
+  `after-second-pc-latest-pointer-refresh.json`, `0bb6dbcd`,
+  `blockers=10`, and `ready_for_public_desktop_release=false`.
+
+- 2026-06-28 design-gate approval URL hardening:
+  `scripts/design-gate/evaluate.cjs` now requires a real GitHub issue approval
+  comment URL (`#issuecomment-...`) in addition to the standalone `Design:
+  Approved` status line, design brief issue URL, and `.pen`/`.png` artifact
+  URL. `scripts/design-gate/evaluate.test.cjs` covers the pending-approval
+  bypass case, and `docs/DESIGN_BRIEF_PR34_FLEET_INSTALL_2026_06_27.md`
+  records the exact PR body contract. This does not approve PR #34; issue #35
+  still needs an explicit CEO/design approval comment. Search terms should
+  include `approval issue comment URL`, `#issuecomment`, `Design: Approved`,
+  `issue #35 approval missing`, and `design-gate approval URL hardening`.
+
+- 2026-06-28 clean-HEAD go/no-go after design-gate approval URL hardening:
+  `write-release-go-no-go.ps1 -Json` wrote `.local-build\go-no-go\latest.json`
+  at `2026-06-28T16:55:19.9282428+09:00`. It reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=15`, `warnings=0`, and `manifest_git.dirty=false`. The five
+  reopened freshness lanes are `single-machine`, `process-ownership`,
+  `startup-single-instance`, `desktop-single-instance`, and
+  `runtime-cpu-second-pc-route-attempt`; the existing physical/external blockers
+  also remain. Search terms should include `blockers=15`,
+  `post-design-gate clean-HEAD recheck`, `runtime-cpu-second-pc-route-attempt`,
+  and `source-freshness invalidation`.
+
+- 2026-06-28 post-design-gate current-package evidence refresh:
+  HUGH_SECOND evidence was rerun after the design-gate approval URL hardening.
+  New canonical files include
+  `docs/evidence/single-machine/1.15.0-rc.22/20260628-170703-HUGH_SECOND.evidence.json`,
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260628-170721-HUGH_SECOND.process-ownership.json`,
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260628-170721-HUGH_SECOND.startup-single-instance.json`,
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260628-171002-HUGH_SECOND.desktop-single-instance.json`,
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260628-171057-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  and
+  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260628-171827-HUGH_SECOND.desktop-open.evidence.json`.
+  The clean go/no-go at `2026-06-28T17:23:34.3895605+09:00` restored
+  `single_machine_verified=true`, `process_ownership_verified=true`,
+  `startup_single_instance_verified=true`, `desktop_single_instance_verified=true`,
+  and `runtime_cpu_second_pc_route_attempt_verified=true`, with
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, `warnings=0`, `runtime_idle_cpu_valid_machines=1/2
+  [HUGH_SECOND]`, and `runtime_cpu_scenario_matrix_valid_machines=1/2
+  [HUGH_SECOND]`. The CPU matrix post-route probe targeted `hugh-main` at
+  `192.168.1.192:4387` and returned
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_171057`. Remaining blockers are
+  multi-device, Private Mesh packaged release proof, two-machine CPU/matrix,
+  store-public-metadata DNS/TLS, Store release, P2P control-plane, design
+  approval, relay transport, and V34 stale self-heal. A post-doc commit recheck
+  at `2026-06-28T17:32:55.4349035+09:00` confirmed the same `blockers=10`,
+  `warnings=0`, and local freshness lanes green. Search terms should
+  include `20260628-171827-HUGH_SECOND.desktop-open.evidence.json`,
+  `20260628-171057-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_171057`, `post-design-gate
+  current-package evidence refresh`, `blockers=10`, and
+  `runtime_cpu_second_pc_route_attempt_verified=true`.
+
+- 2026-06-28 full product spec qualitative audit and next steps:
+  `docs/FULL_PRODUCT_SPEC_QUAL_AUDIT_NEXT_STEPS_2026_06_28.md` records the
+  current answer to "is it complete?" as no: latest local gate is
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, and `warnings=0`. The code audit found no new release-blocking
+  code regression in the inspected surfaces; the unresolved gates require
+  second-PC execution, external DNS/TLS mutation, Store/Partner Center evidence,
+  explicit design approval, real relay transport implementation, and V34
+  physical stale-state proof. Search terms should include
+  `FULL_PRODUCT_SPEC_QUAL_AUDIT_NEXT_STEPS_2026_06_28`,
+  `no new release-blocking code regression`, `external DNS/TLS mutation`,
+  `real relay transport implementation`, and `zero blockers`.
+
+- 2026-06-28 release relay payload proof endpoint:
+  `docs/RELEASE_RELAY_PAYLOAD_PROOF_ENDPOINT_2026_06_28.md` records the source
+  closure for the release `/api/v1/relay/payload` endpoint. The endpoint is now
+  proof-bound instead of preflight-only:
+  `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true`,
+  `release_payload_endpoint_proof_bound=true`, and
+  `release_payload_preflight_only=false`. It accepts
+  `musu.relay_payload_release_request.v1` with
+  `musu.relay_transport_proof.v1` and
+  `musu.relay_payload_delivery_proof.v1`, records transport proof, rejects raw
+  payload bytes, and still does not make relay transport release-ready because
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`, KV/Upstash storage is missing, and
+  live relay route/transport/delivery proof is absent. Validation passed P2P
+  tests `125/125`, typecheck, P2P relay contract audit `ok=true`, operator API
+  security audit `ok=true`, and release verifier regression `211/211`. Search
+  terms should include `RELEASE_RELAY_PAYLOAD_PROOF_ENDPOINT_2026_06_28`,
+  `release_payload_endpoint_proof_bound`, `musu.relay_payload_release_request.v1`,
+  `RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true`, and
+  `source_release_relay_tunnel_runtime_not_implemented`.
+
+- 2026-06-28 V34 endpoint validation hardening:
+  `docs/V34_ENDPOINT_VALIDATION_HARDENING_2026_06_28.md` records source
+  hardening for V34 stale self-heal proof endpoint parsing. The verifier,
+  recorder, and snapshot capture helper now parse absolute URLs, bracketed IPv6,
+  and host:port forms before routability checks; reject port `0`, negative
+  ports, ports above `65535`, path-shaped non-URL endpoints, loopback, wildcard, and IPv4-mapped
+  loopback/wildcard values; and add regression cases
+  `V34 self-heal rejects port-zero selected candidate proof`,
+  `V34 self-heal rejects negative-port selected candidate proof`, plus
+  `V34 self-heal rejects URL loopback selected candidate proof`. Regression
+  `test-release-evidence-verifiers.ps1 -Json` passed with `ok=true`,
+  `case_count=214`, and `failed_case_count=0`. This does not close the product
+  lane: `v34_stale_self_heal_verified=false` remains correct until packaged
+  physical two-node stale-state evidence is recorded. `musu indexer sync
+  --work-dir F:\workspace\musu-bee --name musu-bee` indexed 3392 files and
+  3879 symbols; recall returned this report and the V34 verifier/test script
+  references. Search terms should
+  include `V34_ENDPOINT_VALIDATION_HARDENING_2026_06_28`, `port-zero selected
+  candidate`, `negative-port selected candidate`, `URL loopback selected
+  candidate`, `Split-EndpointAddr`, `case_count=214`, and
+  `v34_stale_self_heal_verified=false`.
+
+- 2026-06-28 post-V34 endpoint local packaged evidence refresh:
+  `docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_06_28_POST_V34_ENDPOINT.md`
+  records the current HUGH_SECOND packaged evidence refresh after V34 endpoint
+  validation hardening reopened local freshness lanes. Evidence paths include
+  single-machine `20260628-184155`, process/startup `20260628-184214`,
+  desktop activation `20260628-185307`, idle CPU `20260628-184508`, runtime
+  CPU matrix `20260628-184627`, and matrix verification `ok=true`,
+  `fail_count=0`. The matrix route probe targeted `hugh-main` with token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_184627`. Go/no-go at
+  `2026-06-28T18:56:04.7165221+09:00` returned `blockers=10`, `warnings=0`,
+  and `manifest_git.dirty=false`. `musu indexer sync --work-dir
+  F:\workspace\musu-bee --name musu-bee` indexed 3403 files and 3879 symbols,
+  with recall hits for the report, route token, and desktop evidence filename;
+  the product remains NO-GO on second-PC,
+  Private Mesh, public metadata, Store, P2P control-plane, design approval,
+  relay transport, and V34 physical proof lanes. Search terms should include
+  `LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_06_28_POST_V34_ENDPOINT`,
+  `20260628-184627-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_184627`, `blockers=10`, and
+  `manifest_git.dirty=false`.
+
+- 2026-06-28 public metadata Vercel inspect fail-closed update:
+  `docs/PUBLIC_METADATA_VERCEL_INSPECT_FAIL_CLOSED_2026_06_28.md` records the
+  planner hardening for `scripts/windows/plan-musu-pro-public-metadata-dns-repair.ps1`.
+  `-RunVercelInspect` without `VERCEL_TOKEN` now records
+  `vercel_inspect.ran=false`, `reason=token_missing`, `ok=false`, and
+  `has_informative_output=false`; nonzero CLI exits record
+  `inspect_command_failed`; empty/shell-noise output records
+  `inspect_output_uninformative`. Evidence
+  `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260628-1914-musu-pro-dns-repair-plan-vercel-inspect-fail-closed.json`
+  has SHA256 `2FFCFE120EE83BD862220FC9A41ECDD2328FFA47F6F0D6F80BB6AB881781A934`.
+  Regression `test-release-evidence-verifiers.ps1 -Json` passed with
+  `ok=true`, `case_count=214`, and `failed_case_count=0`. The product remains
+  NO-GO because external apex DNS/TLS still fails. Search terms should include
+  `PUBLIC_METADATA_VERCEL_INSPECT_FAIL_CLOSED_2026_06_28`,
+  `inspect_output_uninformative`, `token_missing`, and
+  `has_informative_output=false`.
+
+- 2026-06-28 multi-device release-grade route audit:
+  `docs/MULTIDEVICE_RELEASE_GRADE_ROUTE_AUDIT_2026_06_28.md` records the
+  current two-PC answer: `fleet-proof.ps1` on `hugh-main` passes for public
+  install proof, direct fleet health, and brain token ACL, and a fresh
+  HUGH_SECOND -> `hugh-main` diagnostic smoke completed `MUSU_REMOTE_ROUTE_OK`.
+  The strict multi-device verifier still correctly failed with `fail_count=6`
+  because route evidence had `peer_identity_verified=false`, no peer identity
+  method/key, legacy `none_http_bearer`, no `quic_tls_1_3`, and no
+  `musu_quic_tls_transport`. Live probing confirmed HTTPS health fails on both
+  installed bridge ports while HTTP health returns 200. Product status remains
+  NO-GO for release-grade multi-device transport; do not relax the verifier or
+  flip relay/runtime markers without a real hardened byte path. Search terms
+  should include `MULTIDEVICE_RELEASE_GRADE_ROUTE_AUDIT_2026_06_28`,
+  `MUSU_REMOTE_ROUTE_OK`, `fail_count=6`, `none_http_bearer`,
+  `peer_identity_verified=false`, and `musu_quic_tls_transport`.
+
+- 2026-06-28 fleet-proof release-grade route hardening:
+  `musu-bee/src/app/fleet-proof.ps1/route.ts` now separates default
+  install/package/direct fleet-health proof from opt-in release-grade route
+  proof. New switch `-RequireReleaseGradeRoute` executes
+  `musu route --adapter echo --wait --route-evidence-path ...` to
+  `-ExpectedDirectPeerName` and requires `musu.route_evidence.v1`,
+  expected release version, `result=success`, verified peer identity,
+  non-empty peer method/key, `encryption=quic_tls_1_3`, and
+  `transport_verified_by=musu_quic_tls_transport`. The result JSON now exposes
+  `release_grade_route_required`, `release_grade_route_verified`, and a
+  sanitized `release_grade_route_evidence` summary. Default `fleet-proof.ps1`
+  `ok=true` remains scoped to fleet-health proof and must not be read as full
+  product completion. Pre-hardening gate recheck at
+  `2026-06-28T19:42:43.4293297+09:00` on commit
+  `31ade35758c5a6ff2df5aca598a2950c7e400cfb` reported
+  `blockers=10`, but the post-push clean gate at
+  `2026-06-28T19:58:08.4473399+09:00` on commit
+  `df08b39c1eb256f15cb9c4febb06759ae5c0d89c` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=15`, and `warnings=0`. The added five blockers are expected
+  source-freshness invalidations for `single-machine`, `process-ownership`,
+  `startup-single-instance`, `desktop-single-instance`, and
+  `runtime-cpu-second-pc-route-attempt`. Verification for the hardening:
+  `npm run test:public-release` passed 16 tests, `npm run typecheck` passed,
+  the generated PowerShell body parsed with `parse_error_count=0`, and
+  `test-release-evidence-verifiers.ps1 -Json` returned `ok=true`,
+  `case_count=214`, `failed_case_count=0` at
+  `2026-06-28T19:54:46.3577462+09:00`. Search terms should include
+  `RequireReleaseGradeRoute`, `release_grade_route_verified`,
+  `fleet-proof ok=true not complete`, `quic_tls_1_3`,
+  `musu_quic_tls_transport`, `blockers=15`, and
+  `runtime-cpu-second-pc-route-attempt`.
+
+- 2026-06-28 post-fleet-proof local packaged evidence refresh:
+  `docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_06_28_POST_FLEET_PROOF_ROUTE_GATE.md`
+  records the HUGH_SECOND packaged evidence refresh after the public
+  `fleet-proof.ps1` release-grade route gate hardening reopened local freshness
+  lanes. Evidence paths include single-machine `20260628-202115`,
+  process/startup/desktop `20260628-202128`, idle CPU `20260628-202216`, runtime
+  CPU matrix `20260628-202500`, and matrix verification `ok=true`,
+  `fail_count=0`. The matrix route probe targeted `hugh-main` with token
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_202500`. Clean go/no-go at
+  `2026-06-28T20:33:58.3354650+09:00` on commit
+  `c3bd5ed68024fff38b8e8c031f411144c10cb293` returned `blockers=10`,
+  `warnings=0`, and `manifest_git.dirty=false`. The product remains NO-GO on
+  second-PC, Private Mesh, public metadata, Store, P2P control-plane, design
+  approval, relay transport, and V34 physical proof lanes. `musu indexer sync
+  --work-dir F:\workspace\musu-bee --name musu-bee` indexed 3417 files and
+  3883 symbols; recall for `Local Packaged Evidence Refresh` returns the new
+  report. Search terms should
+  include `LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_06_28_POST_FLEET_PROOF_ROUTE_GATE`,
+  `20260628-202500-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260628_202500`, `c3bd5ed68024`, and
+  `blockers=10`.
+
+- 2026-06-28 public metadata DNS planner Vercel inspect fix:
+  `docs/PUBLIC_METADATA_DNS_PLANNER_VERCEL_INSPECT_FIX_2026_06_28.md` records
+  the fix for `plan-musu-pro-public-metadata-dns-repair.ps1 -RunVercelInspect`.
+  The planner now uses `$vercelArgs` instead of PowerShell's automatic `$args`,
+  so a present `VERCEL_TOKEN` captures real
+  `vercel domains inspect musu.pro` output. Fixed evidence:
+  `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260628-204816-musu-pro-dns-repair-plan-vercel-inspect-fixed.json`
+  with SHA256
+  `B8709AC9CA39173806D9F7577B05227553E974934E4E363CED24611C0ACEE1C3`,
+  `vercel_inspect.ok=true`, `has_informative_output=true`, project
+  `musu-pro`, and current Cloudflare nameservers. The public metadata lane
+  remains NO-GO until apex DNS/TLS is externally repaired. The same update
+  refreshed the second-PC kit to
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-204644.zip`
+  with SHA256
+  `6718085a3765f6159e1f9571974e477f343a5825c536d99267d86335b22d0396`.
+  Verification: `npm run test:public-release` passed 16 tests and
+  `test-release-evidence-verifiers.ps1 -Json` returned `ok=true`,
+  `case_count=214`, `failed_case_count=0`. Search terms should include
+  `PUBLIC_METADATA_DNS_PLANNER_VERCEL_INSPECT_FIX_2026_06_28`, `vercelArgs`,
+  `inspect_output_uninformative`, `has_informative_output=true`,
+  `20260628-204816`, and `20260628-204644`.
+
+- 2026-06-28 relay source-node auth binding hardening:
+  `docs/RELAY_SOURCE_NODE_AUTH_BINDING_HARDENING_2026_06_28.md` records the
+  W-7 source-level closure. `MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS` maps bearer
+  token SHA-256 values to allowed `source_node_id` values without storing raw
+  node tokens. Configured mismatches fail closed with
+  `source_node_id_auth_mismatch` on P2P rendezvous, room rendezvous, relay
+  lease, relay payload, relay transport proof, route evidence writes, release
+  relay connect preflight, and release relay payload preflight. Verification:
+  targeted release endpoint coverage passed, `npm run test:p2p` passed 131 tests,
+  `npm run typecheck` passed, and
+  `audit-p2p-store-forward-relay-contract.ps1 -Json` reported `ok=true`,
+  `fail_count=0`; `audit-operator-api-security-contract.ps1 -Json` also
+  reported `ok=true`, `fail_count=0`. This is source hardening only;
+  production deploy/configuration, live relay evidence, and real
+  `quic_relay_tunnel` runtime remain open. Search terms should include
+  `RELAY_SOURCE_NODE_AUTH_BINDING_HARDENING`,
+  `MUSU_P2P_CONTROL_TOKEN_NODE_BINDINGS`,
+  `source_node_id_auth_mismatch`, `bound_source_node_id`,
+  `p2pSourceNodeAuthMismatch`, and W-7.
+
+- 2026-06-28 W-7 post-push status:
+  Commit `55f3f820` pushed to `feat/v33-residual-finalize`. PR #34 source/deploy
+  checks passed except the intentional `design-gate` blocker: Vercel deploy, web
+  typecheck/build, Rust core tests, Playwright E2E, landing CEO approval gate,
+  SaaS gate, and short `test` passed. Fresh public metadata verification still
+  fails canonical `https://musu.pro` with `request_failed`,
+  `dns_nameserver_mismatch`, `apex_tls_handshake_failed`, and
+  `vercel_edge_apex_tls_failed`. Search terms: `55f3f820`,
+  `W-7 post-push`, `design-gate`, `apex_tls_handshake_failed`.
+
+- 2026-06-28 current-HEAD second-PC kit refresh after W-7 extension:
+  regenerated the second-PC handoff kit from clean commit
+  `7b53042177735ecab752bc857dd9455af996f6c7` at
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260628-215431.zip`
+  with SHA256
+  `2bbb4b534e4b8e49407a533d07884e56a5f8361f40131a8a67f81b572497dd1a`.
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md` now points `hugh-main` at that
+  kit, and go/no-go at `2026-06-28T21:56:37.1321855+09:00` still reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, `warnings=0`, and `manifest_git.dirty=false`. This updates
+  the evidence collection artifact only; physical second-PC import, Private
+  Mesh proof, public metadata DNS/TLS, Store, P2P relay, design approval, relay
+  transport, and V34 proof remain open. Post-refresh audits also passed:
+  `audit-p2p-store-forward-relay-contract.ps1 -Json` and
+  `audit-operator-api-security-contract.ps1 -Json` both returned `ok=true`,
+  `fail_count=0`. Search terms: `20260628-215431`,
+  `2bbb4b534e4b8e49407a533d07884e56a5f8361f40131a8a67f81b572497dd1a`,
+  `after-current-head-second-pc-kit-refresh`, and `blockers=10`.
+
+- 2026-06-30 current-HEAD second-PC kit refresh after rc22 local evidence
+  update: regenerated the `hugh-main` handoff kit from clean commit
+  `aeaec9570a575c7ad367329ad10f711f3a766e8d` at
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-163138.zip`
+  with SHA256
+  `97fa33d3357f48f5a8ec41e0ce32a513d0faab4d5bd4840cefdcc880dbe1f9e2`.
+  `latest-prepare-output.json` reports
+  `schema=musu.multidevice_test_kit_prepare.v1`, `ok=true`,
+  `generated_at=2026-06-30T16:31:53.8009169+09:00`, `dirty=false`, and package
+  `musu_1.15.0.22_x64_local-sideload-manual.msix`. The target-bound command for
+  `hugh-main` remains
+  `run-second-pc-release-check.ps1 -RouteReachabilityTarget hugh_second -RuntimeCpuRouteTarget hugh_second -FailOnRouteReachabilityDiagnostic -FailOnRuntimeCpuScenarioMatrix`.
+  This is a handoff artifact refresh only; second-machine CPU/matrix and
+  multi-device blockers remain open until the returned zip is imported and
+  verified. Search terms: `20260630-163138`,
+  `97fa33d3357f48f5a8ec41e0ce32a513d0faab4d5bd4840cefdcc880dbe1f9e2`,
+  `aeaec9570a575c7ad367329ad10f711f3a766e8d`, and `hugh-main handoff`.
+
+- 2026-06-28 doctor relay poller runtime alignment:
+  `docs/DOCTOR_RELAY_POLLER_RUNTIME_ALIGNMENT_2026_06_28.md` records the source
+  audit fix that made `musu doctor --json` use the same
+  `relay_payload_poller_enabled()` helper as the bridge runtime. The relay
+  payload poller is default-on with explicit opt-out, so doctor now reports the
+  runtime-loop candidate as `default-on-opt-out` instead of treating
+  `MUSU_ENABLE_RELAY_PAYLOAD_POLLER` as env-opt-in. Verification passed
+  `cargo test --lib -j 1 doctor_background` and
+  `cargo test --lib -j 1 relay_payload_poller`. The P2P relay contract audit
+  wording now also says `target polling is default-on opt-out low duty` instead
+  of stale default-off wording. This fixes observability only: real release
+  relay tunnel runtime, hosted relay storage, live relay route/transport/delivery
+  proof, and `relay_transport_product_verified` remain open. Post-source
+  go/no-go at `2026-06-28T22:26:26.9390333+09:00` on commit `fb971909` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=15`, `warnings=0`, and `manifest_git.dirty=false`; the five added
+  blockers are expected package-evidence freshness invalidations after a runtime
+  source change. Search terms should
+  include `DOCTOR_RELAY_POLLER_RUNTIME_ALIGNMENT`, `default-on-opt-out`,
+  `target polling is default-on opt-out low duty`, `relay_payload_poller_enabled`,
+  `doctor_background_relay_payload_poller_matches_runtime_opt_out`, `fb971909`,
+  `blockers=15`, and
+  `release_relay_tunnel_runtime_not_implemented`.
+
+- 2026-06-28 wrap-up local packaged evidence refresh:
+  `docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_06_28_WRAPUP.md` records the final
+  status for today's session. The brain sidecar pin now points to
+  `F:\musu_2nd_brain` HEAD
+  `63bf5bb9729c96d1c507ba13e7ec1a338cdf2c02`; sidecars were rebuilt, the local
+  sideload MSIX was repackaged and installed, and packaged runtime repair
+  passed on `HUGH_SECOND` at `0.0.0.0:3845`. Fresh evidence includes
+  `20260628-231247-HUGH_SECOND` MSIX install, `20260628-231344-HUGH_SECOND`
+  single-machine smoke, `20260628-231440-HUGH_SECOND` process ownership,
+  `20260628-231459-HUGH_SECOND` startup single-instance,
+  `20260628-231520-HUGH_SECOND` desktop single-instance, and
+  `20260628-231633-HUGH_SECOND` runtime idle CPU attempt. Clean go/no-go at
+  `2026-06-28T23:21:19.6978900+09:00` on commit
+  `58df8e0b6d8f8afcc7cdf5fd3baec83a39b3b2c8` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=11`, `warnings=0`, and `manifest_git.dirty=false`. The idle CPU
+  attempt itself reports `ok=true`, but go/no-go does not count it because
+  `-RequireOwnedWebView2`, `-IncludeNode`, and `-IncludeWebView2` were missing;
+  the runtime CPU scenario matrix and second-PC route-attempt lanes were not
+  rerun before wrap-up. Search terms should include
+  `LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_06_28_WRAPUP`, `brain pin 63bf5bb`,
+  `after-58df8e0b-wrapup-clean`, `blockers=11`,
+  `20260628-231633-HUGH_SECOND.desktop-open.evidence`, and
+  `RequireOwnedWebView2 IncludeNode IncludeWebView2`.
+
+- 2026-06-30 HUGH_SECOND runtime CPU evidence refresh:
+  `docs/RUNTIME_CPU_EVIDENCE_REFRESH_2026_06_30.md` records the latest local
+  CPU evidence pass and current single-machine smoke refresh. New evidence includes
+  `docs/evidence/single-machine/1.15.0-rc.22/20260630-160210-HUGH_SECOND.evidence.json`
+  plus strict verification
+  `20260630-160210-HUGH_SECOND.verification.json`,
+  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260630-145344-HUGH_SECOND.desktop-open.evidence.json`
+  and
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260630-161009-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  plus strict verification
+  `20260630-161009-HUGH_SECOND.runtime-cpu-scenario-matrix.verification.json`.
+  The idle capture used `-RequireOwnedWebView2`, `-IncludeNode`, and
+  `-IncludeWebView2`; the matrix used `-RunRouteProbe -RouteTarget hugh-main`.
+  Clean post-commit go/no-go at `2026-06-30T16:18:55.8408998+09:00` on commit
+  `507a47b06584e610ba20d7b6927de2ca84bf058b` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, `warnings=0`, `manifest_git.dirty=false`,
+  `single_machine_verified=true`,
+  `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1/2 [HUGH_SECOND]`, and
+  `runtime_cpu_second_pc_route_attempt_verified=true`. This removes the
+  `runtime-cpu-second-pc-route-attempt` blocker only; it does not close
+  second-machine CPU, multi-device release transport, relay transport, public
+  metadata, Store, P2P control plane, design approval, Private Mesh packaged
+  proof, or V34 stale self-heal. Search terms should include
+  `RUNTIME_CPU_EVIDENCE_REFRESH_2026_06_30`,
+  `20260630-160210-HUGH_SECOND.evidence`,
+  `20260630-145344-HUGH_SECOND.desktop-open.evidence`,
+  `20260630-161009-HUGH_SECOND.runtime-cpu-scenario-matrix`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260630_161009`, `blockers=10`, and
+  `runtime_cpu_second_pc_route_attempt_verified=true`.
+
+- 2026-06-30 relay transport code audit:
+  `docs/RELAY_TRANSPORT_CODE_AUDIT_2026_06_30.md` records the relay lane audit.
+  Source is internally consistent and fail-closed: `router.rs` still does not
+  select relay as a work route, `rendezvous.rs` still returns
+  `release_relay_tunnel_runtime_not_implemented` after release metadata
+  validation, and `relay_payload.rs` treats target-side queue drain/poller as
+  separate from release-grade `musu_quic_tls_transport` proof. Official
+  `audit-p2p-store-forward-relay-contract.ps1 -Json` at
+  `2026-06-30T15:20:00.1832727+09:00` returned `ok=true`, `fail_count=0`.
+  Latest clean gate remains `blockers=10`,
+  `p2p_control_plane_verified=false`, and
+  `relay_transport_product_verified=false`. Next steps are dedicated relay
+  design approval, real `quic_relay_tunnel` runtime, owner-scoped release
+  storage/env, route evidence binding, and two-PC direct-blocked physical proof.
+  Search terms should include `RELAY_TRANSPORT_CODE_AUDIT_2026_06_30`,
+  `release_relay_tunnel_runtime_not_implemented`, `quic_relay_tunnel`,
+  `musu_quic_tls_transport`, and `relay_transport_product_verified=false`.
+
+- 2026-06-30 public metadata DNS/TLS current-state refresh:
+  `docs/PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30.md` records fresh
+  non-mutating DNS repair planner evidence at
+  `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260630-152710-musu-pro-dns-repair-plan-current.json`
+  with SHA256
+  `7CBE392B2B0678814C470F0BE7D695BE5C7C05BF2127E764683011C6BA71DC36`.
+  It confirms `release_blocker_present=true`,
+  `ready_for_public_metadata_verifier=false`, `will_mutate_external_dns=false`,
+  provider guess `cloudflare`, nameservers `blakely.ns.cloudflare.com` and
+  `weston.ns.cloudflare.com`, apex A `104.21.82.53` and `172.67.196.17`,
+  apex AAAA Cloudflare records, missing Vercel apex A `76.76.21.21`, missing
+  `www` CNAME `cname.vercel-dns-0.com`, `apex_tls.ok=false`,
+  `www_tls.ok=true`, and `vercel_edge_apex_tls_ok=false`. Search terms should
+  include `PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30`,
+  `20260630-152710-musu-pro-dns-repair-plan-current`,
+  `7CBE392B2B0678814C470F0BE7D695BE5C7C05BF2127E764683011C6BA71DC36`,
+  `ready_for_public_metadata_verifier=false`, and
+  `vercel_edge_apex_tls_ok=false`.
+
+- 2026-06-30 PR #34 design approval current-state refresh:
+  `docs/DESIGN_APPROVAL_CURRENT_STATE_2026_06_30.md` records a live GitHub
+  check of PR #34 and issue #35. PR #34 remains `OPEN`/`BLOCKED`, the PR body
+  still says `Design: Pending`, issue #35 has evidence-refresh comments but no
+  explicit approval comment, and `gh pr checks 34` shows `design-gate` failing
+  while the visible non-design checks pass. The next valid unblock is an
+  authorized approval comment on issue #35, then updating the PR body to
+  `Design: Approved` with the exact `#issuecomment-...` approval URL. Search
+  terms should include `DESIGN_APPROVAL_CURRENT_STATE_2026_06_30`,
+  `issuecomment-4813006122`, `issuecomment-4814296271`,
+  `issuecomment-4814487029`, `Design: Pending`, and `design-gate`.
+
+- 2026-06-30 V34 source artifact path/type hardening:
+  `docs/V34_SOURCE_ARTIFACT_PATH_TYPE_HARDENING_2026_06_30.md` records a
+  verifier hardening for the V34 stale self-heal proof lane.
+  `scripts/windows/verify-v34-self-heal-proof.ps1` now requires non-empty
+  `ttl_source_evidence_path` and `boot_source_evidence_path`, and requires both
+  embedded TTL/boot source artifacts to declare
+  `source_type=operator_snapshot_pair`. Regression coverage in
+  `scripts/windows/test-release-evidence-verifiers.ps1` adds rejection cases
+  for missing source artifact paths and non-operator source artifact type.
+  Verification passed with `ok=true`, `case_count=216`,
+  `failed_case_count=0`. This does not close the lane:
+  `v34_stale_self_heal_verified=false` remains correct until physical two-node
+  stale-state evidence is committed. Search terms should include
+  `V34_SOURCE_ARTIFACT_PATH_TYPE_HARDENING_2026_06_30`,
+  `operator_snapshot_pair`, `ttl_source_evidence_path`,
+  `boot_source_evidence_path`, and `V34 self-heal rejects non-operator source
+  artifact type`.
+
+- 2026-06-30 second-PC kit Private Mesh physical-peer handoff:
+  `scripts/windows/run-second-pc-release-check.ps1` now captures target-side
+  `musu.private_mesh_physical_peer_evidence.v1` by default, returns the JSON
+  and `.sha256` sidecar in `.local-build\second-pc-return\*.zip`, and
+  `scripts/windows/import-second-pc-return.ps1` imports it into
+  `.local-build\private-mesh-physical-peer\` for the final packaged Private
+  Mesh release-proof archive. `prepare-multidevice-test-kit.ps1` now bundles
+  the Private Mesh proof/archive/import/verifier scripts and documents the
+  handoff. Clean regenerated kit:
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-165500.zip`,
+  SHA256
+  `78f126b9c67c5c867bceecb1e739694697a0dc840fe6c6a7c1f3dba8ca14f0aa`,
+  source commit `87ffa7a5c76eb36d8a4ce3982d76a1860ecd3ddc`, `dirty=false`.
+  `test-release-evidence-verifiers.ps1 -Json` passed with `case_count=219`,
+  `failed_case_count=0`; clean go/no-go at
+  `2026-06-30T16:57:05.1755488+09:00` still reports `blockers=10`,
+  `warnings=0`, and `private_mesh_packaged_release_proof_verified=false`.
+  This is an evidence-pipeline improvement, not proof completion. Search terms
+  should include `20260630-165500`,
+  `78f126b9c67c5c867bceecb1e739694697a0dc840fe6c6a7c1f3dba8ca14f0aa`,
+  `private_mesh_physical_peer_evidence_path`,
+  `FailOnPrivateMeshPhysicalPeerEvidence`,
+  `musu.private_mesh_physical_peer_evidence.v1`, `87ffa7a5`, and
+  `case_count=219`.
+
+- 2026-06-30 P2P/relay current-state correction:
+  `docs/RELAY_TRANSPORT_CODE_AUDIT_2026_06_30.md`,
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`, and
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md` now reflect
+  the current relay source contract. `show-musu-pro-p2p-env-status.ps1 -Json`
+  at `2026-06-30T17:11:08.2291762+09:00` reports
+  `release_relay_payload_endpoint_implemented=true`,
+  `release_payload_endpoint_proof_bound=true`,
+  `release_tunnel_payload_endpoint_missing=false`,
+  `release_relay_tunnel_runtime_implemented=false`, and
+  `release_relay_tunnel_runtime_not_implemented_branch_active=true`.
+  `audit-p2p-store-forward-relay-contract.ps1 -Json` at
+  `2026-06-30T17:11:06.7683867+09:00` passed with `ok=true`,
+  `fail_count=0`. The correct qualitative status is: source endpoint gap
+  closed, release tunnel runtime/storage/live proof still NO-GO. Search terms
+  should include `release_payload_endpoint_proof_bound`,
+  `release_tunnel_payload_endpoint_missing=false`,
+  `source_release_relay_tunnel_runtime_not_implemented`,
+  `missing_p2p_control_plane_evidence`, and `quic_relay_tunnel`.
+
+- 2026-06-30 Vercel P2P env sync REST hardening:
+  `docs/VERCEL_P2P_ENV_SYNC_AUDIT_2026_06_30.md` records the deploy workflow
+  change from `vercel env add` to Vercel REST env upsert for production P2P
+  control-plane values. The workflow now posts to
+  `/v10/projects/{projectId}/env?upsert=true`, targets `production`, marks
+  token/entitlement values as Vercel sensitive env, and avoids raw response-body
+  logging. `audit-secret-storage-contract.ps1` now source-checks this contract
+  and rejects a `vercel env add` regression. This reduces deployment-path risk
+  for the hosted KV/Upstash/control-token blocker, but does not provision
+  external env values or close live P2P proof. Verification passed
+  `audit-secret-storage-contract.ps1 -Json -FailOnProblem` with `ok=true`,
+  `fail_count=0`, and `test-release-evidence-verifiers.ps1 -Json` with
+  `ok=true`, `case_count=219`, `failed_case_count=0`. Search terms should include
+  `VERCEL_P2P_ENV_SYNC_AUDIT_2026_06_30`, `Vercel REST env upsert`,
+  `type: "sensitive"`, `KV_REST_API_TOKEN`, `UPSTASH_REDIS_REST_TOKEN`, and
+  `vercel env add`.
+
+- 2026-06-30 relay lease transport intent fail-closed:
+  `docs/RELAY_LEASE_TRANSPORT_INTENT_FAIL_CLOSED_2026_06_30.md` records the
+  lease API contract split between preview store-forward and future release
+  tunnel. `POST /api/v1/p2p/relay/lease` now accepts optional
+  `transport_intent`; omitted intent defaults to `store_forward_queue`;
+  `transport_intent=release_tunnel` uses release tunnel blockers and stays
+  fail-closed with `relay_transport_not_wired` and
+  `relay_tunnel_runtime_not_implemented`; unknown intent values return 400.
+  Verification passed `npm run test:p2p` (`133/133`), `npm run typecheck`, and
+  `audit-p2p-store-forward-relay-contract.ps1 -Json` with `ok=true`,
+  `fail_count=0`, generated at `2026-06-30T17:50:01.0020182+09:00`. This is
+  product-contract hardening only: release `quic_relay_tunnel` runtime,
+  hosted storage/env, live P2P control-plane proof, relay route evidence,
+  transport proof, delivery proof, and direct-blocked two-PC proof remain
+  missing. Search terms should include
+  `RELAY_LEASE_TRANSPORT_INTENT_FAIL_CLOSED_2026_06_30`,
+  `transport_intent`, `store_forward_queue`, `release_tunnel`,
+  `relay_tunnel_runtime_not_implemented`, and
+  `rejects unknown relay transport intent`.
+
+- 2026-06-30 Rust relay lease intent DTO alignment:
+  `docs/RELAY_LEASE_TRANSPORT_INTENT_FAIL_CLOSED_2026_06_30.md`,
+  `docs/P2P_CONTROL_PLANE.md`,
+  `docs/MUSU_PRO_P2P_CONTROL_PLANE_SPEC_2026_05_31.md`,
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`, and
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md` now record
+  that Rust relay lease DTOs match the hosted API intent split.
+  `musu-rs/src/cloud/mod.rs` defines `RelayTransportIntent` with
+  `store_forward_queue` and `release_tunnel`, `P2pRelayLeaseRequest` carries
+  `transport_intent`, and both direct-failure rendezvous fallback and queued
+  callback fallback explicitly send `store_forward_queue`. This removes a
+  typed-client contract drift risk, but it does not implement release relay
+  tunnel byte transport or close the product NO-GO. Validation includes
+  touched-file `rustfmt --check`, targeted Rust lease tests (`2/2` and `1/1`),
+  and `audit-p2p-store-forward-relay-contract.ps1 -Json` with `ok=true`,
+  `fail_count=0`, generated at `2026-06-30T18:17:50.2333327+09:00`.
+  `test-release-evidence-verifiers.ps1 -Json` also passed with `ok=true`,
+  `case_count=219`, `failed_case_count=0`, generated at
+  `2026-06-30T18:21:38.4387320+09:00`.
+  Search terms should include
+  `RelayTransportIntent`, `P2pRelayLeaseRequest.transport_intent`,
+  `queue_callback_via_relay`, `relay_lease_request_for_direct_failure`,
+  `store_forward_queue`, `release_tunnel`, and `rust relay lease intent DTO`.
+
+- 2026-06-30 Rust relay lease DTO post-commit No-Go:
+  clean go/no-go at `2026-06-30T18:26:41.7712848+09:00` on commit
+  `235dc8cfe6630b96030035e6e51127fa0a77b1c6` reports
+  `ready_for_public_desktop_release=false`, `full_product_spec_ready=false`,
+  `blockers=15`, `warnings=0`, `manifest_git.dirty=false`,
+  `p2p_control_plane_verified=false`, and
+  `relay_transport_product_verified=false`. The Rust source change invalidates
+  package-bound freshness lanes until current HEAD evidence is refreshed:
+  single-machine smoke, process ownership, startup/desktop single-instance,
+  runtime idle CPU, runtime CPU matrix, and targeted second-PC route-attempt CPU
+  sample. Search terms should include `235dc8cf`, `blockers=15`,
+  `ready_for_public_desktop_release=false`, `package-bound freshness reset`,
+  `RelayTransportIntent`, and `runtime source changed`.
+
+- 2026-06-30 current packaged local evidence refresh:
+  `docs/CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30.md`,
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record the current package-bound evidence state after
+  pinning the brain sidecar to
+  `github.com/yellowhama/musu-brain@1416969c976b9edcd905c287fa70ab3221297305`.
+  Current HUGH_SECOND evidence includes MSIX install `20260630-190259`,
+  single-machine smoke `20260630-190553`, process ownership `20260630-190627`,
+  startup single-instance `20260630-190639`, desktop single-instance
+  `20260630-190659`, desktop-open idle CPU `20260630-190831`, and full runtime
+  CPU matrix `20260630-191000`. Clean go/no-go at
+  `2026-06-30T19:19:32.5816741+09:00` on commit
+  `0db4b39eff9d09d5b5947c55bf8b1d4fbd482b15` reports `blockers=10`,
+  `warnings=0`, `manifest_git.dirty=false`,
+  `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1/2 [HUGH_SECOND]`, and
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1 [HUGH_SECOND]`.
+  The `hugh-main` route probe succeeds for targetability/CPU evidence, but the
+  route remains non-release-grade transport (`http_bearer`, unverified peer
+  identity, `none_http_bearer`). Search terms should include `wiki/1180`,
+  `CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30`, `code audit`,
+  `musu-bee/src-tauri/musu-brain.pin.json`, `0db4b39e`,
+  `1416969c976b9edcd905c287fa70ab3221297305`, `20260630-191000-HUGH_SECOND`,
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1`, and
+  `store-public-metadata DNS/TLS`.
+
+- 2026-06-30 remote file CLI mesh bearer fix:
+  `docs/REMOTE_FILE_CLI_MESH_BEARER_FIX_2026_06_30.md`,
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record the source-level fix for sibling file CLI auth.
+  During two-PC audit, `musu route -t hugh-main --adapter echo` succeeded from
+  `hugh_second`, but `musu ls/get/put` failed with `unauthorized: invalid
+  bearer`. `musu-rs/src/install/cli_commands.rs` now uses
+  `get_outbound_peer_token(&home)` for `run_ls`, `run_get`, and `run_put`,
+  matching route auth and preferring the shared mesh bearer over the local
+  bridge token. Validation passed `cargo test --manifest-path
+  musu-rs\Cargo.toml remote_file_token --lib` (`3/3`),
+  `cargo test --manifest-path musu-rs\Cargo.toml remote_route_token --lib`
+  (`3/3`), and `git diff --check`. This is a source fix only; package-bound
+  evidence remains stale until both PCs are rebuilt/reinstalled and real
+  `musu ls/get/put` proof passes. Search terms should include `wiki/1181`,
+  `REMOTE_FILE_CLI_MESH_BEARER_FIX_2026_06_30`, `invalid bearer`,
+  `remote_file_token_prefers_mesh_bearer_over_local_bridge_token`,
+  `remote_file_token_accepts_musu_mesh_bearer_env`,
+  `remote_file_token_accepts_musu_token_env_as_shared_bearer_override`,
+  `get_outbound_peer_token`, `run_ls`, `run_get`, and `run_put`.
+
+- 2026-06-30 remote file CLI post-fix No-Go:
+  After commit `6484c5ceb6f4f6d2f18215a3f35e8b6e0bbe7fdf`,
+  `write-release-go-no-go.ps1 -Json` generated
+  `2026-06-30T19:52:21.4907949+09:00` with
+  `ready_for_public_desktop_release=false`, `full_product_spec_ready=false`,
+  `blockers=15`, `warnings=0`, and `manifest_git.dirty=false`. This is the
+  expected fail-closed source-freshness reset after the Rust file CLI auth fix:
+  previous package-bound evidence was captured for commit `0db4b39e`, so
+  single-machine smoke, process ownership, startup/desktop single-instance,
+  runtime idle CPU, runtime CPU matrix, and targeted post-route CPU sample must
+  be recaptured after rebuild/reinstall. Search terms should include
+  `wiki/1182`, `6484c5ce`, `blockers=15`, `package freshness lanes reopened`,
+  `remote file CLI post-fix No-Go`, and `runtime_cpu_scenario_matrix_valid_machine_count=0`.
+
+- 2026-06-30 remote file CLI post-fix package evidence refresh:
+  `docs/REMOTE_FILE_CLI_POST_FIX_PACKAGE_EVIDENCE_REFRESH_2026_06_30.md`,
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record the package-bound evidence refresh after the file
+  CLI mesh-bearer source fix. The fixed local sideload package was rebuilt and
+  installed on `HUGH_SECOND`, then MSIX install `20260630-202448`,
+  single-machine smoke `20260630-202515`, process ownership
+  `20260630-202444`, startup/desktop single-instance `20260630-202444`,
+  desktop-open idle CPU `20260630-202444`, and runtime CPU matrix
+  `20260630-202916` were recorded. Clean go/no-go at
+  `2026-06-30T20:41:01.8166825+09:00` on commit
+  `fbb759ed5fd7891c6db274963c7d37fc830a7c44` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, `warnings=0`, `manifest_git.dirty=false`,
+  `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1/2 [HUGH_SECOND]`, and
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1 [HUGH_SECOND]`.
+  The `hugh-main` route probe succeeds over LAN but remains
+  `peer_identity_verified=false` and `encryption=none_http_bearer`, so it is
+  targetability proof, not release-grade transport. Search terms should include
+  `wiki/1183`, `REMOTE_FILE_CLI_POST_FIX_PACKAGE_EVIDENCE_REFRESH_2026_06_30`,
+  `fbb759ed`, `20260630-202916-HUGH_SECOND`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1/2`,
+  `musu ls get put physical proof pending`, and `none_http_bearer`.
+
+- 2026-06-30 remote file CLI physical proof policy blocker:
+  `docs/REMOTE_FILE_CLI_PHYSICAL_PROOF_POLICY_BLOCKED_2026_06_30.md`,
+  `docs/REMOTE_FILE_CLI_POST_FIX_PACKAGE_EVIDENCE_REFRESH_2026_06_30.md`,
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`, plus `docs/WIKI.md`, now record
+  the first post-fix physical `musu ls/get/put` attempt from `HUGH_SECOND` to
+  `hugh-main`. Evidence
+  `docs/evidence/remote-file-cli/1.15.0-rc.22/20260630-212409-HUGH_SECOND-to-hugh-main.remote-file-cli-proof.json`
+  has `ok=false`, but the observed blocker is target-side file policy rather
+  than token auth: `put` returns `file writes disabled`, and `ls/get` return
+  `MUSU_FILE_SERVE_ROOTS not configured`. Code audit confirms `musu share`
+  writes `~/.musu/shares.toml`, and the package used for this proof had not
+  exposed a file serve root. Next step: on `hugh-main`, create
+  `C:\Users\empty\.musu\codex-remote-file-proof`, run `musu share
+  C:\Users\empty\.musu\codex-remote-file-proof --writable --label
+  remote-file-cli-proof`, then rerun the three-command proof from
+  `hugh_second`. If the earlier rc.22 package is still installed,
+  rebuild/reinstall or restart the packaged bridge after `musu share`. Search
+  terms should include `wiki/1185`,
+  `REMOTE_FILE_CLI_PHYSICAL_PROOF_POLICY_BLOCKED_2026_06_30`,
+  `musu.remote_file_cli_physical_proof.v1`, `MUSU_FILE_SERVE_ROOTS`,
+  `MUSU_FILE_SERVE_WRITABLE`, `shares.toml`, `musu share --writable`,
+  `file API disabled`, `file writes disabled`, and
+  `20260630-212409-HUGH_SECOND-to-hugh-main`.
+
+- 2026-06-30 remote file CLI dynamic share reload:
+  `docs/REMOTE_FILE_CLI_DYNAMIC_SHARE_RELOAD_2026_06_30.md`,
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`, and `docs/WIKI.md` now record
+  that the remote file API source reloads current file-share policy per request
+  from `MUSU_FILE_SERVE_ROOTS`, `MUSU_FILE_SERVE_WRITABLE`, and
+  `~/.musu/shares.toml`. `musu share <PATH> --writable` and `musu unshare
+  <PATH>` should affect later remote file API requests without bridge restart
+  once this source is packaged. The fail-closed contract remains: no root means
+  file API disabled, and no writable policy means write/mkdir/delete disabled.
+  File watcher/sync roots still refresh at bridge startup. Verification:
+  `cargo test --manifest-path musu-rs\Cargo.toml file_serve_policy --lib -j 1`
+  passed `2/2`, and `rustfmt --edition 2021 --check
+  musu-rs\src\bridge\handlers\files.rs` passed. Release verifier regression
+  also passed with `ok=true`, `case_count=219`, `failed_case_count=0`. Search
+  terms should include
+  `wiki/1187`, `REMOTE_FILE_CLI_DYNAMIC_SHARE_RELOAD_2026_06_30`,
+  `file_serve_policy_from_sources`, `current_file_serve_policy`,
+  `musu share applies without bridge restart`, `musu unshare`, and
+  `remote file API dynamic share reload`.
+
+- 2026-06-30 public metadata DNS/TLS recheck:
+  `docs/PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30.md`,
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record the current public metadata DNS/TLS blocker after
+  `plan-musu-pro-public-metadata-dns-repair.ps1 -RunVercelInspect` was hardened
+  to tolerate normal Vercel CLI stderr/banner output. Fresh evidence
+  `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260630-205941-musu-pro-dns-repair-plan-current.json`
+  has SHA256
+  `950F121BE1CA24CDA877F4E0C432547549A10F61BA2C8E499DBFBBD4E50FBD52`,
+  `ok=true`, `vercel_inspect.ok=true`,
+  `release_blocker_present=true`, and
+  `ready_for_public_metadata_verifier=false`. Vercel confirms `musu.pro` is
+  bound to project `musu-pro`, but live nameservers are still Cloudflare
+  `blakely.ns.cloudflare.com` and `weston.ns.cloudflare.com`, apex TLS fails,
+  `www_tls.ok=true`, and direct Vercel edge apex TLS fails. Search terms should
+  include `wiki/1184`, `PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30`,
+  `20260630-205941-musu-pro-dns-repair-plan-current`, `musu-pro`,
+  `vercel_inspect.ok=true`, `Cloudflare nameservers`, `apex TLS reset`, and
+  `store-public-metadata`. Validation passed PowerShell parser check and
+  `test-release-evidence-verifiers.ps1 -Json` with `case_count=219`,
+  `failed_case_count=0`.
+
+- 2026-06-30 current-HEAD second-PC kit refresh:
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`,
+  `docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md`,
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now point the next `hugh-main` physical evidence run at
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260630-214014.zip`.
+  The kit was generated at `2026-06-30T21:40:22.8818407+09:00` from clean
+  commit `25b2a510f1bd9d4a1de5e20c8a6d4e0560b6ccd3`, with SHA256
+  `5cc0872f7c77149b2065df17e70f610e18ffb59a9595498e4f103329de86fec9`.
+  It includes the second-PC release wrapper, runtime CPU tools, route
+  diagnostics, Private Mesh release-proof tools, P2P/relay evidence tools, V34
+  proof tooling, and install-channel verification. Search terms should include
+  `wiki/1186`, `SECOND_PC_KIT_HANDOFF_2026_06_28`, `20260630-214014`,
+  `5cc0872f7c77149b2065df17e70f610e18ffb59a9595498e4f103329de86fec9`,
+  `run-second-pc-release-check`, `hugh-main`, `hugh_second`, and
+  `private-mesh-packaged-release-proof`.
+
+- 2026-06-30 current package refresh after dynamic share and brain pin:
+  `docs/CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30.md`,
+  `docs/PRODUCT_SPEC_COMPLETION_AUDIT_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/BRAIN_INTEGRATION_THESIS_2026_06_26.md`, and `docs/WIKI.md` now record
+  the package-bound HUGH_SECOND refresh after dynamic-share reload and brain pin
+  update. Current evidence includes MSIX install `20260630-225859`, smoke
+  `20260630-230117`, process ownership `20260630-230403`, startup
+  single-instance `20260630-230424`, desktop single-instance
+  `20260630-230448`, idle CPU `20260630-230512`, and runtime CPU matrix
+  `20260630-230631`. The brain pin is
+  `github.com/yellowhama/musu-brain@c477c004691a7fe5d555e4403d91bab71a3c303f`.
+  The route to `hugh-main` succeeds over LAN but remains non-release-grade
+  (`peer_identity_verified=false`, `encryption=none_http_bearer`). Search terms
+  should include `wiki/1188`, `CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30`,
+  `20260630-230631-HUGH_SECOND`, `c477c004691a7fe5d555e4403d91bab71a3c303f`,
+  `musu-brain.pin.json`, `HANDOFF-musu-integration`, `~/.musu/brain`,
+  `~/.musubrain`, `none_http_bearer`, and `HUGH_SECOND package-bound lanes`.
+
+- 2026-06-30 next steps after current package refresh:
+  `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`,
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now point the next physical `hugh-main` run at the current
+  `20260701-003206` kit after the brain root contract source update. It also records
+  the remote file proof setup (`musu share ... --writable` on `hugh-main`) and
+  the brain root-env package proof as the next integration constraint. Search terms
+  should include `wiki/1189`,
+  `NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30`, `20260701-003206`,
+  `b4a5e14f5cb50554e372fc5e2e7d9c12165d3ec3abb7f5844e1358abf5765fff`,
+  `run-second-pc-release-check`, `remote-file-proof`, `musu put`, `musu ls`,
+  `musu get`, `brain root-env proof`, and `hugh-main`. This snapshot is now
+  superseded by `wiki/1193` for the current second-PC kit pointer.
+
+- 2026-06-30 public metadata DNS path-mode fix:
+  `docs/PUBLIC_METADATA_DNS_PATH_MODE_FIX_2026_06_30.md`,
+  `docs/PUBLIC_METADATA_DNS_REPAIR_CURRENT_2026_06_30.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record the path-aware DNS/TLS verifier/planner contract.
+  `verify-store-public-metadata.ps1` now emits
+  `external_dns_records_match_expected`, `dns_path_matches_expected`,
+  `apex_aaaa_records_absent`, and `www_cname_matches_expected`.
+  `plan-musu-pro-public-metadata-dns-repair.ps1` now computes
+  `needsDnsRepair` from `dns_path_matches_expected`, allowing either Vercel
+  authoritative DNS or exact Vercel external DNS records. Fresh evidence
+  `docs/evidence/public-metadata-dns-repair/1.15.0-rc.22/20260630-235400-musu-pro-dns-repair-plan-path-mode.json`
+  still reports `release_blocker_present=true`,
+  `ready_for_public_metadata_verifier=false`, `provider_guess=cloudflare`,
+  `external_dns_records_match_expected=false`, `dns_path_matches_expected=false`,
+  `apex_tls.ok=false`, `www_tls.ok=true`, and `vercel_inspect.ok=true`.
+  Search terms should include `wiki/1190`,
+  `PUBLIC_METADATA_DNS_PATH_MODE_FIX_2026_06_30`,
+  `20260630-235400-musu-pro-dns-repair-plan-path-mode`,
+  `dns_configuration_mismatch`, `dns_path_matches_expected`,
+  `external_dns_records_match_expected`, `apex_aaaa_records_absent`,
+  `www_cname_matches_expected`, and `store-public-metadata`. Validation passed
+  parser checks and `test-release-evidence-verifiers.ps1`.
+
+- 2026-07-01 second-PC kit refresh, superseded by the brain root contract kit:
+  `docs/CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01.md`,
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`,
+  `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`,
+  `docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` previously pointed the next physical `hugh-main` run at
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260701-000516.zip`.
+  The kit was generated at `2026-07-01T00:05:27.9288438+09:00` from clean
+  commit `33b0ca155991ba4f46422288cde9cc36d0b5840c`, with SHA256
+  `2966f53e7dac6e1703f7ba694f3b95ef66b6f3b3977059a237d2f6ea52402558`.
+  This supersedes `20260630-232004` for the next physical return because
+  current HEAD now includes the public metadata DNS path-mode verifier/planner
+  fix. It is now superseded by `wiki/1193`. Search terms should include `wiki/1191`,
+  `20260701-000516`, `2966f53e7dac6e1703f7ba694f3b95ef66b6f3b3977059a237d2f6ea52402558`,
+  `33b0ca155991ba4f46422288cde9cc36d0b5840c`,
+  `SECOND_PC_KIT_HANDOFF_2026_06_28`, `hugh-main`, `hugh_second`,
+  `run-second-pc-release-check`, and `private-mesh-packaged-release-proof`.
+
+- 2026-07-01 brain integration root contract:
+  `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`,
+  `docs/BRAIN_INTEGRATION_THESIS_2026_06_26.md`,
+  `docs/CURRENT_PACKAGED_LOCAL_EVIDENCE_REFRESH_2026_06_30.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now resolve the MUSU product brain root to `~/.musu/brain`.
+  The standalone brain handoff still describes `~/.musubrain`, but that is not
+  the MUSU desktop product contract. Tauri now exports both
+  `MUSU_KNOWLEDGE_ROOT` and `MUSUBRAIN_ROOT` with the `~/.musu/brain` value to
+  the runtime child and hidden `musu-brain` sidecar, while still starting the
+  sidecar with `-root <~/.musu/brain>`. The brain repo was advanced to clean
+  pushed commit `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`, and
+  `musu-bee/src-tauri/musu-brain.pin.json` now points there. Search terms
+  should include `wiki/1192`,
+  `BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01`, `MUSU_KNOWLEDGE_ROOT`,
+  `MUSUBRAIN_ROOT`, `~/.musu/brain`, `~/.musubrain`,
+  `musu-brain.pin.json`, `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`,
+  `sqlite sidecar files`, `*.db-shm`, and `*.db-wal`. Product meaning: source
+  root split is resolved, but the current installed package predates this
+  source change and needs rebuilt brain product proof before release claims.
+
+- 2026-07-01 current second-PC kit refresh after brain root contract:
+  `docs/CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01.md`,
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`,
+  `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`,
+  `docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now point the next physical `hugh-main` run at
+  `.local-build\multi-device-test-kit\musu-multidevice-1.15.0-rc.22-20260701-003206.zip`.
+  The kit was generated at `2026-07-01T00:32:15.2333262+09:00` from clean
+  commit `c7ab4d916efa03f143e251b738511bd61598ef55`, with SHA256
+  `b4a5e14f5cb50554e372fc5e2e7d9c12165d3ec3abb7f5844e1358abf5765fff`.
+  This supersedes `20260701-000516` because current HEAD now includes the
+  brain root-env source contract and `musu-brain.pin.json` update. Search terms
+  should include `wiki/1193`, `20260701-003206`,
+  `b4a5e14f5cb50554e372fc5e2e7d9c12165d3ec3abb7f5844e1358abf5765fff`,
+  `c7ab4d916efa03f143e251b738511bd61598ef55`,
+  `BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01`, `hugh-main`, `hugh_second`,
+  `run-second-pc-release-check`, and `private-mesh-packaged-release-proof`.
+
+- 2026-07-01 packaged brain MSIX fullTrust repair:
+  `docs/CURRENT_PACKAGED_BRAIN_MSIX_AUDIT_2026_07_01.md`,
+  `docs/HANDOFF-musu-integration.md`,
+  `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`,
+  `docs/BRAIN_INTEGRATION_THESIS_2026_06_26.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1194`: installed MSIX brain sidecar requires
+  an AppxManifest `windows.fullTrustProcess` declaration for
+  `musu-brain.exe`. File staging and Tauri `externalBin` were not sufficient;
+  the missing declaration produced an installed package where the executable was
+  present but the hidden brain could not start. Fresh evidence
+  `20260701-012657-HUGH_SECOND` records `brain_full_trust_process=true`, and
+  `20260701-012822-HUGH_SECOND` records a passing brain product proof with
+  root `C:\Users\empty\.musu\brain`, loopback `127.0.0.1:8080`, observed
+  sidecar process, ingest, and recall. Code/doc snippets from the six touched
+  MSIX/installer verifier scripts plus seven current docs were indexed into
+  the local brain workspace under `local/musu`; recall query
+  `wiki/1194 packaged brain MSIX fullTrustProcess musu-brain.exe` returned
+  this audit and the verifier scripts. Search terms should include `wiki/1194`,
+  `CURRENT_PACKAGED_BRAIN_MSIX_AUDIT_2026_07_01`, `windows.fullTrustProcess`,
+  `musu-brain.exe`, `brain_full_trust_process=true`, `20260701-012657`,
+  `20260701-012822`, `~/.musu/brain`, `HANDOFF-musu-integration`,
+  `none_http_bearer`, and `peer_identity_verified=false`. Product meaning:
+  the local `HUGH_SECOND` motherboard+chip brain lane is green, but full product
+  completion remains NO-GO until hosted channel freshness, second-PC evidence,
+  release-grade route transport, public metadata DNS/TLS, Store, relay, V34,
+  Private Mesh archive proof, and design approval are closed.
+
+- 2026-07-01 public metadata verifier timeout bound:
+  `docs/PUBLIC_METADATA_VERIFIER_TIMEOUT_BOUND_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1195`: `verify-store-public-metadata.ps1`
+  no longer uses an unbounded synchronous `SslStream.AuthenticateAsClient()`
+  call during TLS diagnostics. `Test-TlsHandshake` now uses
+  `AuthenticateAsClientAsync` with the bounded probe timeout and returns
+  structured `tls_handshake_timeout` / `tls_handshake_canceled` /
+  `tls_handshake_failed` evidence. Direct verifier recheck with
+  `-TimeoutSec 3` returned structured failure evidence in about 5.1s, and clean
+  `write-release-go-no-go.ps1 -ScriptTimeoutSeconds 180 -Json` completed in
+  81216ms, with the public metadata child finishing in 4493ms and
+  `manifest_git.dirty=false`. Search terms should include
+  `wiki/1195`, `PUBLIC_METADATA_VERIFIER_TIMEOUT_BOUND_2026_07_01`,
+  `AuthenticateAsClientAsync`, `tls_handshake_timeout`,
+  `verify-store-public-metadata.ps1`, `store-public-metadata`,
+  `dns_configuration_mismatch`, `apex_tls_handshake_failed`, and
+  `vercel_edge_apex_tls_failed`. Product meaning: verifier reliability is
+  improved, but the public metadata blocker remains until external DNS/TLS is
+  repaired and the canonical verifier passes.
+
+- 2026-07-01 Store-reviewed bundle refresh after brain sidecar fix:
+  `docs/STORE_REVIEWED_BUNDLE_REFRESH_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1196`: the Store-reviewed MSIX output and
+  Partner Center submission bundle were refreshed after the packaged brain
+  sidecar `windows.fullTrustProcess` fix. The stale
+  `.local-build\msix\submission-bundles\store-reviewed-20260628-005038` bundle
+  still failed on missing `musu-brain.exe` full-trust manifest declaration.
+  The current bundle is
+  `.local-build\msix\submission-bundles\store-reviewed-20260701-021954`.
+  `verify-msix-package.ps1`, `audit-msix-desktop-entrypoint.ps1`, and
+  `verify-store-submission-bundle.ps1` pass for the refreshed Store-reviewed
+  artifact/bundle. Clean go/no-go at `2026-07-01T02:22:47.3375209+09:00`
+  reports `runtime_package_ready=true`, `local_artifacts_ready=true`,
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, and `manifest_git.dirty=false`. Search terms should include
+  `wiki/1196`, `STORE_REVIEWED_BUNDLE_REFRESH_2026_07_01`,
+  `store-reviewed-20260701-021954`, `musu_1.15.0.22_x64_store-reviewed`,
+  `musu-brain.exe`, `windows.fullTrustProcess`, `runtime_package_ready=true`,
+  `local_artifacts_ready=true`, and `Store submission bundle verification`.
+  Index refresh: `musu indexer sync --work-dir F:\workspace\musu-bee --name
+  musu-bee` indexed `3559 files` and `3908 symbols`; product brain source
+  ingest under `local/musu` created 3 sources and recall returned the new
+  wiki/report entries.
+  Product meaning: local runtime package readiness is green again, but Store
+  release remains blocked by Partner Center certification/restricted-capability
+  approval and Store-signed install/launch evidence.
+
+- 2026-07-01 brain handoff alignment audit:
+  `docs/BRAIN_HANDOFF_ALIGNMENT_AUDIT_2026_07_01.md`,
+  `docs/HANDOFF-musu-integration.md`,
+  `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`,
+  `docs/BRAIN_INTEGRATION_THESIS_2026_06_26.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1197`: the canonical brain handoff in
+  `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md` is aligned with the
+  local `musu-bee` copy, with only the intentional MUSU-BEE local overlay note
+  added. Brain repo `main` is clean and pushed at
+  `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`, and
+  `musu-bee/src-tauri/musu-brain.pin.json` points to that revision.
+  `build-msix.ps1 -NoBump -PreflightOnly` passed version coherence plus brain
+  pin checks, and targeted Tauri test
+  `knowledge_root_contract_uses_musu_profile_brain` passed. Search terms
+  should include `wiki/1197`, `BRAIN_HANDOFF_ALIGNMENT_AUDIT_2026_07_01`,
+  `HANDOFF-musu-integration`, `MUSU-BEE local copy note`, `~/.musu/brain`,
+  `~/.musubrain`, `musu-brain.pin.json`,
+  `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`, `build-msix.ps1 -PreflightOnly`,
+  and `knowledge_root_contract_uses_musu_profile_brain`.
+  Index refresh: `musu indexer sync --work-dir F:\workspace\musu-bee --name
+  musu-bee` indexed `3560 files` and `3908 symbols`; product brain source
+  ingest under `local/musu` created 3 sources, processed 3, and query
+  `wiki/1197 brain handoff alignment eb0c0ec
+  knowledge_root_contract_uses_musu_profile_brain` returned 5 results with top
+  title `wiki/1197 brain handoff alignment audit report`.
+  Product meaning: handoff/pin/root alignment is green, but full product
+  completion remains NO-GO until the remaining go/no-go blockers close.
+
+- 2026-07-01 current second-PC kit after brain handoff alignment audit:
+  `docs/CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01.md`,
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`,
+  `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`,
+  `docs/PRIVATE_MESH_PACKAGED_RELEASE_PROOF_HANDOFF_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1198`: the current `1.15.0-rc.22`
+  second-PC proof kit was regenerated from clean
+  `feat/v33-residual-finalize` HEAD after the brain handoff alignment audit.
+  The current kit is
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-025502.zip`,
+  SHA256
+  `12c607d499c33686a8d9c4debe5010766a33b137dac9dfc6fd42a9e2ee51dea9`,
+  source commit `635a161f49b2266fa9758de6b5d5ca14b040ca64`, `dirty=false`.
+  Index refresh:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3560 files` and `3908 symbols`; exact-SHA search returns the
+  current kit report and handoff docs, and `wiki 1198 current second PC kit`
+  returns `docs/WIKI.md`. Product brain source ingest under `local/musu`
+  created 3 sources, processed 3, recovered 0, and query
+  `wiki/1198 20260701-025502 12c607 second-PC kit` returned 3 results with top
+  title `wiki/1198 current second-PC kit report`.
+  Search terms should include `wiki/1198`, `20260701-025502`,
+  `12c607d499c33686a8d9c4debe5010766a33b137dac9dfc6fd42a9e2ee51dea9`,
+  `CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01`,
+  `run-second-pc-release-check.ps1`, `private-mesh-packaged-release-proof`,
+  `runtime-cpu-scenario-matrix`, and `V34 stale self-heal`.
+  Product meaning: stale handoff risk is removed for the next `hugh-main`
+  physical run, but full product completion remains NO-GO until the current
+  kit is run, the return zip is imported, and the relevant release verifiers
+  pass.
+
+- 2026-07-01 W6 relay preview contract alignment:
+  `docs/W6_RELAY_PREVIEW_CONTRACT_ALIGNMENT_2026_07_01.md`,
+  `musu-rs/tests/w6_relay_roundtrip.rs`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1199`: W6 is a hermetic preview relay
+  fallback regression, not release-grade relay transport proof. The mock cloud
+  payload, claim, and delivery records now use
+  `transport_kind=http_store_forward_preview`, keep
+  `relay_default_data_path=false`, and name
+  `relay_payload_queue_not_quic_tls_transport` as the release-grade blocker.
+  Verification passed touched-file `rustfmt`, P2P relay source audit
+  `ok=true`, targeted Rust release-relay fail-closed contract test `1/1`,
+  Rust `relay_payload` tests `34/34`, and web P2P tests `133/133`. Index
+  refresh: `musu indexer sync --work-dir F:\workspace\musu-bee --name
+  musu-bee` indexed `3561 files` and `3908 symbols`; product brain source
+  ingest under `local/musu` created 3 sources, processed 3, recovered 0, and
+  query
+  `wiki/1199 http_store_forward_preview relay_payload_queue_not_quic_tls_transport`
+  returned 3 results with top title
+  `wiki/1199 W6 relay preview contract alignment report`. The W6 integration
+  target itself stalled during test target compile and is not counted as fresh
+  release evidence. Search terms should include `wiki/1199`,
+  `W6_RELAY_PREVIEW_CONTRACT_ALIGNMENT_2026_07_01`,
+  `http_store_forward_preview`, `relay_default_data_path=false`,
+  `relay_payload_queue_not_quic_tls_transport`,
+  `release_relay_tunnel_runtime_implemented=false`, and
+  `relay_transport_product_verified=false`. Product meaning: this closes a mock
+  relay overclaim risk, not the release relay blocker.
+
+- 2026-07-01 current local package evidence refresh after W6:
+  `docs/CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1200`: fresh current rc.22 `HUGH_SECOND`
+  local package evidence was recorded after W6 relay preview contract alignment
+  invalidated local freshness lanes. Evidence includes single-machine smoke
+  `20260701-033720`, process/startup/desktop single-instance
+  `20260701-033657`, and runtime CPU matrix plus targeted `hugh-main`
+  post-route probe `20260701-034606`. Clean go/no-go at
+  `2026-07-01T03:56:21.0049347+09:00` on commit
+  `b516fae25b0e6b92d7f61992ec3df2562ebcff7e` reports
+  `manifest_git.dirty=false`, `full_product_spec_ready=false`,
+  `ready_for_public_desktop_release=false`, and `blockers=10`.
+  Search terms should include `wiki/1200`,
+  `CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_2026_07_01`,
+  `20260701-033720`, `20260701-033657`, `20260701-034606`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260701_034606`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`, `hugh-main`,
+  `192.168.1.192:4387`, `none_http_bearer`, and
+  `peer_identity_verified=false`. Index refresh:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  `3578 files` and `3908 symbols`; index search for `wiki/1200`,
+  `CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH`, and `20260701-034606` returns the
+  new wiki/report/evidence entries. Product brain source ingest under
+  `local/musu` posted 3 sources, `/v1/process` reported `processed=3`,
+  `recovered=0`, and `/v1/query` returned 5 results with top title
+  `wiki/1200 current local package evidence refresh report`. Product meaning:
+  local package freshness is restored, but full product completion remains
+  NO-GO because remaining blockers are physical, external, Store, design, P2P,
+  relay, and V34 gates.
+
+- 2026-07-01 relay release-tunnel intent opt-in audit:
+  `docs/RELAY_RELEASE_TUNNEL_INTENT_OPT_IN_AUDIT_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1201`: Rust direct-failure relay lease
+  requests still default to `transport_intent=store_forward_queue`, but when
+  the local `MUSU_P2P_RELAY_TRANSPORT_WIRED=1` flag is explicitly set they now
+  request `transport_intent=release_tunnel`. Callback relay leases remain
+  store-forward. Verification passed touched-file `rustfmt`, `cargo test
+  --manifest-path musu-rs\Cargo.toml relay_lease_request --lib -j 1 -- --nocapture`
+  (`4 passed`), `audit-p2p-store-forward-relay-contract.ps1 -Json`
+  (`ok=true`), `show-musu-pro-p2p-env-status.ps1 -Json` (`ok=false`, runtime
+  still not implemented), and `git diff --check`. Index refresh:
+  `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  `3579 files` and `3917 symbols`; index search for
+  `relay_transport_intent_for_direct_failure MUSU_P2P_RELAY_TRANSPORT_WIRED`
+  returns the new audit report. Product brain source ingest under
+  `local/musu` created 3 sources, `/v1/process` reported `processed=3`,
+  `recovered=0`, and `/v1/query` returned 4 results with top title
+  `wiki/1201 relay release tunnel intent opt-in wiki entry`. Pre-commit go/no-go at
+  `2026-07-01T04:26:16.562248+09:00` reports
+  `ready_for_public_desktop_release=false`, `full_product_spec_ready=false`,
+  `blockers=11`, and `manifest_git.dirty=true`. Search terms should include
+  `wiki/1201`, `RELAY_RELEASE_TUNNEL_INTENT_OPT_IN_AUDIT_2026_07_01`,
+  `relay_transport_intent_for_direct_failure`,
+  `MUSU_P2P_RELAY_TRANSPORT_WIRED`, `release_tunnel`,
+  `store_forward_queue`, `release_relay_tunnel_runtime_not_implemented`, and
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`. Product meaning: this is a
+  source-level intent-boundary improvement, not release relay completion; after
+  commit the package-bound evidence lanes must be rebuilt/reinstalled and
+  recaptured for the new source revision.
+
+- 2026-07-01 current local package evidence refresh after relay intent gate:
+  `docs/CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_AFTER_RELAY_INTENT_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1202`: the relay release-tunnel intent source
+  revision was rebuilt, reinstalled, and recaptured on `HUGH_SECOND`.
+  Evidence includes MSIX install `20260701-051853`, single-machine smoke
+  `20260701-051917`, process ownership `20260701-051924`, startup
+  single-instance `20260701-051937`, desktop single-instance
+  `20260701-051957`, desktop-open idle CPU `20260701-053248`, and runtime CPU
+  matrix plus targeted `hugh-main` post-route probe `20260701-052025`.
+  Desktop-open idle CPU is clean (`git_dirty=false`) with hottest owned process
+  `0.73%` of one logical CPU, MUSU process count `2`, and owned WebView2
+  helpers `6`. The runtime CPU matrix is also clean and target-route
+  verification passes, but route explain still reports
+  `current_transport=http_bearer`, `peer_identity_verified=false`, and
+  `route_evidence_ready=false`. Current package brain product proof
+  `20260701-054634` passes with `fail_count=0`, root
+  `C:\Users\empty\.musu\brain`, and loopback `http://127.0.0.1:8080`.
+  Dirty pre-final go/no-go at
+  `2026-07-01T05:35:50.3641264+09:00` reports
+  `runtime_idle_cpu_valid_machine_count=1`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  and `blockers=11` including the expected pre-commit `git` blocker. Product
+  brain source ingest under `local/musu` created 3 sources, processed 3,
+  recovered 0, and query returned top title
+  `wiki/1202 current local package evidence refresh after relay intent gate`.
+  Index refresh indexed `3602 files` and `3917 symbols`; searches for
+  `wiki/1202`,
+  `CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_AFTER_RELAY_INTENT`, and
+  `20260701-054634` return the new docs/evidence entries.
+  Audit note: packaged bridge/desktop were alive while no `musu-brain` process
+  or `127.0.0.1:8080` listener existed before the packaged brain binary was
+  restarted with product root/env, so brain sidecar observability/self-heal is
+  still a MED follow-up. Search terms should include `wiki/1202`,
+  `CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_AFTER_RELAY_INTENT_2026_07_01`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260701_052025`, `20260701-053248`,
+  `20260701-052025`, `20260701-054634`, `hugh-main`,
+  `192.168.1.192:4387`, `http_bearer`, `route_evidence_ready=false`,
+  `runtime_idle_cpu_valid_machine_count=1`, and
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`. Product meaning:
+  current local package freshness is restored again for `HUGH_SECOND`, but full
+  product completion remains NO-GO because the remaining lanes require the
+  required second-machine count and external/physical release proofs.
+
+- 2026-07-01 brain sidecar doctor/status self-heal:
+  `docs/BRAIN_SIDECAR_DOCTOR_SELF_HEAL_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1203`: `musu doctor --json` emits a
+  `knowledge` object for the hidden `musu-brain` sidecar, including product
+  root `~/.musu/brain`, token presence, loopback health URL/status/body, error,
+  restart hint, and note without exposing token values. `desktop_status` now
+  exposes `knowledge_status`, `knowledge_detail`, `knowledge_health_url`, and
+  `knowledge_token_present`, and manual desktop status refresh calls
+  `spawn_knowledge_sidecar_autostart()` so status refresh can self-heal a dead
+  hidden brain sidecar. Verification passed touched-file rustfmt,
+  `cargo test --manifest-path musu-rs\Cargo.toml doctor_next_steps --lib -j 1 -- --nocapture`
+  (`3 passed`), `cargo test --manifest-path
+  musu-bee\src-tauri\Cargo.toml doctor_status_summary --lib -j 1 -- --nocapture`
+  (`3 passed`), and source-run `musu doctor --json` produced
+  `knowledge.status=ok`, `token_present=true`, `health_http_status=200`, and
+  `health_body.ok=true`. Index refresh indexed `3603 files` and `3920 symbols`;
+  product brain source ingest under `local/musu` created 3 sources, processed
+  3, recovered 0, and query returned top title
+  `wiki/1203 brain sidecar doctor/status self-heal`. Product meaning: closes a
+  MED visibility/self-heal follow-up, not the full-product NO-GO blockers;
+  rebuild/reinstall before
+  treating this as installed package evidence. Search terms should include
+  `wiki/1203`, `BRAIN_SIDECAR_DOCTOR_SELF_HEAL_2026_07_01`,
+  `knowledge.status`, `knowledge_status`, `knowledge_detail`,
+  `knowledge_health_url`, `knowledge_token_present`,
+  `spawn_knowledge_sidecar_autostart`, `musu doctor --json knowledge`,
+  `127.0.0.1:8080/health`, `~/.musu/brain`, `musu-ingest.token`, and
+  `hidden brain sidecar`.
+
+- 2026-07-01 current package evidence refresh after brain doctor:
+  `docs/CURRENT_PACKAGE_EVIDENCE_REFRESH_AFTER_BRAIN_DOCTOR_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`, and `docs/WIKI.md`
+  now record `wiki/1204`: the `aedb6ade` brain doctor/status source change was
+  rebuilt, installed, and recaptured on `HUGH_SECOND`. Evidence passes for MSIX
+  install `20260701-070010`, single-machine smoke `20260701-070056`, process
+  ownership `20260701-070115`, startup single-instance `20260701-070138`,
+  desktop single-instance `20260701-070544`, desktop-open idle CPU
+  `20260701-070556`, and runtime CPU matrix `20260701-070713`. Runtime matrix
+  and target-route verification both pass with `fail_count=0`, and the
+  targeted route reaches `hugh-main` at `192.168.1.192:4387` with
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260701_070713`. Route transport remains
+  non-release-grade (`http_bearer`, `none_http_bearer`,
+  `peer_identity_verified=false`, `route_evidence_ready=false`). Fresh brain
+  product proof `20260701-071746` fails with `ok=false`, `fail_count=14`, no
+  sidecar process, and no health/ingest/recall proof. Manual diagnostic showed
+  the same packaged `musu-brain.exe` can serve `/health` from `~/.musu/brain`,
+  so the issue is desktop lifecycle supervision, not binary/root validity.
+  Index refresh: `musu indexer sync --work-dir F:\workspace\musu-bee --name
+  musu-bee` indexed `3626 files` and `3920 symbols`; product brain CLI ingest
+  under `local/musu` processed 5 sources including docs and the two
+  brain-status code files, and recall returned
+  `wiki/sources/src_8a1a6ad9cb5024ce.md` for the new report.
+  Clean go/no-go at `2026-07-01T07:30:46.4115150+09:00` on commit
+  `27152fa0` reports `manifest_git.dirty=false`, `warnings=0`,
+  `blockers=11`, local runtime lanes true, one valid CPU/matrix machine, and
+  `brain_product_verified=false`.
+  Product meaning: local runtime evidence is fresh, but full product completion
+  remains NO-GO and hidden brain lifecycle is reopened until clean packaged
+  desktop launch proof passes without manual sidecar start. Search terms should
+  include `wiki/1204`,
+  `CURRENT_PACKAGE_EVIDENCE_REFRESH_AFTER_BRAIN_DOCTOR_2026_07_01`,
+  `20260701-070713`, `20260701-071746`,
+  `MUSU_CPU_SCENARIO_ROUTE_OK_20260701_070713`, `hidden brain lifecycle`,
+  `brain product proof failed`, and
+  `musu-brain sidecar process was not observed`.
+
+- 2026-07-01 brain sidecar autostart supervision source fix:
+  `docs/BRAIN_SIDECAR_AUTOSTART_SUPERVISION_2026_07_01.md`,
+  `docs/CURRENT_PACKAGE_EVIDENCE_REFRESH_AFTER_BRAIN_DOCTOR_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`, and `docs/WIKI.md`
+  now record `wiki/1205`: the hidden brain lifecycle gap found in wiki/1204 is
+  source-fixed but not package-proven. `spawn_knowledge_sidecar_autostart()`
+  now uses a brain-side start gate, writes
+  `~/.musu/brain/runtime/sidecar-autostart-status.json` with schema
+  `musu.knowledge_sidecar_autostart.v1`, appends
+  `sidecar-stdout.log` and `sidecar-stderr.log`, waits up to 10 seconds for
+  `http://127.0.0.1:8080/health`, and records outcomes including `started`,
+  `already_healthy`, `start_in_progress`, `spawn_failed`,
+  `exited_before_ready`, and `readiness_timeout`. `musu doctor --json` now
+  exposes `knowledge.autostart_status_path`, `knowledge.autostart_status`, and
+  `knowledge.autostart_status_error`. Verification passed touched-file rustfmt,
+  `git diff --check`, Tauri knowledge tests (`6 passed`), CLI autostart status
+  reader test (`1 passed`), hidden-brain next-step test (`1 passed`), and
+  desktop doctor summary parse test (`1 passed`). Index refresh indexed `3627
+  files` and `3938 symbols`; product brain CLI ingest under `local/musu`
+  created 8 sources, processed 8, and recall returned the new report source
+  for `BRAIN_SIDECAR_AUTOSTART_SUPERVISION_2026_07_01`. Clean go/no-go after
+  this source change reports `manifest_git.dirty=false`, `warnings=0`,
+  `blockers=16`, `ready_for_public_desktop_release=false`,
+  `full_product_spec_ready=false`, `brain_product_verified=false`, and
+  package-bound CPU/matrix counts at `0` because this source change is not yet
+  rebuilt/reinstalled. Product meaning:
+  this gives the next package proof actionable hidden-brain lifecycle
+  diagnostics, but full product completion remains NO-GO until a rebuilt MSIX
+  passes clean packaged brain product proof without manual sidecar start. Search
+  terms should include `wiki/1205`,
+  `BRAIN_SIDECAR_AUTOSTART_SUPERVISION_2026_07_01`,
+  `musu.knowledge_sidecar_autostart.v1`,
+  `sidecar-autostart-status.json`, `sidecar-stdout.log`,
+  `sidecar-stderr.log`, `knowledge.autostart_status`,
+  `knowledge.autostart_status_path`, `knowledge.autostart_status_error`,
+  `readiness_ok`, `exited_before_ready`, `readiness_timeout`,
+  `spawn_knowledge_sidecar_autostart`, and `~/.musu/brain/runtime`.
+
+- 2026-07-01 brain sidecar cross-process lock package proof:
+  `docs/BRAIN_SIDECAR_AUTOSTART_SUPERVISION_2026_07_01.md`,
+  `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/WIKI_INDEX.md` now record `wiki/1206`: the
+  hidden-brain lifecycle lane is locally package-proven on `HUGH_SECOND`.
+  The rebuilt package after wiki/1205 first exposed a packaged-launch bind race
+  (`listen tcp 127.0.0.1:8080: bind`) even though manual packaged
+  `musu-brain.exe server -root ~/.musu/brain -addr 127.0.0.1:8080` stayed
+  healthy. Source now adds
+  `~/.musu/brain/runtime/sidecar-start.lock` as a cross-process start guard in
+  addition to the in-process `RuntimeStartGate`, with stale lock recovery after
+  30 seconds. After rebuild/reinstall, packaged desktop launch wrote
+  `sidecar-autostart-status.json` with `result=started`,
+  `readiness_ok=true`, pid `33428`; `musu doctor --json` reported
+  `knowledge.status=ok` and `knowledge.health_http_status=200`. Canonical
+  evidence is
+  `docs/evidence/msix-install/1.15.0-rc.22/20260701-085145-HUGH_SECOND.evidence.json`,
+  `docs/evidence/brain-product/1.15.0-rc.22/20260701-085057-HUGH_SECOND.brain-product-proof.json`,
+  and
+  `docs/evidence/brain-product/1.15.0-rc.22/20260701-085057-HUGH_SECOND.brain-product-verification.json`.
+  Brain product verification has `ok=true`, `fail_count=0`, sidecar process
+  observed, token ACL restricted, health OK, task recall OK, and capture recall
+  OK. Verification passed `rustfmt`, `git diff --check`, and Tauri knowledge
+  tests (`7 passed`, including
+  `knowledge_start_file_lock_blocks_reentry_until_guard_drop`). Dirty go/no-go
+  at `2026-07-01T08:54:57+09:00` reports `brain_product_verified=true` and
+  `msix_install_verified=true`, while full product completion remains NO-GO due
+  to source-dirty/stale non-brain local freshness lanes plus second-machine,
+  Store/public metadata, P2P/relay, Private Mesh, V34, and design-approval
+  blockers. Search terms should include `wiki/1206`, `sidecar-start.lock`,
+  `knowledge_start_file_lock_blocks_reentry_until_guard_drop`,
+  `20260701-085057-HUGH_SECOND.brain-product-proof`,
+  `20260701-085145-HUGH_SECOND.evidence`, `brain_product_verified=true`, and
+  `msix_install_verified=true`.
+
+- 2026-07-01 current local package freshness after brain lock:
+  `docs/CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_AFTER_BRAIN_LOCK_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/WIKI_INDEX.md` now record `wiki/1207`: after the
+  brain sidecar cross-process lock package proof, the current local non-brain
+  package freshness lanes were recaptured on `HUGH_SECOND` for source commit
+  `7c971844bc984f8da458f3c5dc499d9478f67a1a`. Evidence includes
+  `docs/evidence/single-machine/1.15.0-rc.22/20260701-091035-HUGH_SECOND.evidence.json`,
+  `docs/evidence/single-machine/1.15.0-rc.22/20260701-091035-HUGH_SECOND.verification.json`,
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260701-091101-HUGH_SECOND.process-ownership.json`,
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260701-091101-HUGH_SECOND.startup-single-instance.json`,
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260701-091101-HUGH_SECOND.startup-single-instance.process-ownership.json`,
+  and
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260701-091101-HUGH_SECOND.desktop-single-instance.json`.
+  Dirty go/no-go at `2026-07-01T09:13:49.6298415+09:00` reports
+  `single_machine_verified=true`, `process_ownership_verified=true`,
+  `startup_single_instance_verified=true`,
+  `desktop_single_instance_verified=true`, `brain_product_verified=true`, and
+  `msix_install_verified=true`; remaining blockers are second-PC, Private Mesh,
+  CPU machine count, public metadata/DNS/TLS, Store, P2P/relay, design
+  approval, relay transport, V34, and the expected pre-commit `git` blocker.
+  Search terms should include `wiki/1207`,
+  `CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_AFTER_BRAIN_LOCK`,
+  `20260701-091035-HUGH_SECOND`, `20260701-091101-HUGH_SECOND`,
+  `single_machine_verified=true`, `process_ownership_verified=true`,
+  `startup_single_instance_verified=true`, and
+  `desktop_single_instance_verified=true`.
+
+- 2026-07-01 current HEAD runtime CPU refresh:
+  `docs/CURRENT_HEAD_RUNTIME_CPU_REFRESH_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/WIKI_INDEX.md` now record `wiki/1208`: current
+  HEAD `9b286237732a60f416efcf2a9e262a684156f96c` has fresh packaged runtime
+  CPU evidence on `HUGH_SECOND`. Evidence includes
+  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260701-092602-HUGH_SECOND.desktop-open.evidence.json`,
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260701-092716-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260701-092716-HUGH_SECOND.runtime-cpu-scenario-matrix.verification.json`,
+  and
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260701-092716-HUGH_SECOND.target-route.verification.json`.
+  Desktop-open idle CPU has `ok=true`, `git_dirty=false`, hottest owned process
+  `0.62%` of one logical CPU, 2 MUSU processes, and 6 MUSU-owned WebView2
+  helpers. The full matrix covers `startup-open`, `runtime-started`,
+  `dashboard-open`, `desktop-open`, and `post-route`; strict matrix and
+  target-route verifications both report `ok=true`, `fail_count=0`. Dirty
+  go/no-go at `2026-07-01T09:35:41.2071561+09:00` reports
+  `runtime_idle_cpu_valid_machine_count=1`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`, and
+  `runtime_cpu_second_pc_route_attempt_verified=true`. This locally closes the
+  route-attempt CPU lane for current HEAD, but full idle/matrix CPU gates still
+  need the second physical machine. Index refresh: `musu indexer sync` indexed
+  `3651 files` and `3947 symbols`; product brain ingest under `local/musu`
+  posted 4 sources, processed 4, recovered 0, and recall top title was
+  `MUSU current HEAD CPU evidence summary corrected paths`. Search terms
+  should include `wiki/1208`,
+  `CURRENT_HEAD_RUNTIME_CPU_REFRESH`, `20260701-092602-HUGH_SECOND`,
+  `20260701-092716-HUGH_SECOND`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `runtime_idle_cpu_valid_machine_count=1`, and
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`.
+
+- 2026-07-01 current product closeout audit:
+  `docs/CURRENT_PRODUCT_CLOSEOUT_AUDIT_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/WIKI_INDEX.md` now record `wiki/1209`: current
+  HEAD `e4959eaf298661752055b8e131573c67018fadd9` was rechecked with clean
+  go/no-go at `2026-07-01T09:49:52.5926629+09:00`. Result remains
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `warnings=0`, `blockers=10`, and `manifest_git.dirty=false`. Local
+  `HUGH_SECOND` lanes are green for single-machine, process ownership, startup
+  single-instance, desktop single-instance, MSIX install, brain product, and
+  targeted `hugh-main` route-attempt CPU proof; CPU idle/matrix full release
+  gates still have one valid machine. Brain handoff is aligned with
+  `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md` at brain repo commit
+  `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`. P2P audit confirms
+  store-forward fallback is contract-wired but non-release-grade, while
+  release relay remains fail-closed with
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` and Rust
+  `release_relay_tunnel_runtime_not_implemented`. Search terms should include
+  `wiki/1209`, `CURRENT_PRODUCT_CLOSEOUT_AUDIT_2026_07_01`,
+  `go-no-go 09:49:52`, `blockers=10`,
+  `source_release_relay_tunnel_runtime_not_implemented`, `quic_relay_tunnel`,
+  `quic_tls_1_3`, `store-forward fallback non-release-grade`, and
+  `~/.musu/brain`. Index refresh: `musu indexer sync` indexed `3652 files` and
+  `3947 symbols`; product brain ingest under `local/musu` posted 8 sources,
+  processed 8, recovered 0, and recall returned top title
+  `wiki/1209 current product closeout audit report`.
+
+- 2026-07-01 current blocker triage and day closeout:
+  `docs/CURRENT_BLOCKER_TRIAGE_AND_DAY_CLOSEOUT_2026_07_01.md`,
+  `docs/CURRENT_PRODUCT_CLOSEOUT_AUDIT_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/WIKI_INDEX.md` now record `wiki/1210`: after
+  pushed HEAD `d5e380158614e28befb8b371ff874090fea82c88`, brain handoff
+  alignment was rechecked against
+  `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md` at brain repo commit
+  `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`; the local handoff copy
+  intentionally adds the MUSU product root override `~/.musu/brain`.
+  `npm run test:public-release` passed `16/16`, so public install/download
+  source routes are present. The fresh non-mutating DNS planner output
+  `.local-build\public-metadata-dns-repair\20260701-100843.musu-pro-public-metadata-dns-repair.json`
+  still reports `release_blocker_present=true`,
+  `ready_for_public_metadata_verifier=false`, `provider_guess=cloudflare`,
+  `dns_path_matches_expected=false`, `apex_tls_ok=false`,
+  `vercel_edge_apex_tls_ok=false`, and `metadata_ok=false`. P2P env status
+  still reports `source_release_relay_tunnel_runtime_not_implemented`, missing
+  KV/Upstash env, and missing live relay route/metadata/transport/payload
+  delivery evidence. Product remains NO-GO; fixture artifacts must not be used
+  as final V34 or Private Mesh proof. Search terms should include `wiki/1210`,
+  `CURRENT_BLOCKER_TRIAGE_AND_DAY_CLOSEOUT`,
+  `20260701-100843.musu-pro-public-metadata-dns-repair`,
+  `test:public-release 16/16`,
+  `source_release_relay_tunnel_runtime_not_implemented`, `quic_relay_tunnel`,
+  `quic_tls_1_3`, `HANDOFF-musu-integration`, `~/.musu/brain`, and
+  `V34 physical two-node stale proof`. Index refresh: `musu indexer sync`
+  indexed `3653 files` and `3947 symbols`; product brain ingest under
+  `local/musu` posted `3` closeout sources, processed `3`, recovered `0`, and
+  recall returned top title
+  `wiki/1210 current blocker triage and day closeout report`.
+
+- 2026-07-01 P2P env secret sync:
+  `docs/P2P_ENV_SECRET_SYNC_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/WIKI_INDEX.md` now record `wiki/1211`: Vercel
+  production env already had `KV_REST_API_URL` and `KV_REST_API_TOKEN`, but
+  GitHub repository secrets for `yellowhama/musu-bee` were missing those names.
+  The existing production values were copied to GitHub repo secrets without
+  printing or committing secret values, and the temporary `.local-build` env file
+  was deleted. Verification: `gh secret list --repo yellowhama/musu-bee --json
+  name` includes `KV_REST_API_URL`, `KV_REST_API_TOKEN`, and
+  `MUSU_P2P_CONTROL_TOKEN_SHA256S`; `show-musu-pro-p2p-env-status.ps1 -Json` at
+  `2026-07-01T10:23:49.6405807+09:00` reports
+  `github.missing_required_names=[]`. The blockers
+  `missing_kv_rest_api_url_or_upstash_redis_rest_url` and
+  `missing_kv_rest_api_token_or_upstash_redis_rest_token` are gone. P2P remains
+  NO-GO because `source_release_relay_tunnel_runtime_not_implemented` and the
+  live relay evidence blockers remain; `musu.pro` apex DNS/TLS still blocks live
+  hosted evidence capture. Index refresh: `musu indexer sync` indexed
+  `3654 files` and `3947 symbols`; product brain ingest under `local/musu`
+  posted `3` sources, processed `3`, recovered `0`, and recall returned top
+  title `wiki/1211 p2p env secret sync wiki and index delta`. Search terms
+  should include `wiki/1211`,
+  `P2P_ENV_SECRET_SYNC_2026_07_01`, `KV_REST_API_URL`, `KV_REST_API_TOKEN`,
+  `MUSU_P2P_CONTROL_TOKEN_SHA256S`, `github.missing_required_names=[]`,
+  `source_release_relay_tunnel_runtime_not_implemented`, `quic_relay_tunnel`,
+  and `quic_tls_1_3`.
+
+- 2026-07-01 public metadata Cloudflare DNS apply tool:
+  `docs/PUBLIC_METADATA_CLOUDFLARE_DNS_APPLY_TOOL_2026_07_01.md`,
+  `scripts/windows/apply-musu-pro-public-metadata-cloudflare-dns.ps1`,
+  `musu-bee/src/app/public-metadata-contract.test.ts`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/WIKI_INDEX.md` now record `wiki/1212`: the public
+  metadata DNS/TLS planner remains non-mutating, and a separate Cloudflare DNS
+  apply tool now exists. It defaults to dry-run, requires `-ConfirmApply` before
+  mutation, requires `CLOUDFLARE_API_TOKEN`, fails closed with
+  `cloudflare_token_missing`, touches only apex `A`/`AAAA`/`HTTPS` and `www`
+  `A`/`AAAA`/`CNAME`, sets apex `A=76.76.21.21`, sets `www`
+  `CNAME=cname.vercel-dns-0.com`, forces `proxied=false`, and does not touch
+  MX/TXT/NS/mail records. Verification: no-token `-ConfirmApply -Json` returned
+  `will_mutate_external_dns=false`, `applied=false`, and
+  `failure_kind=cloudflare_token_missing`; `npm run test:public-release` passed
+  `17/17`; `git diff --check` passed. Product status remains NO-GO until a
+  Cloudflare token is provided, DNS is applied, propagation completes, and
+  `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` passes.
+  Index refresh: `musu indexer sync` indexed `3656 files` and `3947 symbols`;
+  product brain ingest under `local/musu` posted `4` sources, processed `4`,
+  recovered `0`, and recall returned top title
+  `wiki/1212 public metadata contract test delta`. Search terms should include
+  `wiki/1212`,
+  `PUBLIC_METADATA_CLOUDFLARE_DNS_APPLY_TOOL_2026_07_01`,
+  `apply-musu-pro-public-metadata-cloudflare-dns.ps1`,
+  `musu.public_metadata_cloudflare_dns_apply.v1`,
+  `cloudflare_token_missing`, `76.76.21.21`, `cname.vercel-dns-0.com`,
+  `will_mutate_external_dns=false`, and `test:public-release 17/17`.
+
+- 2026-07-01 final local evidence closeout:
+  `docs/CURRENT_HEAD_FINAL_LOCAL_EVIDENCE_CLOSEOUT_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/WIKI_INDEX.md` now record `wiki/1213`: current
+  evidence source HEAD `8fd1360feedd50b11c4a528ddf4b7faddbd124cb` has fresh
+  `HUGH_SECOND` local package evidence for single-machine
+  `20260701-104134-HUGH_SECOND`, process ownership
+  `20260701-104158-HUGH_SECOND`, startup single-instance
+  `20260701-104213-HUGH_SECOND`, desktop single-instance
+  `20260701-104403-HUGH_SECOND`, desktop-open idle CPU
+  `20260701-110350-HUGH_SECOND.desktop-open.evidence.json`, and runtime CPU
+  matrix `20260701-105201-HUGH_SECOND.runtime-cpu-scenario-matrix.json`.
+  Clean go/no-go at `2026-07-01T11:06:33.5228571+09:00` reports
+  `manifest_git.dirty=false`, `full_product_spec_ready=false`,
+  `ready_for_public_desktop_release=false`, `blockers=10`,
+  `single_machine_verified=true`, `process_ownership_verified=true`,
+  `startup_single_instance_verified=true`, `desktop_single_instance_verified=true`,
+  `runtime_idle_cpu_valid_machine_count=1`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`, and
+  `runtime_cpu_second_pc_route_attempt_verified=true`. Product remains NO-GO:
+  post-documentation clean go/no-go at `2026-07-01T11:13:57.6189601+09:00`
+  on `85b521dd9b8d55e9ced41c51a244217648b0d8bc` reports the same product
+  verdict, dirty=false, and `blockers=10`;
+  the remaining CPU blockers require the second physical machine, and the
+  route-attempt evidence remains LAN HTTP bearer with
+  `peer_identity_verified=false` and `encryption=none_http_bearer`, not
+  release-grade `quic_relay_tunnel` / `quic_tls_1_3` relay proof. Index
+  refresh: `musu indexer sync` indexed `3674 files` and `3947 symbols`;
+  product brain ingest under `local/musu` posted `4` sources, processed `5`,
+  recovered `0`, and recall returned top title
+  `wiki/1213 final local evidence closeout`. Search terms
+  should include `wiki/1213`,
+  `CURRENT_HEAD_FINAL_LOCAL_EVIDENCE_CLOSEOUT_2026_07_01`,
+  `8fd1360feedd50b11c4a528ddf4b7faddbd124cb`,
+  `20260701-110350-HUGH_SECOND`, `20260701-105201-HUGH_SECOND`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`, `none_http_bearer`,
+  `quic_relay_tunnel`, and `quic_tls_1_3`.
+
+- 2026-07-01 current second-PC kit after final local evidence:
+  `docs/CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01.md`,
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/WIKI_INDEX.md` now record `wiki/1214`: the
+  current second-PC proof kit has been regenerated from clean
+  `feat/v33-residual-finalize` commit
+  `6fdc1f3c545c2d401881e64c972c0ca48b15f8fa` after the final local evidence
+  closeout and final wiki/index commit. New kit:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-112343.zip`;
+  SHA256 `ea77111bb29559317b67b070c5f2432ad40c77a6dbce4bbec596ebaec4d2e5da`;
+  package `musu_1.15.0.22_x64_local-sideload-manual.msix`; source dirty
+  `false`; internal checksum verification `ok=true`,
+  `checksum_mismatches=0`, `file_count=51`. It supersedes kit
+  `20260701-025502` from commit `635a161f49b2266fa9758de6b5d5ca14b040ca64`.
+  Brain handoff audit: `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md`
+  exists and brain repo `main` is clean at
+  `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`; standalone brain defaults under
+  `~/.musubrain` remain brain-native, while the MUSU product overlay remains
+  `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md` with hidden packaged
+  product root `~/.musu/brain`. Product status remains NO-GO: this refresh
+  removes stale handoff risk for the next physical `hugh-main` run but does
+  not close second-PC, CPU/matrix, Private Mesh, V34, public metadata, Store,
+  P2P/relay, or design blockers. Index refresh:
+  `musu indexer sync` indexed `3674 files` and `3947 symbols`; exact SHA search
+  returns the current report, handoff, wiki, and roadmap; `wiki 1214 current
+  second PC kit final local evidence` returns the current report and wiki.
+  Product brain ingest under `local/musu` posted `5` sources, processed `5`,
+  recovered `0`, and recall returned top title
+  `wiki/1214 final current second-PC kit report`. Search terms should include
+  `wiki/1214`,
+  `CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01`, `20260701-112343`,
+  `ea77111bb29559317b67b070c5f2432ad40c77a6dbce4bbec596ebaec4d2e5da`,
+  `6fdc1f3c545c2d401881e64c972c0ca48b15f8fa`,
+  `HANDOFF-musu-integration`, `~/.musu/brain`, `~/.musubrain`,
+  `hugh-main`, `hugh_second`, `checksum_mismatches=0`, `file_count=51`, and
+  `full product NO-GO`.
+
+- 2026-07-01 final day closeout and product spec audit:
+  `docs/FINAL_DAY_CLOSEOUT_AND_PRODUCT_SPEC_AUDIT_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1215`: current HEAD
+  `aa17e9586a715352892a0d3624a9fc4baa3bf336` remains clean but full product
+  completion is still NO-GO. Latest clean go/no-go at
+  `2026-07-01T11:33:14.1215284+09:00` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `warnings=0`, and `blockers=10`: `multi-device`,
+  `private-mesh-packaged-release-proof`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `store-public-metadata`, `store-release`,
+  `p2p-control-plane`, `design-approval`, `relay-transport`, and
+  `v34-stale-self-heal`. Qualitative audit: local `HUGH_SECOND` lanes are
+  green, the current second-PC kit is fresh, brain handoff is discoverable in
+  both repos, and MUSU product brain root remains `~/.musu/brain` while brain
+  standalone default remains `~/.musubrain`. P2P remains NO-GO because
+  `source_release_relay_tunnel_runtime_not_implemented`, no route metadata, no
+  transport proof, and no payload delivery proof. Vercel inspect and DNS
+  planner agree that `musu.pro` is attached to project `musu-pro` but DNS still
+  uses Cloudflare nameservers `blakely.ns.cloudflare.com` and
+  `weston.ns.cloudflare.com` instead of intended Vercel nameservers
+  `ns1.vercel-dns.com` and `ns2.vercel-dns.com`; planner at
+  `2026-07-01T11:40:46.8093729+09:00` still reports
+  `ready_for_public_metadata_verifier=false`, apex TLS failure, and
+  `vercel_edge_apex_tls_failed`. Next smallest action is still physical
+  `hugh-main` kit run/import plus DNS/TLS repair; do not flip relay release
+  markers before real `quic_relay_tunnel` byte transit and `quic_tls_1_3`
+  proof exist. Index refresh: `musu indexer sync` indexed `3675 files` and
+  `3947 symbols`; product brain ingest under `local/musu` posted `4` sources,
+  processed `4`, recovered `0`, and recall returned top title
+  `wiki/1215 WIKI final day closeout entry`. Search terms should include
+  `wiki/1215`,
+  `FINAL_DAY_CLOSEOUT_AND_PRODUCT_SPEC_AUDIT_2026_07_01`,
+  `aa17e9586a715352892a0d3624a9fc4baa3bf336`,
+  `2026-07-01T11:33:14.1215284+09:00`,
+  `2026-07-01T11:40:46.8093729+09:00`,
+  `source_release_relay_tunnel_runtime_not_implemented`, `quic_relay_tunnel`,
+  `quic_tls_1_3`, `blakely.ns.cloudflare.com`, `weston.ns.cloudflare.com`,
+  `ns1.vercel-dns.com`, `ns2.vercel-dns.com`, `~/.musu/brain`, and
+  `~/.musubrain`.
+
+- 2026-07-01 remote file share and shell cancel audit:
+  `docs/REMOTE_FILE_SHARE_AND_SHELL_CANCEL_AUDIT_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1216`: explicit remote shell to
+  `hugh-main` initially worked (`hostname`, `whoami`, `where musu`), the
+  target proof root
+  `C:\Users\empty\.musu\codex-remote-file-proof` was created and registered as
+  writable `remote-file-cli-proof`, and `hugh_second` fleet status now sees
+  that root in `hugh-main.shared_dirs`. The remote file proof remains
+  incomplete because `musu ls
+  hugh-main:C:\Users\empty\.musu\codex-remote-file-proof` still returns
+  `forbidden: file API disabled: MUSU_FILE_SERVE_ROOTS not configured`.
+  Current source says `musu share` applies without bridge restart, but the
+  installed rc.22 target output says restart is required, so this is a live
+  package/state gap rather than auth or route reachability. A remote
+  self-restart attempt through `shell` exposed an operations bug: task
+  `9dba3497-c80c-417a-8e59-dcb4a2d869ea` stayed `status=running` after direct
+  `DELETE /api/tasks/9dba...` returned `cancelled=true`; bridge lifecycle must
+  not rely on the same task runner it restarts. Next action: locally on
+  `hugh-main`, run `musu down --json --timeout-sec 5` and
+  `musu up --json --timeout-sec 30`, then rerun `musu ls` / `musu put` /
+  `musu get` from `hugh_second`. Product remains full NO-GO. Search terms
+  should include `wiki/1216`,
+  `REMOTE_FILE_SHARE_AND_SHELL_CANCEL_AUDIT_2026_07_01`,
+  `remote-file-cli-proof`, `MUSU_FILE_SERVE_ROOTS not configured`,
+  `9dba3497-c80c-417a-8e59-dcb4a2d869ea`, `cancelled=true`,
+  `status=running`, `musu down --json`, and `musu up --json`. Index refresh:
+  `musu indexer sync` indexed `3676 files` and `3947 symbols`; product brain
+  CLI ingest under `~/.musu/brain` scope `local/musu` ingested `4` sources,
+  processed `4`, and recall returned the new audit report as the top result.
+
+- 2026-07-01 shell task cancel latch source fix:
+  `docs/SHELL_TASK_CANCEL_LATCH_FIX_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/API.md` now record `wiki/1217`: the stuck shell
+  task issue from `wiki/1216` is fixed at source level. `shell.rs` now kills
+  the subprocess path on `CliOutcome::Cancelled`, `Timeout`, and `IoError`
+  instead of waiting on the child first; `TaskRunnerHandle::cancel` now calls
+  `notify_one()` before `notify_waiters()` so cancellation is latched for the
+  next `notified()` check; and `docs/API.md` now documents the Rust response
+  `{"task_id":"uuid","cancelled":true}`. Verification passed:
+  `shell_cancel_signal_returns_promptly`, all `adapter::shell::tests::*`, and
+  `cancel_signal_transitions_to_cancelled`. Product meaning: source-fixed, but
+  not yet package-proven on `hugh-main`; remote file physical proof and full
+  product completion remain NO-GO. Post-commit go/no-go for source-fix commit
+  `6aa8072489b474906c88aabe3f19665fb6bf7aa7`, generated at
+  `2026-07-01T12:48:54.1223036+09:00`, has `dirty=false`,
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `warnings=0`, and `blockers=15` because package/evidence freshness is reset
+  until this source fix is rebuilt and reproven. Index refresh:
+  `musu indexer sync` indexed
+  `3677 files` and `3949 symbols`; product brain CLI ingest under
+  `~/.musu/brain` scope `local/musu` ingested `8` sources and processed `8`;
+  recall for
+  `SHELL_TASK_CANCEL_LATCH_FIX_2026_07_01 TaskRunnerHandle cancel notify_one`
+  returned the new source-fix report as the top result, and recall
+  for `shell_cancel_signal_returns_promptly CliOutcome Cancelled graceful_kill runner.rs`
+  returned indexed `runner.rs` source as the top result. Search terms should
+  include `wiki/1217`,
+  `SHELL_TASK_CANCEL_LATCH_FIX_2026_07_01`,
+  `shell_cancel_signal_returns_promptly`, `TaskRunnerHandle::cancel`,
+  `notify_one`, `notify_waiters`, `writer::runner::graceful_kill`,
+  `CliOutcome::Cancelled`, `DELETE /api/tasks/{task_id}`,
+  `9dba3497-c80c-417a-8e59-dcb4a2d869ea`, `status=running`,
+  `cancelled=true`, `hugh-main`, `hugh_second`, and `full product NO-GO`.
+
+- 2026-07-01 local package evidence refresh after shell cancel fix:
+  `docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_AFTER_SHELL_CANCEL_FIX_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1218`: the shell cancel source fix was
+  rebuilt, installed, and locally package-proven on HUGH_SECOND. Fresh evidence
+  includes MSIX install `20260701-132112`, single-machine smoke
+  `20260701-132208`, process/startup/desktop single-instance evidence
+  `20260701-132237`, desktop-open CPU `20260701-132844`, and runtime CPU
+  scenario matrix `20260701-133011`. Local package freshness lanes are green
+  again: `msix_install_verified=true`, `single_machine_verified=true`,
+  `process_ownership_verified=true`, `startup_single_instance_verified=true`,
+  and `desktop_single_instance_verified=true`. Dirty pre-documentation
+  go/no-go at `2026-07-01T13:42:33.0531675+09:00` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `warnings=0`, and `blockers=11`; the `git` blocker is expected before this
+  evidence/docs commit. Post-commit clean go/no-go after commit `92f5143a`,
+  generated at `2026-07-01T13:49:49.4299299+09:00`, reports
+  `manifest_git.dirty=false`, `full_product_spec_ready=false`,
+  `ready_for_public_desktop_release=false`, `warnings=0`, and `blockers=10`.
+  Runtime CPU counts are
+  `runtime_idle_cpu_valid_machine_count=1/2`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=0/2`, and
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1`. The targeted
+  `hugh-main` route-attempt verifier passed with failed route allowed because
+  metadata was recorded, but the default matrix gate remains open because
+  `route_ok=false` and successful post-route proof is missing. Product status
+  remains NO-GO; the remaining blockers are physical second-PC proof,
+  successful post-route matrix, public metadata DNS/TLS, Store, P2P, design
+  approval, relay transport, and V34 stale-self-heal. Search terms should
+  include `wiki/1218`,
+  `LOCAL_PACKAGED_EVIDENCE_REFRESH_AFTER_SHELL_CANCEL_FIX_2026_07_01`,
+  `20260701-132112`, `20260701-132208`, `20260701-132237`,
+  `20260701-132844`, `20260701-133011`, `route_ok=false`,
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=0/2`, `hugh-main`,
+  `HUGH_SECOND`, `~/.musu/brain`, and `HANDOFF-musu-integration`. Index
+  refresh: `musu indexer sync` indexed `3698 files` and `3949 symbols`;
+  product brain ingest under `local/musu` posted `6` sources, processed `6`,
+  and recall for
+  `Local Packaged Evidence Refresh After Shell Cancel Fix 2026 07 01 wiki 1218`
+  returned the new report as the top result.
+
+- 2026-07-01 current second-PC kit after shell cancel package proof:
+  `docs/CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01.md`,
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`,
+  `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1219`: the current second-PC kit is
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-135632.zip`,
+  SHA256
+  `3d97eb84b7359a35199f5739ecea5d6fa43ef124931e4937ba7891c9c41cdd8b`,
+  generated at `2026-07-01T13:56:40.1524203+09:00` from clean commit
+  `9ce134bb6b10c6320e21bdebe4abf6ddcdc8760d`. Internal checksum replay passed
+  with `ok=true`, `checksum_mismatches=0`, `checksum_count=50`, and
+  `file_count=51`. This supersedes the `20260701-112343` kit from `6fdc1f3c`
+  because it includes the shell cancel latch fix, rebuilt local package
+  evidence, runtime CPU refresh, clean go/no-go recheck, and wiki/spec/index
+  updates. It does not close product blockers by itself; `hugh-main` must run
+  the kit and return/import `.local-build/second-pc-return/*.zip`. Index
+  refresh: `musu indexer sync` indexed `3698 files` and `3949 symbols`;
+  product brain ingest under `local/musu` posted `6` sources, processed `6`,
+  and recall for exact kit key
+  `20260701-135632 3d97eb84b7359a35199f5739ecea5d6fa43ef124931e4937ba7891c9c41cdd8b`
+  returned the updated second-PC handoff as the top result. Search terms should
+  include `wiki/1219`, `CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01`,
+  `SECOND_PC_KIT_HANDOFF_2026_06_28`, `20260701-135632`,
+  `3d97eb84b7359a35199f5739ecea5d6fa43ef124931e4937ba7891c9c41cdd8b`,
+  `9ce134bb6b10c6320e21bdebe4abf6ddcdc8760d`, `hugh-main`, `hugh_second`,
+  `run-second-pc-release-check.ps1`, and `full product NO-GO`.
+
+- 2026-07-01 relay payload proof runtime fail-closed:
+  `docs/RELAY_PAYLOAD_PROOF_RUNTIME_FAIL_CLOSED_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1220`: `/api/v1/relay/payload` no longer
+  accepts lease-bound release proof metadata as transported while
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false`. Valid proof metadata now returns
+  HTTP `409`, `error=release_relay_tunnel_runtime_not_implemented`,
+  `release_payload_accepted=false`, `payload_transported=false`, and writes no
+  relay transport proof record. Verification: focused relay payload route test
+  passed `10/10`, `npm run test:p2p` passed `133/133`, `npm run typecheck`
+  passed, `git diff --check` passed, release evidence verifier regression
+  passed `219/219`, and `show-musu-pro-p2p-env-status.ps1 -Json` still reports
+  `source_release_relay_tunnel_runtime_not_implemented`. This is safety
+  hardening only; `relay-transport` and `p2p-control-plane` remain NO-GO until
+  real `quic_relay_tunnel` byte transit emits bound `quic_tls_1_3` transport
+  proof and payload delivery proof. Indexing: `musu indexer sync` indexed
+  `3699` files / `3949` symbols, `musu-brain.exe ingest/process` processed 7
+  changed files, and recall for `wiki/1220 relay payload proof runtime fail
+  closed` returned the canonical report plus roadmap entry. Search terms should
+  include `wiki/1220`,
+  `RELAY_PAYLOAD_PROOF_RUNTIME_FAIL_CLOSED_2026_07_01`,
+  `release_relay_tunnel_runtime_not_implemented`,
+  `release_payload_accepted=false`, `payload_transported=false`,
+  `test:p2p 133/133`, and `relay-transport NO-GO`.
+
+- 2026-07-01 P2P store-forward relay audit coverage refresh:
+  `docs/P2P_STORE_FORWARD_RELAY_AUDIT_COVERAGE_REFRESH_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1221`: clean go/no-go on
+  `58b73147649cb730917e0b3602740d740d4579de` surfaced
+  `p2p-store-forward-relay` because
+  `audit-p2p-store-forward-relay-contract.ps1` still required the older
+  accepted-proof-metadata release payload test name. The audit now requires the
+  current fail-closed release payload proof test name, the
+  `release_relay_tunnel_runtime_not_implemented` error, `release_payload_proof_ready`,
+  and `assert.equal(proofs.length, 0)`. Verification:
+  `scripts/windows/audit-p2p-store-forward-relay-contract.ps1 -Json` passed with
+  `ok=true`, `fail_count=0`; focused relay payload route test passed `10/10`;
+  `npm run test:p2p` passed `133/133`; `npm run typecheck` passed;
+  `git diff --check` passed; release evidence verifier regression passed
+  `219/219`; clean go/no-go on
+  `011bf42d95ad24d799332329f15cfcc9a6bd11b4` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `warnings=0`, `blockers=10`, and `p2p-store-forward-relay` is no longer a
+  blocker. Indexing: `musu indexer sync` indexed `3700` files / `3949` symbols;
+  `musu-brain.exe ingest/process` processed 5 changed files. Recall for
+  `wiki/1221 p2p store forward relay audit coverage refresh` returned the
+  canonical report, roadmap entry, and audit source. This removes a stale
+  source-audit blocker shape but does not implement release relay transport.
+  Search terms should include
+  `wiki/1221`, `P2P_STORE_FORWARD_RELAY_AUDIT_COVERAGE_REFRESH_2026_07_01`,
+  `p2p-store-forward-relay`, `audit-p2p-store-forward-relay-contract.ps1`,
+  `release_relay_tunnel_runtime_not_implemented`, and
+  `assert.equal(proofs.length, 0)`.
+
+- 2026-07-01 public metadata DNS repair operator path:
+  `docs/PUBLIC_METADATA_DNS_REPAIR_OPERATOR_PATH_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1222`: `store-public-metadata` remains
+  NO-GO because live `https://musu.pro` still fails canonical public metadata
+  verification with `request_failed`, `dns_configuration_mismatch`,
+  `dns_nameserver_mismatch`, `apex_tls_handshake_failed`, and
+  `vercel_edge_apex_tls_failed`. Source audit confirms the local
+  privacy/support/public-config routes exist; the blocker is external apex
+  DNS/TLS authority. `plan-musu-pro-public-metadata-dns-repair.ps1` remains
+  non-mutating and now emits `cloudflare_apply` with the existing Cloudflare
+  helper's dry-run command, explicit `-ConfirmApply` command,
+  `CLOUDFLARE_API_TOKEN`, optional `CLOUDFLARE_ZONE_ID`, and
+  `mutation_requires_confirm_apply=true`. `write-release-go-no-go.ps1` now
+  includes the exact dry-run/apply commands in the `store-public-metadata`
+  next action, and `test-release-evidence-verifiers.ps1` locks the source
+  contract. Verification: parser check passed for the three touched scripts;
+  planner probe returned `ok=true`,
+  `ready_for_public_metadata_verifier=false`,
+  `will_mutate_external_dns=false`, `apply_supported=false`, `can_apply=false`;
+  the Cloudflare helper still fails closed without a token with
+  `cloudflare_token_missing`, `will_mutate_external_dns=false`, `applied=false`;
+  release evidence verifier regression passed `219/219`. Index refresh:
+  `musu indexer sync` indexed `3701 files` / `3949 symbols`; product brain
+  ingest under `local/musu` posted `8` sources, `musu-brain process` reported
+  `processed: 8`, a final docs-only refresh posted 4 updated docs and
+  processed 4, and recall for
+  `PUBLIC_METADATA_DNS_REPAIR_OPERATOR_PATH_2026_07_01 cloudflare_apply dry_run_command CLOUDFLARE_API_TOKEN`
+  returned `wiki/sources/src_a45322f5bc04c444.md` as the top result. Brain
+  handoff cross-check: both
+  `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md` and local
+  `docs/HANDOFF-musu-integration.md` exist; MUSU product root remains
+  `~/.musu/brain`, not standalone `~/.musubrain`. Search terms should include
+  `wiki/1222`, `PUBLIC_METADATA_DNS_REPAIR_OPERATOR_PATH_2026_07_01`,
+  `cloudflare_apply`, `dry_run_command`, `mutation_requires_confirm_apply`,
+  `apply-musu-pro-public-metadata-cloudflare-dns.ps1`,
+  `CLOUDFLARE_API_TOKEN`, `store-public-metadata NO-GO`,
+  `HANDOFF-musu-integration`, and `~/.musu/brain`.
+
+- 2026-07-01 release relay transport design gate:
+  `docs/RELEASE_RELAY_TRANSPORT_DESIGN_GATE_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1223`: `relay-transport` and
+  `p2p-control-plane` remain NO-GO, but a new executable design gate now
+  prevents release closure by marker flip alone. Added
+  `scripts/windows/audit-release-relay-transport-design-gate.ps1`; updated
+  `write-release-go-no-go.ps1` so the relay next action runs that gate; updated
+  the multi-device test kit and final operator packet to copy and run the gate
+  before P2P recorder/verifier commands; and updated release-readiness/verifier
+  contracts to require it. The gate reports `ok=true`, `release_ready=false`,
+  `runtime_marker_can_be_flipped=false`, and
+  `must_keep_runtime_marker_false=true` while blockers remain
+  `runtime_byte_path_missing`, `release_relay_route_evidence_missing`,
+  `release_relay_route_metadata_missing`,
+  `release_relay_transport_proof_missing`, and
+  `release_relay_payload_delivery_proof_missing`. Release evidence verifier
+  regression passed `220/220` at
+  `.local-build\release-evidence-verifier-tests\20260701-152311`. Indexing:
+  `musu indexer sync` indexed `3703 files` / `3949 symbols`; product brain
+  ingest under `local/musu` posted 10 changed sources and `musu-brain process`
+  reported `processed: 10`; a final docs-only refresh posted 4 updated docs and
+  processed 4. Recall for
+  `wiki/1223 RELEASE_RELAY_TRANSPORT_DESIGN_GATE runtime_marker_can_be_flipped audit-release-relay-transport-design-gate`
+  returned the canonical report and the design gate script in the top results.
+  Search terms should include `wiki/1223`,
+  `RELEASE_RELAY_TRANSPORT_DESIGN_GATE_2026_07_01`,
+  `audit-release-relay-transport-design-gate.ps1`,
+  `runtime_marker_can_be_flipped`, `must_keep_runtime_marker_false`,
+  `source_release_relay_tunnel_runtime_not_implemented`,
+  `quic_relay_tunnel`, `quic_tls_1_3`, and `relay-transport NO-GO`.
+
+- 2026-07-01 local packaged evidence refresh:
+  `docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1224`: after the wiki/1223 relay design-gate
+  commit, HUGH_SECOND local packaged evidence was refreshed for
+  `single-machine`, `process-ownership`, `startup-single-instance`, and
+  `desktop-single-instance`. Evidence paths include
+  `docs/evidence/single-machine/1.15.0-rc.22/20260701-153838-HUGH_SECOND.evidence.json`,
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260701-154029-HUGH_SECOND.process-ownership.json`,
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260701-154046-HUGH_SECOND.startup-single-instance.json`,
+  and
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260701-154133-HUGH_SECOND.desktop-single-instance.json`.
+  Clean go/no-go at `2026-07-01T15:43:46.2307186+09:00` reports
+  `single_machine_verified=true`, `process_ownership_verified=true`,
+  `startup_single_instance_verified=true`, `desktop_single_instance_verified=true`,
+  `ready_for_public_desktop_release=false`, `full_product_spec_ready=false`,
+  and `blocker_count=11`. Indexing: `musu indexer sync` indexed
+  `3711 files` / `3949 symbols`; product brain ingest under `local/musu`
+  posted `11` changed report/wiki/evidence sources and `musu-brain process`
+  reported `processed: 11`; a final docs-only refresh posted `4` updated docs
+  and processed `4`; recall for
+  `wiki/1224 LOCAL_PACKAGED_EVIDENCE_REFRESH blocker_count 11 20260701-154133 desktop_single_instance_verified`
+  returned the canonical report and the desktop single-instance evidence in
+  the top results. Search terms should include `wiki/1224`,
+  `LOCAL_PACKAGED_EVIDENCE_REFRESH_2026_07_01`, `20260701-153838-HUGH_SECOND`,
+  `20260701-154029-HUGH_SECOND`, `20260701-154046-HUGH_SECOND`,
+  `20260701-154133-HUGH_SECOND`, and `blocker_count=11`.
+
+- 2026-07-01 brain sidecar retry and local CPU refresh:
+  `docs/BRAIN_SIDECAR_RETRY_AND_LOCAL_CPU_REFRESH_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1225`: packaged hidden brain lifecycle now
+  handles the observed `exited_before_ready` bind race by waiting for an
+  existing healthy sidecar and retrying one hidden spawn only if none appears.
+  Source touched: `musu-bee/src-tauri/src/lib.rs` with
+  `spawn_knowledge_sidecar_process`. Evidence includes
+  `20260701-161221-HUGH_SECOND` brain product proof,
+  `20260701-161658-HUGH_SECOND` idle CPU,
+  `20260701-161810-HUGH_SECOND` runtime CPU matrix and route evidence,
+  `20260701-163238-HUGH_SECOND` single-machine,
+  `20260701-163326-HUGH_SECOND` process ownership,
+  `20260701-163336-HUGH_SECOND` startup single-instance, and
+  `20260701-163413-HUGH_SECOND` desktop single-instance. Verification passed
+  Tauri knowledge tests (`7/7`), rustfmt check, MSIX rebuild/reinstall, brain
+  product verifier, `musu doctor --json` with `knowledge.status=ok`, idle CPU
+  max one-core CPU `0.88%`, and runtime matrix verifier with
+  `-AllowFailedPostRouteProbe -ExpectedPostRouteTarget hugh-main`. Go/no-go
+  after evidence refresh shows local packaged lanes and brain product true,
+  `runtime_idle_cpu_valid_machine_count=1 [HUGH_SECOND]`,
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1 [HUGH_SECOND]`,
+  and `runtime_cpu_scenario_matrix_valid_machine_count=0` because strict matrix
+  still needs successful post-route wait-token completion. Product remains
+  NO-GO. Search terms should include `wiki/1225`,
+  `BRAIN_SIDECAR_RETRY_AND_LOCAL_CPU_REFRESH_2026_07_01`,
+  `spawn_knowledge_sidecar_process`, `exited_before_ready`,
+  `sidecar-autostart-status.json`, `20260701-161810-HUGH_SECOND`,
+  `20260701-163413-HUGH_SECOND`, and
+  `runtime_cpu_scenario_matrix_valid_machine_count=0`.
+
+- 2026-07-01 runtime CPU post-route self-target source fix:
+  `docs/RUNTIME_CPU_POST_ROUTE_SELF_TARGET_FIX_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1226`: the strict runtime CPU matrix lane
+  still reports NO-GO, but `remote_task_wait_timeout` was narrowed to a
+  target-bound execution problem rather than network reachability or default
+  adapter choice. Source fix: `musu-rs/src/bridge/router.rs` now executes
+  locally when trimmed `explicit_target == state.config.node_name`, before
+  peer-cache lookup; runtime CPU matrix probes now default to `RouteAdapter echo`, pass
+  `musu route --adapter echo`, and record `route_adapter`. Verification passed
+  script parser checks, release evidence verifier regression `220/220` at
+  `.local-build\release-evidence-verifier-tests\20260701-173445`, and targeted
+  Rust router tests in lib/bin targets (`7/7` each). Live diagnostic cleanup
+  cancelled stale `hugh-main` task rows
+  `45dd75ba-4684-410b-9054-a4ce9182a4bc`,
+  `c509c314-7289-4e00-af33-83e0e0ac0a5d`, and
+  `1b7c854b-15ee-4d10-989d-055860c3ac20`; older task
+  `9dba3497-c80c-417a-8e59-dcb4a2d869ea` still reported `running` after cancel
+  and requires bridge restart or stale-task cleanup proof before the next
+  release CPU capture. Dirty go/no-go at
+  `2026-07-01T17:28:07.6821307+09:00` reported `blocker_count=11`,
+  `warnings=0`, and `manifest_dirty=true`, with the expected temporary `git`
+  blocker. First clean go/no-go after source commit `a0b115a0` at
+  `2026-07-01T17:52:22.441498+09:00` reported
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=15`, `warnings=0`, and `manifest_git.dirty=false`, because prior
+  package-bound evidence is stale until rebuild/reinstall and recapture.
+  Indexing: final `musu indexer sync` indexed `3731 files` /
+  `3952 symbols`; product brain ingest/process handled `7` final code/docs
+  sources, followed by a final docs-only refresh of the canonical report,
+  roadmap, `docs/WIKI.md`, and `docs/WIKI_INDEX.md` (`processed: 4`); recall for
+  `wiki/1226 runtime CPU post-route self-target explicit_target_matches_local_node RouteAdapter echo remote_task_wait_timeout`
+  returned the canonical report source in the top results. Product remains
+  NO-GO until the rebuilt package is
+  installed on both PCs and successful runtime CPU matrix evidence is committed.
+  Search terms should include `wiki/1226`,
+  `RUNTIME_CPU_POST_ROUTE_SELF_TARGET_FIX_2026_07_01`,
+  `explicit_target_matches_local_node`, `RouteDecision::Local`,
+  `RouteAdapter echo`, `route_adapter`, `remote_task_wait_timeout`,
+  `20260701-173445`, and
+  `runtime_cpu_scenario_matrix_valid_machine_count=0`.
+
+- 2026-07-01 local package refresh after brain pin update:
+  `docs/LOCAL_PACKAGE_REFRESH_AFTER_BRAIN_PIN_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`,
+  `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`, and
+  `docs/WIKI.md` now record `wiki/1227`: the external brain checkout advanced
+  from pin `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14` to
+  `0b47c430e94fa504029c9b754dea70055beeee6e`; `build-msix.ps1 -NoBump
+  -PreflightOnly` failed until `musu-bee/src-tauri/musu-brain.pin.json` was
+  updated, proving the brain pin coherence gate is active. Full build and
+  reinstall passed. Evidence includes `20260701-182634-HUGH_SECOND` MSIX
+  install/single-machine/process/startup/desktop/idle CPU,
+  `20260701-183101-HUGH_SECOND` brain product proof, and
+  `20260701-183437-HUGH_SECOND` runtime CPU matrix. Clean go/no-go at
+  `2026-07-01T18:49:50.0962676+09:00` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, `manifest_git.dirty=false`,
+  `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`,
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1 [HUGH_SECOND]`,
+  and `runtime_cpu_scenario_matrix_valid_machine_count=0/2`. Product remains
+  NO-GO; strict runtime matrix still needs successful target-bound post-route
+  proof on both PCs, and the `hugh-main` install/check path must be regenerated
+  or republished for current source `ee597c7e03fa12da853451e2c1339d63b93de52b`.
+  Search terms should include `wiki/1227`,
+  `LOCAL_PACKAGE_REFRESH_AFTER_BRAIN_PIN_2026_07_01`,
+  `musu-brain.pin.json`, `0b47c430e94fa504029c9b754dea70055beeee6e`,
+  `20260701-182634-HUGH_SECOND`, `20260701-183101-HUGH_SECOND`,
+  `20260701-183437-HUGH_SECOND`, `runtime_idle_cpu_valid_machine_count=1`,
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=0`, and `blockers=10`.
+
+- 2026-07-01 current second-PC kit refresh after brain pin update:
+  `docs/CURRENT_SECOND_PC_KIT_REFRESH_AFTER_BRAIN_PIN_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`, and
+  `docs/WIKI.md` now record `wiki/1228`: `prepare-multidevice-test-kit.ps1
+  -Json` regenerated the second-PC release-check kit from clean source commit
+  `86bd6a2fe1f809a7788173f6936bf6c97042652e` after the brain pin package
+  refresh. Current zip:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-185956.zip`;
+  SHA256:
+  `4a82644b867c541bd8c3af46736e1e33b23188f70df8d4bcc83e3f1e647f85fe`;
+  metadata:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-185956/kit-build-metadata.json`.
+  This replaces the stale `20260701-135632` kit reference but does not close
+  `multi-device`, `runtime-idle-cpu`, or `runtime-cpu-scenario-matrix`; the
+  other physical PC must run the kit and return evidence. Search terms should
+  include `wiki/1228`,
+  `CURRENT_SECOND_PC_KIT_REFRESH_AFTER_BRAIN_PIN_2026_07_01`,
+  `musu-multidevice-1.15.0-rc.22-20260701-185956.zip`,
+  `4a82644b867c541bd8c3af46736e1e33b23188f70df8d4bcc83e3f1e647f85fe`,
+  `kit-build-metadata.json`, and
+  `86bd6a2fe1f809a7788173f6936bf6c97042652e`.
+
+- 2026-07-01 product spec audit stop point:
+  `docs/CURRENT_PRODUCT_SPEC_AUDIT_STOP_POINT_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1229`: clean go/no-go at
+  `2026-07-01T19:08:29.8415898+09:00` remains NO-GO with `blockers=10`
+  (`multi-device`, `private-mesh-packaged-release-proof`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `store-public-metadata`, `store-release`,
+  `p2p-control-plane`, `design-approval`, `relay-transport`, and
+  `v34-stale-self-heal`). Public metadata audit evidence shows current
+  `musu.pro` Cloudflare DNS/TLS state does not satisfy the Vercel/public
+  metadata verifier, and the Cloudflare apply helper failed closed because
+  `CLOUDFLARE_API_TOKEN` was absent. V34 route evidence
+  `.local-build/v34-route-evidence/20260701-191310/20260701-191310-HUGH_SECOND-to-hugh-main.route-evidence.json`
+  reached `hugh-main` over LAN (`handshake_ms=7`) but ended
+  `remote_task_wait_timeout`; remote task
+  `9dba3497-c80c-417a-8e59-dcb4a2d869ea` still reported `running` after cancel
+  attempts. Code audit found that task cancellation notifies the live runner
+  but does not independently terminalize the DB row, while orphan cleanup runs
+  on bridge construction. Next action is `hugh-main` bridge repair/restart or a
+  proved stale-task cleanup path, then rerun fleet proof and strict runtime CPU
+  matrix. Indexing: `musu indexer sync` returned `3746 files` / `3952 symbols`;
+  product brain ingested and processed `10` primary stop-point code/docs
+  sources plus a final `4` changed stop-point docs into
+  `C:\Users\empty\.musu\brain` tenant `local`, workspace `musu`; recall for
+  `wiki/1229 product spec audit stop point remote_task_wait_timeout stale
+  running task store-public-metadata` returned the canonical report in the top
+  results. Search terms should include `wiki/1229`,
+  `CURRENT_PRODUCT_SPEC_AUDIT_STOP_POINT_2026_07_01`,
+  `20260701-1929-musu-pro-public-metadata-dns-repair-vercel-inspect`,
+  `20260701-1930-musu-pro-cloudflare-dns-apply-token-missing`,
+  `20260701-191310-HUGH_SECOND-to-hugh-main.route-evidence`,
+  `remote_task_wait_timeout`, `9dba3497-c80c-417a-8e59-dcb4a2d869ea`,
+  `store-public-metadata`, `v34-stale-self-heal`, and `blockers=10`.
+
+- 2026-07-01 stale task cancel terminalization source fix:
+  `docs/CURRENT_STALE_TASK_CANCEL_TERMINALIZATION_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/API.md`, and `docs/WIKI.md` now record `wiki/1230`: the stale
+  `running` task risk from `wiki/1229` now has a source-level fix.
+  `TaskRunnerHandle::cancel_and_terminalize` was added in
+  `musu-rs/src/writer/runner.rs`; when a live task is found, the cancel signal
+  is latched and the `route_executions` row is conditionally terminalized from
+  `pending`/`running` to `cancelled` with `error='cancel signal delivered'`.
+  `DELETE /api/tasks/{task_id}` now uses this path, returns `terminalized`, and
+  records `db_terminalized=<bool>` in the audit note. Validation passed:
+  `cargo test --manifest-path musu-rs\Cargo.toml cancel_terminalizes_db_row_immediately --lib -j 1`,
+  `cargo test --manifest-path musu-rs\Cargo.toml cancel_signal_transitions_to_cancelled --lib -j 1`,
+  and `cargo test --manifest-path musu-rs\Cargo.toml cancel_ --lib -j 1`
+  (`3 passed; 0 failed`). Indexing: `musu indexer sync` returned `3747 files`
+  / `3952 symbols`; product brain primary refresh ingested and processed `7`
+  changed code/docs sources, followed by a final docs-only refresh of `4`
+  changed docs; recall for `wiki/1230 cancel_and_terminalize terminalized
+  db_terminalized stale running task route_executions cancel signal delivered`
+  returned the canonical report as the top result. This fixes the source-level
+  stale-task cancel gap but does not make the product release-ready; the new
+  source must be rebuilt, installed, and proved on the physical fleet. Search
+  terms should include
+  `wiki/1230`, `CURRENT_STALE_TASK_CANCEL_TERMINALIZATION_2026_07_01`,
+  `cancel_and_terminalize`, `mark_cancelled_by_operator`,
+  `cancel_terminalizes_db_row_immediately`, `terminalized`,
+  `db_terminalized`, `DELETE /api/tasks/{task_id}`, `route_executions`,
+  `cancel signal delivered`, and `9dba3497-c80c-417a-8e59-dcb4a2d869ea`.
 
 **End of WIKI_INDEX.md.**
