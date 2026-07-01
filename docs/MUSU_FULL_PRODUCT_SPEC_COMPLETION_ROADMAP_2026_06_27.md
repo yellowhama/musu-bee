@@ -1,5 +1,37 @@
 # MUSU Full Product Spec Completion Roadmap (2026-06-27)
 
+## 2026-07-01 19:50 KST stale task cancel terminalization source fix
+
+Canonical report:
+`docs/CURRENT_STALE_TASK_CANCEL_TERMINALIZATION_2026_07_01.md`.
+
+The `wiki/1229` code-audit finding has a source-level fix. The cancel API now
+uses `TaskRunnerHandle::cancel_and_terminalize`: when a live task is found, the
+runner receives the latched cancel signal and the `route_executions` row is
+immediately terminalized from `pending`/`running` to `cancelled` with
+`error='cancel signal delivered'`. `DELETE /api/tasks/{task_id}` now returns
+`terminalized` and records `db_terminalized=<bool>` in the audit note. This
+prevents a wedged adapter from keeping fleet status logically busy forever after
+successful operator cancel.
+
+Validated:
+
+- `cargo test --manifest-path musu-rs\Cargo.toml cancel_terminalizes_db_row_immediately --lib -j 1`
+- `cargo test --manifest-path musu-rs\Cargo.toml cancel_signal_transitions_to_cancelled --lib -j 1`
+- `cargo test --manifest-path musu-rs\Cargo.toml cancel_ --lib -j 1`
+  (`3 passed; 0 failed`)
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  (`3747 files` / `3952 symbols`)
+- Product brain primary ingest/process for `7` changed code/docs sources plus a
+  final docs-only refresh of `4` changed docs; recall for `wiki/1230
+  cancel_and_terminalize terminalized db_terminalized` returned the canonical
+  report in the top results.
+
+Product status remains NO-GO. This closes the source-level stale-task cancel
+gap, but package and physical fleet proof must be refreshed from the new source
+commit before `multi-device`, strict runtime CPU matrix, or V34 proof lanes can
+move.
+
 ## 2026-07-01 19:30 KST product spec audit stop point
 
 Canonical report:

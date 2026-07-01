@@ -11774,4 +11774,33 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `remote_task_wait_timeout`, `9dba3497-c80c-417a-8e59-dcb4a2d869ea`,
   `store-public-metadata`, `v34-stale-self-heal`, and `blockers=10`.
 
+- 2026-07-01 stale task cancel terminalization source fix:
+  `docs/CURRENT_STALE_TASK_CANCEL_TERMINALIZATION_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/API.md`, and `docs/WIKI.md` now record `wiki/1230`: the stale
+  `running` task risk from `wiki/1229` now has a source-level fix.
+  `TaskRunnerHandle::cancel_and_terminalize` was added in
+  `musu-rs/src/writer/runner.rs`; when a live task is found, the cancel signal
+  is latched and the `route_executions` row is conditionally terminalized from
+  `pending`/`running` to `cancelled` with `error='cancel signal delivered'`.
+  `DELETE /api/tasks/{task_id}` now uses this path, returns `terminalized`, and
+  records `db_terminalized=<bool>` in the audit note. Validation passed:
+  `cargo test --manifest-path musu-rs\Cargo.toml cancel_terminalizes_db_row_immediately --lib -j 1`,
+  `cargo test --manifest-path musu-rs\Cargo.toml cancel_signal_transitions_to_cancelled --lib -j 1`,
+  and `cargo test --manifest-path musu-rs\Cargo.toml cancel_ --lib -j 1`
+  (`3 passed; 0 failed`). Indexing: `musu indexer sync` returned `3747 files`
+  / `3952 symbols`; product brain primary refresh ingested and processed `7`
+  changed code/docs sources, followed by a final docs-only refresh of `4`
+  changed docs; recall for `wiki/1230 cancel_and_terminalize terminalized
+  db_terminalized stale running task route_executions cancel signal delivered`
+  returned the canonical report as the top result. This fixes the source-level
+  stale-task cancel gap but does not make the product release-ready; the new
+  source must be rebuilt, installed, and proved on the physical fleet. Search
+  terms should include
+  `wiki/1230`, `CURRENT_STALE_TASK_CANCEL_TERMINALIZATION_2026_07_01`,
+  `cancel_and_terminalize`, `mark_cancelled_by_operator`,
+  `cancel_terminalizes_db_row_immediately`, `terminalized`,
+  `db_terminalized`, `DELETE /api/tasks/{task_id}`, `route_executions`,
+  `cancel signal delivered`, and `9dba3497-c80c-417a-8e59-dcb4a2d869ea`.
+
 **End of WIKI_INDEX.md.**

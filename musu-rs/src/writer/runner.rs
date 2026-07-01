@@ -336,6 +336,17 @@ impl TaskRunnerHandle {
         }
     }
 
+    /// Cancel a live task and immediately close its DB row if it is still
+    /// pending/running. The runner will still observe the latched cancel and
+    /// perform normal cleanup, but the fleet/read APIs no longer report the
+    /// task as active if the adapter wedges before finalization.
+    pub async fn cancel_and_terminalize(&self, task_id: &str) -> Option<bool> {
+        if !self.cancel(task_id) {
+            return None;
+        }
+        Some(mark_cancelled_by_operator(&self.inner, task_id).await)
+    }
+
     /// Spawn a task. Returns immediately (Q1 spawn-then-track) once the
     /// background task is launched. The background task handles admission,
     /// spawning, streaming, and final reconciliation.
@@ -1142,6 +1153,50 @@ async fn update_status_started(pool: &SqlitePool, task_id: &str, started_at: i64
     .save();
 }
 
+async fn mark_cancelled_by_operator(inner: &Inner, task_id: &str) -> bool {
+    let now = chrono::Utc::now().timestamp();
+    let result = sqlx::query(
+        "UPDATE route_executions
+            SET status = 'cancelled',
+                error = 'cancel signal delivered',
+                updated_at = ?
+          WHERE task_id = ?
+            AND status IN ('pending', 'running')",
+    )
+    .bind(now)
+    .bind(task_id)
+    .execute(&inner.pool)
+    .await;
+
+    let terminalized = match result {
+        Ok(res) => res.rows_affected() > 0,
+        Err(e) => {
+            tracing::warn!(error = %e, task_id, "cancel terminalize update failed");
+            false
+        }
+    };
+
+    if terminalized {
+        TaskUpdate {
+            task_id,
+            status: "cancelled",
+            error: Some("cancel signal delivered"),
+            ..Default::default()
+        }
+        .save();
+        inner
+            .sse
+            .publish(TaskEvent::update(task_id, "cancelled").with_result(
+                None,
+                Some("cancel signal delivered"),
+                None,
+                None,
+            ));
+    }
+
+    terminalized
+}
+
 #[allow(clippy::too_many_arguments)]
 async fn finalize(
     inner: &Inner,
@@ -1789,6 +1844,46 @@ printf '{"type":"result","result":"ok","is_error":false}\n'"#
         assert!(wait_status(&pool, &task_id, "running", Duration::from_secs(5)).await);
         assert!(runner.cancel(&task_id));
         assert!(wait_status(&pool, &task_id, "cancelled", Duration::from_secs(15)).await);
+    }
+
+    #[tokio::test]
+    async fn cancel_terminalizes_db_row_immediately() {
+        // This covers the operational stale-running risk: DELETE can succeed
+        // even if the live task never reaches its own finalizer.
+        let body = if cfg!(target_os = "windows") {
+            r#"ping -n 31 127.0.0.1 > NUL
+echo {"type":"result","result":"ok","is_error":false}"#
+        } else {
+            r#"sleep 30
+printf '{"type":"result","result":"ok","is_error":false}\n'"#
+        };
+        let (runner, pool, _tmp) = runner_with_fake_claude(body).await;
+        let task_id = "t-cancel-terminalize".to_string();
+        insert_row(&pool, &task_id, "pending").await;
+        runner
+            .spawn_task(TaskSpec {
+                task_id: task_id.clone(),
+                company_id: None,
+                channel: "ch-cancel-terminalize".into(),
+                sender_id: "s".into(),
+                prompt: "hello".into(),
+                expected_output: None,
+                cwd: std::env::temp_dir(),
+                model: None,
+                timeout_sec: Some(120),
+                adapter_type: "claude".into(),
+                callback_url: None,
+                source_task_id: None,
+                callback_token: None,
+                callback_target_node_id: None,
+                callback_session_id: None,
+            })
+            .await
+            .unwrap();
+
+        assert!(wait_status(&pool, &task_id, "running", Duration::from_secs(5)).await);
+        assert_eq!(runner.cancel_and_terminalize(&task_id).await, Some(true));
+        assert_eq!(row_status(&pool, &task_id).await, "cancelled");
     }
 
     #[tokio::test]

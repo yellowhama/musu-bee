@@ -25169,3 +25169,44 @@ Search terms: `wiki/1229`,
 `20260701-191310-HUGH_SECOND-to-hugh-main.route-evidence`,
 `remote_task_wait_timeout`, `9dba3497-c80c-417a-8e59-dcb4a2d869ea`,
 `store-public-metadata`, `v34-stale-self-heal`, and `blockers=10`.
+
+## wiki/1230 - 2026-07-01 Stale task cancel terminalization source fix
+
+Canonical report:
+`docs/CURRENT_STALE_TASK_CANCEL_TERMINALIZATION_2026_07_01.md`.
+
+The stale `running` task risk from `wiki/1229` now has a source-level fix.
+`TaskRunnerHandle::cancel_and_terminalize` was added in
+`musu-rs/src/writer/runner.rs`: when a live task is found, the cancel signal is
+latched and the `route_executions` row is conditionally terminalized from
+`pending`/`running` to `cancelled` with `error='cancel signal delivered'`.
+`DELETE /api/tasks/{task_id}` now uses this path, returns `terminalized`, and
+records `db_terminalized=<bool>` in the audit note. `docs/API.md` documents the
+new response field and behavior.
+
+Validation:
+
+- `cargo test --manifest-path musu-rs\Cargo.toml cancel_terminalizes_db_row_immediately --lib -j 1`: passed.
+- `cargo test --manifest-path musu-rs\Cargo.toml cancel_signal_transitions_to_cancelled --lib -j 1`: passed.
+- `cargo test --manifest-path musu-rs\Cargo.toml cancel_ --lib -j 1`: `3 passed; 0 failed`.
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`:
+  `3747 files` / `3952 symbols`.
+- Product brain primary refresh ingested and processed `7` changed code/docs
+  sources, followed by a final docs-only refresh of `4` changed docs; recall for
+  `wiki/1230 cancel_and_terminalize terminalized db_terminalized stale running
+  task route_executions cancel signal delivered` returned the canonical report
+  as the top result.
+
+Product meaning: this fixes the source-level stale-task cancel gap, but it does
+not make the product release-ready by itself. The new source must be rebuilt,
+installed, and proved on the physical fleet. The existing `hugh-main` stale
+task may still need bridge restart or local cleanup if that machine is still
+running the older build.
+
+Search terms: `wiki/1230`,
+`CURRENT_STALE_TASK_CANCEL_TERMINALIZATION_2026_07_01`,
+`cancel_and_terminalize`, `mark_cancelled_by_operator`,
+`cancel_terminalizes_db_row_immediately`, `terminalized`,
+`db_terminalized`, `DELETE /api/tasks/{task_id}`,
+`route_executions`, `cancel signal delivered`, and
+`9dba3497-c80c-417a-8e59-dcb4a2d869ea`.
