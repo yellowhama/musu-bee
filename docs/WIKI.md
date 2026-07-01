@@ -23867,3 +23867,55 @@ Product meaning:
   `single_machine_verified=true`, `process_ownership_verified=true`,
   `startup_single_instance_verified=true`,
   `desktop_single_instance_verified=true`.
+
+## wiki/1208 - 2026-07-01 Current HEAD runtime CPU refresh
+
+Canonical report:
+
+- `docs/CURRENT_HEAD_RUNTIME_CPU_REFRESH_2026_07_01.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+- `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260701-092602-HUGH_SECOND.desktop-open.evidence.json`
+- `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260701-092716-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+- `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260701-092716-HUGH_SECOND.runtime-cpu-scenario-matrix.verification.json`
+- `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260701-092716-HUGH_SECOND.target-route.verification.json`
+
+What changed:
+
+- Current HEAD `9b286237732a60f416efcf2a9e262a684156f96c` now has fresh
+  packaged runtime CPU evidence on `HUGH_SECOND`.
+- Desktop-open idle CPU `20260701-092602` has `ok=true`, `git_dirty=false`,
+  hottest owned process `0.62%` of one logical CPU, 2 MUSU processes, and 6
+  MUSU-owned WebView2 helpers.
+- Full runtime CPU matrix `20260701-092716` covers `startup-open`,
+  `runtime-started`, `dashboard-open`, `desktop-open`, and `post-route`.
+- Matrix verification and target-route verification both report `ok=true` and
+  `fail_count=0`.
+- The post-route sample targeted `hugh-main` and recorded successful LAN route
+  evidence to `192.168.1.192:4387`.
+
+Verification:
+
+- Dirty go/no-go at `2026-07-01T09:35:41.2071561+09:00` reports
+  `runtime_idle_cpu_valid_machine_count=1`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`, and
+  `runtime_cpu_second_pc_route_attempt_verified=true`.
+- `runtime_cpu_second_pc_route_attempt_valid_machines=[HUGH_SECOND]`.
+- Idle/matrix full gates remain below the required 2 physical machines.
+- Index refresh: `musu indexer sync --work-dir F:\workspace\musu-bee --name
+  musu-bee` indexed `3651 files` and `3947 symbols`; product brain ingest under
+  `local/musu` posted 4 sources, processed 4, recovered 0, and recall query
+  `MUSU current HEAD CPU evidence summary corrected paths` returned top title
+  `MUSU current HEAD CPU evidence summary corrected paths`.
+
+Product meaning:
+
+- The route-attempt CPU blocker is locally closed for this current HEAD.
+- The CPU release gates still need `hugh-main` evidence before they can close.
+- The route evidence is useful product evidence but still not release-grade
+  transport: it is LAN `none_http_bearer`, `peer_identity_verified=false`, and
+  `payload_transited_musu_infra=false`.
+- Search terms: `wiki/1208`, `CURRENT_HEAD_RUNTIME_CPU_REFRESH`,
+  `20260701-092602-HUGH_SECOND`, `20260701-092716-HUGH_SECOND`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `runtime_idle_cpu_valid_machine_count=1`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`.

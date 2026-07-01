@@ -284,6 +284,27 @@ remains NO-GO because the remaining gates require second-PC evidence, CPU
 machine count, public DNS/TLS/metadata, Store approval, P2P/relay, Private
 Mesh, V34, and design approval.
 
+2026-07-01 09:35 KST current HEAD runtime CPU refresh:
+fresh packaged runtime CPU evidence was recaptured on `HUGH_SECOND` for
+current HEAD `9b286237732a60f416efcf2a9e262a684156f96c`. Canonical report:
+`docs/CURRENT_HEAD_RUNTIME_CPU_REFRESH_2026_07_01.md`. Evidence includes
+desktop-open idle CPU `20260701-092602` and full runtime CPU matrix
+`20260701-092716` with targeted `hugh-main` post-route sample. The idle
+sample has `ok=true`, `git_dirty=false`, hottest owned process `0.62%` of one
+logical CPU, 2 MUSU processes, and 6 MUSU-owned WebView2 helpers. Strict
+matrix verification and target-route verification both have `ok=true` and
+`fail_count=0`; the route attempt succeeded from `hugh_second` to `hugh-main`
+over LAN candidate `192.168.1.192:4387`. Dirty pre-commit go/no-go at
+`2026-07-01T09:35:41.2071561+09:00` reports
+`runtime_idle_cpu_valid_machine_count=1`,
+`runtime_cpu_scenario_matrix_valid_machine_count=1`, and
+`runtime_cpu_second_pc_route_attempt_verified=true`. Product meaning:
+the route-attempt CPU blocker is locally closed for current HEAD, but idle and
+matrix release gates still require a second physical machine. The route
+evidence remains direct HTTP bearer with `peer_identity_verified=false`, so it
+does not close release-grade transport, relay, P2P control-plane, Private Mesh,
+Store/public metadata, V34, or design-approval blockers.
+
 2026-07-01 01:33 KST packaged brain MSIX fullTrust repair:
 the rebuilt local-sideload package now proves the hidden brain chip from the
 installed MSIX on `HUGH_SECOND`. The earlier package could contain

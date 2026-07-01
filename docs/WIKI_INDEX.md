@@ -11059,4 +11059,36 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `startup_single_instance_verified=true`, and
   `desktop_single_instance_verified=true`.
 
+- 2026-07-01 current HEAD runtime CPU refresh:
+  `docs/CURRENT_HEAD_RUNTIME_CPU_REFRESH_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/WIKI_INDEX.md` now record `wiki/1208`: current
+  HEAD `9b286237732a60f416efcf2a9e262a684156f96c` has fresh packaged runtime
+  CPU evidence on `HUGH_SECOND`. Evidence includes
+  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260701-092602-HUGH_SECOND.desktop-open.evidence.json`,
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260701-092716-HUGH_SECOND.runtime-cpu-scenario-matrix.json`,
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260701-092716-HUGH_SECOND.runtime-cpu-scenario-matrix.verification.json`,
+  and
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260701-092716-HUGH_SECOND.target-route.verification.json`.
+  Desktop-open idle CPU has `ok=true`, `git_dirty=false`, hottest owned process
+  `0.62%` of one logical CPU, 2 MUSU processes, and 6 MUSU-owned WebView2
+  helpers. The full matrix covers `startup-open`, `runtime-started`,
+  `dashboard-open`, `desktop-open`, and `post-route`; strict matrix and
+  target-route verifications both report `ok=true`, `fail_count=0`. Dirty
+  go/no-go at `2026-07-01T09:35:41.2071561+09:00` reports
+  `runtime_idle_cpu_valid_machine_count=1`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`, and
+  `runtime_cpu_second_pc_route_attempt_verified=true`. This locally closes the
+  route-attempt CPU lane for current HEAD, but full idle/matrix CPU gates still
+  need the second physical machine. Index refresh: `musu indexer sync` indexed
+  `3651 files` and `3947 symbols`; product brain ingest under `local/musu`
+  posted 4 sources, processed 4, recovered 0, and recall top title was
+  `MUSU current HEAD CPU evidence summary corrected paths`. Search terms
+  should include `wiki/1208`,
+  `CURRENT_HEAD_RUNTIME_CPU_REFRESH`, `20260701-092602-HUGH_SECOND`,
+  `20260701-092716-HUGH_SECOND`,
+  `runtime_cpu_second_pc_route_attempt_verified=true`,
+  `runtime_idle_cpu_valid_machine_count=1`, and
+  `runtime_cpu_scenario_matrix_valid_machine_count=1`.
+
 **End of WIKI_INDEX.md.**
