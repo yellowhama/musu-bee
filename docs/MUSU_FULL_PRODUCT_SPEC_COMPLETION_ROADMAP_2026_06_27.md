@@ -1,5 +1,64 @@
 # MUSU Full Product Spec Completion Roadmap (2026-06-27)
 
+## 2026-07-01 11:24 KST current second-PC kit refresh after final local evidence
+
+Canonical report:
+`docs/CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01.md`.
+
+The current second-PC proof kit has been regenerated from clean
+`feat/v33-residual-finalize` commit
+`6fdc1f3c545c2d401881e64c972c0ca48b15f8fa`, which includes the final local
+evidence closeout, clean go/no-go recheck, wiki/spec updates, and final
+index/recall documentation. New kit:
+
+- zip:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-112343.zip`
+- SHA256:
+  `ea77111bb29559317b67b070c5f2432ad40c77a6dbce4bbec596ebaec4d2e5da`
+- package:
+  `musu_1.15.0.22_x64_local-sideload-manual.msix`
+- source branch: `feat/v33-residual-finalize`
+- source dirty: `false`
+- internal checksum verification: `ok=true`, `checksum_mismatches=0`,
+  `file_count=51`
+
+System/code audit:
+
+- No source-code mutation was made in this refresh; the only generated artifact
+  is the `.local-build/multi-device-test-kit` kit.
+- The kit generator output is internally coherent: clean source commit,
+  expected local-sideload MSIX, public `.cer` certificate only, zip SHA matches
+  `latest-prepare-output.json`, and all `SHA256SUMS.txt` entries match.
+- The canonical brain-side handoff was rechecked at
+  `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md`; brain repo `main` is
+  clean at `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`.
+- The brain root wording is intentionally split: brain standalone defaults
+  remain `~/.musubrain`, while the MUSU packaged product overlay remains
+  `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md` with product root
+  `~/.musu/brain`.
+
+Product status:
+
+- **NO-GO remains correct.**
+- This refresh removes stale-handoff risk for the next `hugh-main` run, but it
+  does not itself close `multi-device`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `private-mesh-packaged-release-proof`, or
+  `v34-stale-self-heal`; those require physical second-PC return evidence.
+- It also does not close external/provider gates: `store-public-metadata`,
+  `store-release`, `p2p-control-plane`, `relay-transport`, or
+  `design-approval`.
+
+Next concrete action:
+
+Run the extracted kit on `hugh-main`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RouteReachabilityTarget hugh_second -RuntimeCpuRouteTarget hugh_second -FailOnRouteReachabilityDiagnostic -FailOnRuntimeCpuScenarioMatrix -FailOnPrivateMeshPhysicalPeerEvidence
+```
+
+Then return/import `.local-build/second-pc-return/*.zip` on this repo and rerun
+the release verifiers.
+
 ## 2026-07-01 09:50 KST closeout audit
 
 Canonical report:

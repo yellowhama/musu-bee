@@ -9,17 +9,19 @@ only `HUGH_SECOND` runtime CPU evidence (`1/2`). The other physical machine,
 ## Current Kit
 
 - Kit zip:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-025502.zip`
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-112343.zip`
 - Kit root:
-  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-025502`
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-112343`
 - Metadata:
   `version=1.15.0-rc.22`, branch `feat/v33-residual-finalize`, source commit
-  `635a161f49b2266fa9758de6b5d5ca14b040ca64`, `dirty=false`.
+  `6fdc1f3c545c2d401881e64c972c0ca48b15f8fa`, `dirty=false`.
 - Generated on:
-  `HUGH_SECOND`, at `2026-07-01T02:55:19.0243502+09:00`, from clean commit
-  `635a161f`.
+  `HUGH_SECOND`, at `2026-07-01T11:23:58.6689761+09:00`, from clean commit
+  `6fdc1f3c`.
 - Zip SHA256:
-  `12c607d499c33686a8d9c4debe5010766a33b137dac9dfc6fd42a9e2ee51dea9`.
+  `ea77111bb29559317b67b070c5f2432ad40c77a6dbce4bbec596ebaec4d2e5da`.
+- Internal checksum verification:
+  `ok=true`, `checksum_mismatches=0`, `file_count=51`.
 
 The kit includes the MSIX, public cert, second-PC release wrapper, runtime CPU
 idle/matrix tools, route preflight, V34 proof tools, relay/P2P evidence tools,
@@ -30,9 +32,16 @@ The generator supports the go/no-go next action command with `-Json` and
 persists the latest `schema=musu.multidevice_test_kit_prepare.v1`,
 `zip_sha256`, `metadata_path`, and source git metadata to
 `.local-build/multi-device-test-kit/latest-prepare-output.json`. The current
-kit supersedes the earlier `20260701-003206` kit because it was generated from
-the current clean HEAD after the brain handoff alignment audit, wiki/spec
-updates, and product-brain indexing record.
+kit supersedes the earlier `20260701-025502` kit because it was generated from
+the current clean HEAD after the final local evidence closeout, post-doc
+go/no-go recheck, and final wiki/index/recall commit.
+
+The canonical brain-side handoff remains
+`F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md` on clean brain repo
+`main` commit `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`. That handoff
+describes standalone brain defaults under `~/.musubrain`; MUSU's packaged
+product overlay is still `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`
+with product root `~/.musu/brain`.
 
 ## Command For hugh-main
 

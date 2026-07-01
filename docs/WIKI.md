@@ -24215,3 +24215,75 @@ Search terms: `wiki/1213`,
 `runtime_cpu_scenario_matrix_valid_machine_count=1`,
 `peer_identity_verified=false`, `none_http_bearer`, `quic_relay_tunnel`,
 `quic_tls_1_3`.
+
+## wiki/1214 - 2026-07-01 Current second-PC kit after final local evidence
+
+Canonical report:
+
+- `docs/CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01.md`
+- `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+
+What changed:
+
+- Regenerated the current second-PC proof kit from clean
+  `feat/v33-residual-finalize` commit
+  `6fdc1f3c545c2d401881e64c972c0ca48b15f8fa`.
+- New kit zip:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-112343.zip`.
+- New kit SHA256:
+  `ea77111bb29559317b67b070c5f2432ad40c77a6dbce4bbec596ebaec4d2e5da`.
+- Package in kit: `musu_1.15.0.22_x64_local-sideload-manual.msix`.
+- Internal kit verification passed: zip hash matches
+  `.local-build/multi-device-test-kit/latest-prepare-output.json`,
+  `SHA256SUMS.txt` has `checksum_mismatches=0`, and the kit has `51` files.
+- The kit supersedes `20260701-025502`, which was tied to commit
+  `635a161f49b2266fa9758de6b5d5ca14b040ca64` and therefore predates the final
+  local evidence closeout plus final wiki/index commit.
+
+Brain handoff audit:
+
+- `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md` exists and brain repo
+  `main` is clean at commit `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`.
+- The brain handoff still explains standalone brain defaults under
+  `~/.musubrain`.
+- MUSU's product overlay remains
+  `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`: hidden packaged brain
+  root is `~/.musu/brain`, not MSIX LocalState, and MUSU injects the resolver
+  env as motherboard while the Go brain binary remains the chip.
+
+Product meaning:
+
+- This removes stale kit/handoff risk for the next physical `hugh-main` run.
+- It does not close full product blockers by itself.
+- Product status remains NO-GO until `hugh-main` returns current
+  multi-device/CPU/matrix/Private Mesh/V34 evidence, external `musu.pro`
+  DNS/TLS and P2P/relay gates pass, Store evidence exists, and design approval
+  is recorded.
+
+Run command for `hugh-main` from the extracted kit:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RouteReachabilityTarget hugh_second -RuntimeCpuRouteTarget hugh_second -FailOnRouteReachabilityDiagnostic -FailOnRuntimeCpuScenarioMatrix -FailOnPrivateMeshPhysicalPeerEvidence
+```
+
+Indexing and recall:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3674 files` and `3947 symbols`.
+- Local FTS search for exact SHA
+  `ea77111bb29559317b67b070c5f2432ad40c77a6dbce4bbec596ebaec4d2e5da`
+  returns this report, the second-PC handoff, this wiki, and the roadmap.
+- Local FTS search for `wiki 1214 current second PC kit final local evidence`
+  returns this report and this wiki entry.
+- Product brain ingest under `local/musu` posted `5` sources, `/v1/process`
+  processed `5`, recovered `0`, and recall returned top title
+  `wiki/1214 final current second-PC kit report`.
+
+Search terms: `wiki/1214`,
+`CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01`,
+`20260701-112343`, `ea77111bb29559317b67b070c5f2432ad40c77a6dbce4bbec596ebaec4d2e5da`,
+`6fdc1f3c545c2d401881e64c972c0ca48b15f8fa`,
+`HANDOFF-musu-integration`, `~/.musu/brain`, `~/.musubrain`,
+`hugh-main`, `hugh_second`, `checksum_mismatches=0`, `file_count=51`,
+`full product NO-GO`.

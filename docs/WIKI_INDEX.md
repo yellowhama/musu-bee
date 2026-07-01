@@ -11244,4 +11244,42 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `runtime_cpu_second_pc_route_attempt_verified=true`, `none_http_bearer`,
   `quic_relay_tunnel`, and `quic_tls_1_3`.
 
+- 2026-07-01 current second-PC kit after final local evidence:
+  `docs/CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01.md`,
+  `docs/SECOND_PC_KIT_HANDOFF_2026_06_28.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/WIKI_INDEX.md` now record `wiki/1214`: the
+  current second-PC proof kit has been regenerated from clean
+  `feat/v33-residual-finalize` commit
+  `6fdc1f3c545c2d401881e64c972c0ca48b15f8fa` after the final local evidence
+  closeout and final wiki/index commit. New kit:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-112343.zip`;
+  SHA256 `ea77111bb29559317b67b070c5f2432ad40c77a6dbce4bbec596ebaec4d2e5da`;
+  package `musu_1.15.0.22_x64_local-sideload-manual.msix`; source dirty
+  `false`; internal checksum verification `ok=true`,
+  `checksum_mismatches=0`, `file_count=51`. It supersedes kit
+  `20260701-025502` from commit `635a161f49b2266fa9758de6b5d5ca14b040ca64`.
+  Brain handoff audit: `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md`
+  exists and brain repo `main` is clean at
+  `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`; standalone brain defaults under
+  `~/.musubrain` remain brain-native, while the MUSU product overlay remains
+  `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md` with hidden packaged
+  product root `~/.musu/brain`. Product status remains NO-GO: this refresh
+  removes stale handoff risk for the next physical `hugh-main` run but does
+  not close second-PC, CPU/matrix, Private Mesh, V34, public metadata, Store,
+  P2P/relay, or design blockers. Index refresh:
+  `musu indexer sync` indexed `3674 files` and `3947 symbols`; exact SHA search
+  returns the current report, handoff, wiki, and roadmap; `wiki 1214 current
+  second PC kit final local evidence` returns the current report and wiki.
+  Product brain ingest under `local/musu` posted `5` sources, processed `5`,
+  recovered `0`, and recall returned top title
+  `wiki/1214 final current second-PC kit report`. Search terms should include
+  `wiki/1214`,
+  `CURRENT_SECOND_PC_KIT_REFRESH_2026_07_01`, `20260701-112343`,
+  `ea77111bb29559317b67b070c5f2432ad40c77a6dbce4bbec596ebaec4d2e5da`,
+  `6fdc1f3c545c2d401881e64c972c0ca48b15f8fa`,
+  `HANDOFF-musu-integration`, `~/.musu/brain`, `~/.musubrain`,
+  `hugh-main`, `hugh_second`, `checksum_mismatches=0`, `file_count=51`, and
+  `full product NO-GO`.
+
 **End of WIKI_INDEX.md.**
