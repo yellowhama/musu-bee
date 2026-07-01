@@ -24088,3 +24088,56 @@ Search terms: `wiki/1211`, `P2P_ENV_SECRET_SYNC_2026_07_01`,
 `MUSU_P2P_CONTROL_TOKEN_SHA256S`, `github.missing_required_names=[]`,
 `source_release_relay_tunnel_runtime_not_implemented`, `quic_relay_tunnel`,
 `quic_tls_1_3`.
+
+## wiki/1212 - 2026-07-01 Public metadata Cloudflare DNS apply tool
+
+Canonical report:
+
+- `docs/PUBLIC_METADATA_CLOUDFLARE_DNS_APPLY_TOOL_2026_07_01.md`
+
+Implemented:
+
+- Added `scripts\windows\apply-musu-pro-public-metadata-cloudflare-dns.ps1`.
+- The existing DNS planner remains non-mutating:
+  `will_mutate_external_dns=false`.
+- The new apply tool is separate and defaults to dry-run.
+- `-ConfirmApply` is required before any Cloudflare DNS mutation is attempted.
+- Missing `CLOUDFLARE_API_TOKEN` fails closed with
+  `failure_kind=cloudflare_token_missing`.
+- It only touches apex `A`/`AAAA`/`HTTPS` and `www` `A`/`AAAA`/`CNAME`.
+- It sets the accepted Vercel external DNS path:
+  apex `A=76.76.21.21`, `www CNAME=cname.vercel-dns-0.com`, `proxied=false`.
+- It does not touch MX, TXT, NS, mail, or unrelated records.
+
+Verification:
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File
+  scripts\windows\apply-musu-pro-public-metadata-cloudflare-dns.ps1
+  -ConfirmApply -Json` without a Cloudflare token returned `ok=false`,
+  `apply_requested=true`, `will_mutate_external_dns=false`, `applied=false`,
+  `can_apply=false`, and `failure_kind=cloudflare_token_missing`.
+- `npm run test:public-release` passed `17/17`, including
+  `public metadata Cloudflare DNS apply tool is explicit and fail-closed`.
+- `git diff --check` passed.
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  `3656 files` and `3947 symbols`.
+- Product brain ingest under `local/musu` posted `4` sources, processed `4`,
+  recovered `0`, and recall returned top title
+  `wiki/1212 public metadata contract test delta`.
+
+Product meaning:
+
+- The `store-public-metadata` DNS/TLS blocker is not closed.
+- The next Cloudflare/registrar step is now token-gated and repeatable rather
+  than manual provider editing.
+- Closure still requires a valid Cloudflare API token, running the apply script
+  with `-ConfirmApply`, DNS/TLS propagation, and a passing
+  `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json`.
+
+Search terms: `wiki/1212`,
+`PUBLIC_METADATA_CLOUDFLARE_DNS_APPLY_TOOL_2026_07_01`,
+`apply-musu-pro-public-metadata-cloudflare-dns.ps1`,
+`musu.public_metadata_cloudflare_dns_apply.v1`,
+`cloudflare_token_missing`, `76.76.21.21`,
+`cname.vercel-dns-0.com`, `will_mutate_external_dns=false`,
+`test:public-release 17/17`.

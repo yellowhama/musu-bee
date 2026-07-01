@@ -2811,3 +2811,48 @@ Spec status:
   evidence blockers remain.
 - The `musu.pro` apex DNS/TLS blocker still prevents live hosted API evidence
   from this machine.
+
+## 2026-07-01 Public Metadata Cloudflare DNS Apply Tool
+
+Canonical report:
+
+- `docs/PUBLIC_METADATA_CLOUDFLARE_DNS_APPLY_TOOL_2026_07_01.md`
+
+Implementation:
+
+- Added `scripts\windows\apply-musu-pro-public-metadata-cloudflare-dns.ps1`.
+- The existing planner remains non-mutating.
+- The new apply script is explicit and fail-closed:
+  - default dry-run
+  - `-ConfirmApply` required for mutation
+  - `CLOUDFLARE_API_TOKEN` required before provider calls
+  - missing token reports `cloudflare_token_missing`
+  - no token means `will_mutate_external_dns=false`
+- The script applies the accepted Vercel external DNS path for Cloudflare:
+  - apex `A=76.76.21.21`
+  - remove apex `AAAA`/`HTTPS` conflicts
+  - `www CNAME=cname.vercel-dns-0.com`
+  - `proxied=false`
+  - no MX/TXT/NS/mail mutation
+
+Verification:
+
+- Fail-closed run without Cloudflare token:
+  `apply_requested=true`, `will_mutate_external_dns=false`, `applied=false`,
+  `can_apply=false`, `failure_kind=cloudflare_token_missing`.
+- `npm run test:public-release` passed `17/17`.
+- `git diff --check` passed.
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee` indexed
+  `3656 files` and `3947 symbols`.
+- Product brain ingest under `local/musu` posted `4` sources, processed `4`,
+  recovered `0`, and recall returned top title
+  `wiki/1212 public metadata contract test delta`.
+
+Spec status:
+
+- Public metadata remains **NO-GO** until provider state is actually changed and
+  the canonical verifier passes.
+- The blocker is now narrower: provide a Cloudflare token, run the apply script,
+  wait for propagation, then rerun
+  `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` and
+  `write-release-go-no-go.ps1 -Json`.

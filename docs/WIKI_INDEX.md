@@ -11177,4 +11177,33 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `source_release_relay_tunnel_runtime_not_implemented`, `quic_relay_tunnel`,
   and `quic_tls_1_3`.
 
+- 2026-07-01 public metadata Cloudflare DNS apply tool:
+  `docs/PUBLIC_METADATA_CLOUDFLARE_DNS_APPLY_TOOL_2026_07_01.md`,
+  `scripts/windows/apply-musu-pro-public-metadata-cloudflare-dns.ps1`,
+  `musu-bee/src/app/public-metadata-contract.test.ts`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/WIKI_INDEX.md` now record `wiki/1212`: the public
+  metadata DNS/TLS planner remains non-mutating, and a separate Cloudflare DNS
+  apply tool now exists. It defaults to dry-run, requires `-ConfirmApply` before
+  mutation, requires `CLOUDFLARE_API_TOKEN`, fails closed with
+  `cloudflare_token_missing`, touches only apex `A`/`AAAA`/`HTTPS` and `www`
+  `A`/`AAAA`/`CNAME`, sets apex `A=76.76.21.21`, sets `www`
+  `CNAME=cname.vercel-dns-0.com`, forces `proxied=false`, and does not touch
+  MX/TXT/NS/mail records. Verification: no-token `-ConfirmApply -Json` returned
+  `will_mutate_external_dns=false`, `applied=false`, and
+  `failure_kind=cloudflare_token_missing`; `npm run test:public-release` passed
+  `17/17`; `git diff --check` passed. Product status remains NO-GO until a
+  Cloudflare token is provided, DNS is applied, propagation completes, and
+  `verify-store-public-metadata.ps1 -BaseUrl https://musu.pro -Json` passes.
+  Index refresh: `musu indexer sync` indexed `3656 files` and `3947 symbols`;
+  product brain ingest under `local/musu` posted `4` sources, processed `4`,
+  recovered `0`, and recall returned top title
+  `wiki/1212 public metadata contract test delta`. Search terms should include
+  `wiki/1212`,
+  `PUBLIC_METADATA_CLOUDFLARE_DNS_APPLY_TOOL_2026_07_01`,
+  `apply-musu-pro-public-metadata-cloudflare-dns.ps1`,
+  `musu.public_metadata_cloudflare_dns_apply.v1`,
+  `cloudflare_token_missing`, `76.76.21.21`, `cname.vercel-dns-0.com`,
+  `will_mutate_external_dns=false`, and `test:public-release 17/17`.
+
 **End of WIKI_INDEX.md.**

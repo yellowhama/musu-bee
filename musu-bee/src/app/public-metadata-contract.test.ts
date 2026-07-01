@@ -45,6 +45,31 @@ test("store public metadata verifier requires the release marker from VERSION", 
   assert.match(verifierSource, /schema\s*=\s*"musu\.public_config\.v1"/);
 });
 
+test("public metadata Cloudflare DNS apply tool is explicit and fail-closed", () => {
+  const plannerSource = source("../scripts/windows/plan-musu-pro-public-metadata-dns-repair.ps1");
+  const applySource = source("../scripts/windows/apply-musu-pro-public-metadata-cloudflare-dns.ps1");
+
+  assert.match(plannerSource, /will_mutate_external_dns\s*=\s*\$false/);
+  assert.match(plannerSource, /This planner never mutates DNS\/provider state/);
+  assert.match(applySource, /schema\s*=\s*"musu\.public_metadata_cloudflare_dns_apply\.v1"/);
+  assert.match(applySource, /\[switch\]\$ConfirmApply/);
+  assert.match(applySource, /mutation_requires_confirm_apply\s*=\s*\$true/);
+  assert.match(applySource, /will_mutate_external_dns\s*=\s*\(\[bool\]\$ConfirmApply -and \[bool\]\$canApply -and @\(\$operations\)\.Count -gt 0\)/);
+  assert.match(applySource, /dry_run\s*=\s*\[bool\]\$dryRun/);
+  assert.match(applySource, /cloudflare_token_missing/);
+  assert.match(applySource, /No DNS mutation was attempted/);
+  assert.match(applySource, /Authorization\s*=\s*"Bearer \$Token"/);
+  assert.match(applySource, /"DELETE"/);
+  assert.match(applySource, /"PATCH"/);
+  assert.match(applySource, /"POST"/);
+  assert.match(applySource, /ExpectedVercelApexA\s*=\s*@\("76\.76\.21\.21"\)/);
+  assert.match(applySource, /ExpectedWwwCname\s*=\s*"cname\.vercel-dns-0\.com"/);
+  assert.match(applySource, /proxied\s*=\s*\$false/);
+  assert.match(applySource, /apex A\/AAAA\/HTTPS/);
+  assert.match(applySource, /www A\/AAAA\/CNAME/);
+  assert.match(applySource, /verify-store-public-metadata\.ps1/);
+});
+
 test("public install surfaces expose the one-line Windows installer", () => {
   const command = "irm https://musu.pro/install.ps1 | iex";
   const repairCommand = "irm https://musu.pro/repair-fleet.ps1 | iex";
