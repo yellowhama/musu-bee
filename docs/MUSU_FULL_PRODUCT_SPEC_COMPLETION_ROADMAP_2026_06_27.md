@@ -227,6 +227,39 @@ reports `manifest_git.dirty=false`, `warnings=0`, `blockers=16`,
 because the new source revision has not been rebuilt/reinstalled and
 recaptured.
 
+2026-07-01 08:55 KST brain sidecar cross-process lock package proof:
+the `6499b818` autostart supervision fix was rebuilt and installed, but the
+first package launch exposed a second lifecycle bug: `musu-brain` could exit
+before readiness with `listen tcp 127.0.0.1:8080: bind`, while manual packaged
+`musu-brain.exe server -root ~/.musu/brain -addr 127.0.0.1:8080` stayed
+healthy. The final source fix adds
+`~/.musu/brain/runtime/sidecar-start.lock` as a cross-process start guard, in
+addition to the in-process `RuntimeStartGate`. The rebuilt local-sideload
+package now starts the hidden sidecar from packaged desktop launch without
+manual intervention: `sidecar-autostart-status.json` records `result=started`,
+`readiness_ok=true`, pid `33428`; `musu doctor --json` reports
+`knowledge.status=ok` and `knowledge.health_http_status=200`. Canonical
+evidence:
+- strict MSIX install:
+  `docs/evidence/msix-install/1.15.0-rc.22/20260701-085145-HUGH_SECOND.evidence.json`
+- brain product proof:
+  `docs/evidence/brain-product/1.15.0-rc.22/20260701-085057-HUGH_SECOND.brain-product-proof.json`
+- brain product verification:
+  `docs/evidence/brain-product/1.15.0-rc.22/20260701-085057-HUGH_SECOND.brain-product-verification.json`
+
+Verification passed `rustfmt`, `git diff --check`, and
+`cargo test --manifest-path musu-bee\src-tauri\Cargo.toml knowledge --lib -j 1 -- --nocapture --test-threads=1`
+(`7 passed`, including
+`knowledge_start_file_lock_blocks_reentry_until_guard_drop`). Dirty go/no-go
+at `2026-07-01T08:54:57+09:00` reports `brain_product_verified=true` and
+`msix_install_verified=true`, while correctly keeping
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`, and
+source-dirty/stale local non-brain evidence blockers until this
+documentation/evidence commit is finalized and the non-brain local lanes are
+recaptured if this source revision becomes the release candidate. Product
+meaning: the hidden-brain motherboard+chip lifecycle is now locally
+package-proven on `HUGH_SECOND`, but the full product remains NO-GO.
+
 2026-07-01 01:33 KST packaged brain MSIX fullTrust repair:
 the rebuilt local-sideload package now proves the hidden brain chip from the
 installed MSIX on `HUGH_SECOND`. The earlier package could contain

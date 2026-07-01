@@ -10995,4 +10995,40 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `readiness_ok`, `exited_before_ready`, `readiness_timeout`,
   `spawn_knowledge_sidecar_autostart`, and `~/.musu/brain/runtime`.
 
+- 2026-07-01 brain sidecar cross-process lock package proof:
+  `docs/BRAIN_SIDECAR_AUTOSTART_SUPERVISION_2026_07_01.md`,
+  `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/WIKI_INDEX.md` now record `wiki/1206`: the
+  hidden-brain lifecycle lane is locally package-proven on `HUGH_SECOND`.
+  The rebuilt package after wiki/1205 first exposed a packaged-launch bind race
+  (`listen tcp 127.0.0.1:8080: bind`) even though manual packaged
+  `musu-brain.exe server -root ~/.musu/brain -addr 127.0.0.1:8080` stayed
+  healthy. Source now adds
+  `~/.musu/brain/runtime/sidecar-start.lock` as a cross-process start guard in
+  addition to the in-process `RuntimeStartGate`, with stale lock recovery after
+  30 seconds. After rebuild/reinstall, packaged desktop launch wrote
+  `sidecar-autostart-status.json` with `result=started`,
+  `readiness_ok=true`, pid `33428`; `musu doctor --json` reported
+  `knowledge.status=ok` and `knowledge.health_http_status=200`. Canonical
+  evidence is
+  `docs/evidence/msix-install/1.15.0-rc.22/20260701-085145-HUGH_SECOND.evidence.json`,
+  `docs/evidence/brain-product/1.15.0-rc.22/20260701-085057-HUGH_SECOND.brain-product-proof.json`,
+  and
+  `docs/evidence/brain-product/1.15.0-rc.22/20260701-085057-HUGH_SECOND.brain-product-verification.json`.
+  Brain product verification has `ok=true`, `fail_count=0`, sidecar process
+  observed, token ACL restricted, health OK, task recall OK, and capture recall
+  OK. Verification passed `rustfmt`, `git diff --check`, and Tauri knowledge
+  tests (`7 passed`, including
+  `knowledge_start_file_lock_blocks_reentry_until_guard_drop`). Dirty go/no-go
+  at `2026-07-01T08:54:57+09:00` reports `brain_product_verified=true` and
+  `msix_install_verified=true`, while full product completion remains NO-GO due
+  to source-dirty/stale non-brain local freshness lanes plus second-machine,
+  Store/public metadata, P2P/relay, Private Mesh, V34, and design-approval
+  blockers. Search terms should include `wiki/1206`, `sidecar-start.lock`,
+  `knowledge_start_file_lock_blocks_reentry_until_guard_drop`,
+  `20260701-085057-HUGH_SECOND.brain-product-proof`,
+  `20260701-085145-HUGH_SECOND.evidence`, `brain_product_verified=true`, and
+  `msix_install_verified=true`.
+
 **End of WIKI_INDEX.md.**

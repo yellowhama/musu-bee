@@ -33,9 +33,11 @@ const KNOWLEDGE_AUTOSTART_STATUS_SCHEMA: &str = "musu.knowledge_sidecar_autostar
 const KNOWLEDGE_AUTOSTART_STATUS_FILE: &str = "sidecar-autostart-status.json";
 const KNOWLEDGE_AUTOSTART_STDOUT_LOG_FILE: &str = "sidecar-stdout.log";
 const KNOWLEDGE_AUTOSTART_STDERR_LOG_FILE: &str = "sidecar-stderr.log";
+const KNOWLEDGE_AUTOSTART_LOCK_FILE: &str = "sidecar-start.lock";
 const KNOWLEDGE_READY_TIMEOUT_SECS: u64 = 10;
 const KNOWLEDGE_READY_POLL_INITIAL_MS: u64 = 250;
 const KNOWLEDGE_READY_POLL_MAX_MS: u64 = 2_000;
+const KNOWLEDGE_START_LOCK_STALE_SECS: u64 = 30;
 
 /// Installed package identity name (NOT the family name) — the stable key the
 /// update helper passes to `Get-AppxPackage -Name` to resolve the freshly
@@ -6052,6 +6054,16 @@ struct KnowledgeSidecarReadiness {
     detail: String,
 }
 
+struct KnowledgeStartFileLock {
+    path: std::path::PathBuf,
+}
+
+impl Drop for KnowledgeStartFileLock {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.path);
+    }
+}
+
 fn run_knowledge_sidecar_autostart() {
     let started_at = std::time::Instant::now();
     let command = knowledge_sidecar_command_path();
@@ -6096,6 +6108,54 @@ fn run_knowledge_sidecar_autostart() {
                 .to_string(),
         });
         return;
+    };
+
+    let _file_lock = match try_acquire_knowledge_start_file_lock() {
+        Ok(Some(lock)) => lock,
+        Ok(None) => {
+            let readiness = wait_for_existing_knowledge_sidecar_start();
+            let result = if readiness.ready {
+                "already_healthy"
+            } else {
+                "start_in_progress"
+            };
+            write_knowledge_sidecar_autostart_status_best_effort(KnowledgeSidecarAutostartStatus {
+                schema: KNOWLEDGE_AUTOSTART_STATUS_SCHEMA,
+                generated_at: chrono::Utc::now().to_rfc3339(),
+                result: result.to_string(),
+                stage: "lock".to_string(),
+                command: command.display().to_string(),
+                root: root.display().to_string(),
+                addr: KNOWLEDGE_ADDR.to_string(),
+                health_url: format!("{KNOWLEDGE_BASE_URL}/health"),
+                pid: None,
+                readiness_ok: readiness.ready,
+                elapsed_ms: started_at.elapsed().as_millis(),
+                stdout_log: None,
+                stderr_log: None,
+                detail: readiness.detail,
+            });
+            return;
+        }
+        Err(err) => {
+            write_knowledge_sidecar_autostart_status_best_effort(KnowledgeSidecarAutostartStatus {
+                schema: KNOWLEDGE_AUTOSTART_STATUS_SCHEMA,
+                generated_at: chrono::Utc::now().to_rfc3339(),
+                result: "lock_failed".to_string(),
+                stage: "lock".to_string(),
+                command: command.display().to_string(),
+                root: root.display().to_string(),
+                addr: KNOWLEDGE_ADDR.to_string(),
+                health_url: format!("{KNOWLEDGE_BASE_URL}/health"),
+                pid: None,
+                readiness_ok: false,
+                elapsed_ms: started_at.elapsed().as_millis(),
+                stdout_log: None,
+                stderr_log: None,
+                detail: err,
+            });
+            return;
+        }
     };
 
     if probe_http(KNOWLEDGE_BASE_URL, "/health").ok {
@@ -6236,6 +6296,106 @@ fn run_knowledge_sidecar_autostart() {
     });
 }
 
+fn try_acquire_knowledge_start_file_lock() -> Result<Option<KnowledgeStartFileLock>, String> {
+    let path = knowledge_sidecar_start_lock_path();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|err| {
+            format!(
+                "failed to create knowledge sidecar lock dir {}: {err}",
+                parent.display()
+            )
+        })?;
+    }
+
+    match create_knowledge_start_file_lock(&path) {
+        Ok(lock) => Ok(Some(lock)),
+        Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => {
+            if knowledge_start_file_lock_is_stale(&path) {
+                let _ = std::fs::remove_file(&path);
+                return match create_knowledge_start_file_lock(&path) {
+                    Ok(lock) => Ok(Some(lock)),
+                    Err(retry_err) if retry_err.kind() == std::io::ErrorKind::AlreadyExists => {
+                        Ok(None)
+                    }
+                    Err(retry_err) => Err(format!(
+                        "failed to acquire stale knowledge sidecar start lock {}: {retry_err}",
+                        path.display()
+                    )),
+                };
+            }
+            Ok(None)
+        }
+        Err(err) => Err(format!(
+            "failed to acquire knowledge sidecar start lock {}: {err}",
+            path.display()
+        )),
+    }
+}
+
+fn create_knowledge_start_file_lock(
+    path: &std::path::Path,
+) -> Result<KnowledgeStartFileLock, std::io::Error> {
+    use std::io::Write as _;
+
+    let mut file = std::fs::OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(path)?;
+    writeln!(
+        file,
+        "pid={}\ncreated_at={}",
+        std::process::id(),
+        chrono::Utc::now().to_rfc3339()
+    )?;
+    Ok(KnowledgeStartFileLock {
+        path: path.to_path_buf(),
+    })
+}
+
+fn knowledge_start_file_lock_is_stale(path: &std::path::Path) -> bool {
+    let Ok(metadata) = std::fs::metadata(path) else {
+        return true;
+    };
+    let Ok(modified) = metadata.modified() else {
+        return false;
+    };
+    modified
+        .elapsed()
+        .map(|elapsed| elapsed > std::time::Duration::from_secs(KNOWLEDGE_START_LOCK_STALE_SECS))
+        .unwrap_or(false)
+}
+
+fn wait_for_existing_knowledge_sidecar_start() -> KnowledgeSidecarReadiness {
+    let deadline =
+        std::time::Instant::now() + std::time::Duration::from_secs(KNOWLEDGE_READY_TIMEOUT_SECS);
+    let mut attempt = 0_u32;
+    loop {
+        if probe_http(KNOWLEDGE_BASE_URL, "/health").ok {
+            return KnowledgeSidecarReadiness {
+                ready: true,
+                exited: false,
+                detail: "Hidden brain sidecar became healthy while another autostart attempt held the cross-process start lock.".to_string(),
+            };
+        }
+
+        let now = std::time::Instant::now();
+        if now >= deadline {
+            return KnowledgeSidecarReadiness {
+                ready: false,
+                exited: false,
+                detail: format!(
+                    "Another hidden brain sidecar autostart attempt held the cross-process start lock, but health did not become reachable within {KNOWLEDGE_READY_TIMEOUT_SECS}s."
+                ),
+            };
+        }
+
+        let delay =
+            knowledge_ready_poll_delay(attempt).min(deadline.saturating_duration_since(now));
+        attempt = attempt.saturating_add(1);
+        std::thread::sleep(delay);
+    }
+}
+
 fn wait_for_knowledge_sidecar_ready(child: &mut std::process::Child) -> KnowledgeSidecarReadiness {
     let deadline =
         std::time::Instant::now() + std::time::Duration::from_secs(KNOWLEDGE_READY_TIMEOUT_SECS);
@@ -6359,6 +6519,10 @@ fn knowledge_sidecar_stdout_log_path() -> std::path::PathBuf {
 
 fn knowledge_sidecar_stderr_log_path() -> std::path::PathBuf {
     knowledge_runtime_dir().join(KNOWLEDGE_AUTOSTART_STDERR_LOG_FILE)
+}
+
+fn knowledge_sidecar_start_lock_path() -> std::path::PathBuf {
+    knowledge_runtime_dir().join(KNOWLEDGE_AUTOSTART_LOCK_FILE)
 }
 
 fn ensure_knowledge_workspace_and_token(
@@ -6719,16 +6883,17 @@ mod tests {
         developer_dashboard_surface_enabled_for, fleet_nodes_from_bridge_dashboard,
         is_packaged_desktop_runtime_path, is_tailnet_ipv4, knowledge_ready_poll_delay,
         knowledge_root, knowledge_runtime_dir, knowledge_sidecar_autostart_status_path,
-        knowledge_sidecar_stderr_log_path, knowledge_sidecar_stdout_log_path,
-        latest_physical_peer_evidence_from_home, latest_release_evidence_from_home,
-        local_os_hostname, musu_command_path_for_current_exe, parse_appinstaller_version,
-        parse_doctor_status_summary, parse_private_mesh_desktop_status,
+        knowledge_sidecar_start_lock_path, knowledge_sidecar_stderr_log_path,
+        knowledge_sidecar_stdout_log_path, latest_physical_peer_evidence_from_home,
+        latest_release_evidence_from_home, local_os_hostname, musu_command_path_for_current_exe,
+        parse_appinstaller_version, parse_doctor_status_summary, parse_private_mesh_desktop_status,
         parse_private_mesh_release_proof_result, parse_private_mesh_verify_result,
         parse_queued_task_id, read_physical_peer_evidence_summary,
         release_evidence_folder_for_path, release_proof_command_args, run_command_with_timeout,
-        sha256_hex, startup_marker_path, summarize_process_ownership, update_helper_script,
-        update_is_available, update_release_evidence_trust, verify_sidecar_for_file,
-        version_to_tuple, write_json_sidecar_for_file, write_knowledge_sidecar_autostart_status,
+        sha256_hex, startup_marker_path, summarize_process_ownership,
+        try_acquire_knowledge_start_file_lock, update_helper_script, update_is_available,
+        update_release_evidence_trust, verify_sidecar_for_file, version_to_tuple,
+        write_json_sidecar_for_file, write_knowledge_sidecar_autostart_status,
         write_restricted_knowledge_token, KnowledgeSidecarAutostartStatus,
         PrivateMeshReleaseProofDesktopResult, ProcessEntry, RuntimeStartGate, DESKTOP_MSIX_URL,
         KNOWLEDGE_AUTOSTART_STATUS_SCHEMA, PACKAGE_IDENTITY_NAME,
@@ -8698,6 +8863,7 @@ mod tests {
         let status_path = knowledge_sidecar_autostart_status_path();
         let stdout_log = knowledge_sidecar_stdout_log_path();
         let stderr_log = knowledge_sidecar_stderr_log_path();
+        let start_lock = knowledge_sidecar_start_lock_path();
         std::env::remove_var("MUSU_HOME");
 
         assert_eq!(runtime_dir, home.join("brain").join("runtime"));
@@ -8707,10 +8873,34 @@ mod tests {
         );
         assert_eq!(stdout_log, runtime_dir.join("sidecar-stdout.log"));
         assert_eq!(stderr_log, runtime_dir.join("sidecar-stderr.log"));
+        assert_eq!(start_lock, runtime_dir.join("sidecar-start.lock"));
         assert!(
             !runtime_dir.to_string_lossy().contains("LocalState"),
             "brain runtime diagnostics must survive MSIX package uninstall/reinstall"
         );
+    }
+
+    #[test]
+    fn knowledge_start_file_lock_blocks_reentry_until_guard_drop() {
+        let home = make_temp_home("knowledge-start-lock");
+        std::env::set_var("MUSU_HOME", &home);
+
+        let first = try_acquire_knowledge_start_file_lock()
+            .expect("first knowledge start lock acquisition should not fail");
+        assert!(first.is_some());
+        assert!(
+            try_acquire_knowledge_start_file_lock()
+                .expect("second knowledge start lock acquisition should not fail")
+                .is_none(),
+            "a held knowledge start lock must block concurrent autostart"
+        );
+        drop(first);
+        assert!(try_acquire_knowledge_start_file_lock()
+            .expect("knowledge start lock should be acquirable after guard drop")
+            .is_some());
+
+        std::env::remove_var("MUSU_HOME");
+        let _ = std::fs::remove_dir_all(home);
     }
 
     #[test]
