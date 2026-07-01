@@ -1,5 +1,66 @@
 # MUSU Full Product Spec Completion Roadmap (2026-06-27)
 
+## 2026-07-01 17:24 KST runtime CPU post-route self-target source fix
+
+Canonical report:
+`docs/RUNTIME_CPU_POST_ROUTE_SELF_TARGET_FIX_2026_07_01.md`.
+
+The strict `runtime-cpu-scenario-matrix` lane remains NO-GO, but the current
+post-route timeout has been narrowed. `hugh_second` can reach `hugh-main` and
+queue delegated work, but the wait-token route timed out. A direct retry with
+`--adapter echo` also timed out, proving the immediate blocker is not the AI
+adapter default. Remote `hugh-main` status showed stale CLI tasks.
+
+Fix:
+
+- `musu-rs/src/bridge/router.rs` now treats an explicit target equal to this
+  node's own `node_name` as `RouteDecision::Local` before peer-cache lookup,
+  with leading/trailing whitespace trimmed before matching. This prevents stale
+  self peer rows from turning `target_node=<self>` into a
+  self-forward/callback-wait path.
+- `scripts/windows/measure-musu-runtime-cpu-scenarios.ps1` now defaults
+  `-RouteAdapter echo`, passes `musu route --adapter echo` for post-route CPU
+  probes, and records `route_adapter`.
+- `scripts/windows/test-release-evidence-verifiers.ps1` locks that deterministic
+  route adapter contract.
+
+Verification:
+
+- PowerShell parser checks passed for the touched scripts.
+- Release evidence verifier regression passed `220/220` with output root
+  `.local-build/release-evidence-verifier-tests/20260701-173445`.
+- Rust targeted router tests passed in both lib and bin targets (`7/7` each).
+  The broader unscoped filtered cargo run also passed router tests but ended on
+  an unrelated Windows elevation requirement (`os error 740`) from a filtered
+  integration-test binary.
+- Dirty go/no-go at `2026-07-01T17:28:07.6821307+09:00` reports
+  `blocker_count=11`, `warnings=0`, and `manifest_dirty=true`; the extra
+  blocker is expected until this source/docs update is committed.
+
+Live diagnostic cleanup:
+
+- Stale remote task rows on `hugh-main` were inspected without printing bearer
+  tokens. Three stale route-probe rows were cancelled:
+  `45dd75ba-4684-410b-9054-a4ce9182a4bc`,
+  `c509c314-7289-4e00-af33-83e0e0ac0a5d`, and
+  `1b7c854b-15ee-4d10-989d-055860c3ac20`.
+- One older `hugh-main` CLI task
+  `9dba3497-c80c-417a-8e59-dcb4a2d869ea` still reported `running` after cancel
+  request. Treat it as stale remote runtime state until bridge restart or a
+  stale-task cleanup proof exists.
+- Indexing: final `musu indexer sync` indexed `3731 files` / `3952 symbols`;
+  product brain ingest/process under `local/musu` processed `7` final
+  code/docs sources, followed by a final docs-only refresh of this report,
+  roadmap, `docs/WIKI.md`, and `docs/WIKI_INDEX.md` (`processed: 4`). Recall for
+  `wiki/1226 runtime CPU post-route self-target explicit_target_matches_local_node RouteAdapter echo remote_task_wait_timeout`
+  returned the canonical report source in the top results.
+
+Product meaning: this source fix should prevent new self-target route probes
+from getting stuck after both nodes run the rebuilt package. It does not close
+the lane by itself. Closure still requires rebuild/reinstall on both PCs,
+clean `hugh-main` runtime state, a successful target-bound post-route matrix,
+committed evidence, and a clean go/no-go.
+
 ## 2026-07-01 16:34 KST brain sidecar retry and local CPU refresh
 
 Canonical report:

@@ -11644,4 +11644,41 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260701-163413-HUGH_SECOND`, and
   `runtime_cpu_scenario_matrix_valid_machine_count=0`.
 
+- 2026-07-01 runtime CPU post-route self-target source fix:
+  `docs/RUNTIME_CPU_POST_ROUTE_SELF_TARGET_FIX_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1226`: the strict runtime CPU matrix lane
+  still reports NO-GO, but `remote_task_wait_timeout` was narrowed to a
+  target-bound execution problem rather than network reachability or default
+  adapter choice. Source fix: `musu-rs/src/bridge/router.rs` now executes
+  locally when trimmed `explicit_target == state.config.node_name`, before
+  peer-cache lookup; runtime CPU matrix probes now default to `RouteAdapter echo`, pass
+  `musu route --adapter echo`, and record `route_adapter`. Verification passed
+  script parser checks, release evidence verifier regression `220/220` at
+  `.local-build\release-evidence-verifier-tests\20260701-173445`, and targeted
+  Rust router tests in lib/bin targets (`7/7` each). Live diagnostic cleanup
+  cancelled stale `hugh-main` task rows
+  `45dd75ba-4684-410b-9054-a4ce9182a4bc`,
+  `c509c314-7289-4e00-af33-83e0e0ac0a5d`, and
+  `1b7c854b-15ee-4d10-989d-055860c3ac20`; older task
+  `9dba3497-c80c-417a-8e59-dcb4a2d869ea` still reported `running` after cancel
+  and requires bridge restart or stale-task cleanup proof before the next
+  release CPU capture. Dirty go/no-go at
+  `2026-07-01T17:28:07.6821307+09:00` reported `blocker_count=11`,
+  `warnings=0`, and `manifest_dirty=true`, with the expected temporary `git`
+  blocker. Indexing: final `musu indexer sync` indexed `3731 files` /
+  `3952 symbols`; product brain ingest/process handled `7` final code/docs
+  sources, followed by a final docs-only refresh of the canonical report,
+  roadmap, `docs/WIKI.md`, and `docs/WIKI_INDEX.md` (`processed: 4`); recall for
+  `wiki/1226 runtime CPU post-route self-target explicit_target_matches_local_node RouteAdapter echo remote_task_wait_timeout`
+  returned the canonical report source in the top results. Product remains
+  NO-GO until the rebuilt package is
+  installed on both PCs and successful runtime CPU matrix evidence is committed.
+  Search terms should include `wiki/1226`,
+  `RUNTIME_CPU_POST_ROUTE_SELF_TARGET_FIX_2026_07_01`,
+  `explicit_target_matches_local_node`, `RouteDecision::Local`,
+  `RouteAdapter echo`, `route_adapter`, `remote_task_wait_timeout`,
+  `20260701-173445`, and
+  `runtime_cpu_scenario_matrix_valid_machine_count=0`.
+
 **End of WIKI_INDEX.md.**

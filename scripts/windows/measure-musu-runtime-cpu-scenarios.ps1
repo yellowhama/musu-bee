@@ -12,6 +12,7 @@ param(
     [switch]$RunRouteProbe,
     [string]$RoutePrompt,
     [string]$RouteTarget,
+    [string]$RouteAdapter = "echo",
     [int]$RouteProbeMaxAttempts = 3,
     [int]$RouteProbeRetryDelaySec = 3,
     [switch]$AllowFailedRouteProbe,
@@ -117,6 +118,10 @@ if ($RouteProbeRetryDelaySec -lt 1) {
 }
 if ($RouteWaitTimeoutSec -lt 1 -or $RouteWaitTimeoutSec -gt 3600) {
     throw "RouteWaitTimeoutSec must be between 1 and 3600."
+}
+
+if ([string]::IsNullOrWhiteSpace($RouteAdapter)) {
+    throw "RouteAdapter must not be blank."
 }
 
 $knownScenarioNames = @("startup-open", "runtime-started", "dashboard-open", "desktop-open", "post-route")
@@ -764,6 +769,7 @@ foreach ($name in $Scenario) {
                 if (-not [string]::IsNullOrWhiteSpace($RouteTarget)) {
                     $routeArgs += @("--target", $RouteTarget)
                 }
+                $routeArgs += @("--adapter", $RouteAdapter)
                 $routeArgs += @("--route-evidence-path", $routeEvidencePath, "--wait-timeout-sec", ([string]$RouteWaitTimeoutSec), "--wait", $RoutePrompt)
                 $routeCommand = "musu " + (ConvertTo-ProcessArgumentString -Items $routeArgs)
                 $routeProbeCommandTimeoutSec = [Math]::Max($CommandTimeoutSec, $RouteWaitTimeoutSec + 30)
@@ -813,6 +819,7 @@ foreach ($name in $Scenario) {
                     prompt = $RoutePrompt
                     expected_token = $expectedRouteToken
                     target = if ([string]::IsNullOrWhiteSpace($RouteTarget)) { $null } else { $RouteTarget }
+                    route_adapter = $RouteAdapter
                     route_explain_command = $routeExplainCommand
                     route_explain_exit_code = [int]$routeExplainCapture.exit_code
                     route_explain_stdout = [string]$routeExplainCapture.stdout

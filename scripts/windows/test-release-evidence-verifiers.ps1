@@ -245,9 +245,12 @@ function Test-RuntimeCpuScenarioMatrixRouteProbeContract {
     $source = Get-Content -LiteralPath $ScriptPath -Raw
     $requiredNeedles = @(
         '[int]$RouteWaitTimeoutSec = 180',
+        '[string]$RouteAdapter = "echo"',
         'RouteWaitTimeoutSec must be between 1 and 3600.',
+        'RouteAdapter must not be blank.',
         '$RoutePrompt = $RoutePrompt.Replace("{TOKEN}", $expectedRouteToken)',
         'RoutePrompt must include expected token',
+        '"--adapter", $RouteAdapter',
         '"--wait-timeout-sec"',
         '$routeProbeCommandTimeoutSec = [Math]::Max($CommandTimeoutSec, $RouteWaitTimeoutSec + 30)',
         '$effectiveRouteExitCode = [int]$candidateResult.exit_code',
@@ -256,6 +259,7 @@ function Test-RuntimeCpuScenarioMatrixRouteProbeContract {
         'exit_code = $effectiveRouteExitCode',
         'attempt_count = $routeAttempts.Count',
         'attempts = $routeAttempts.ToArray()',
+        'route_adapter = $RouteAdapter',
         'wait_timeout_sec = $RouteWaitTimeoutSec',
         'command_timeout_sec = $routeProbeCommandTimeoutSec'
     )
@@ -4980,7 +4984,7 @@ $runtimeCpuScenarioMatrixVerifierScript = Join-Path $scriptDir "verify-runtime-c
 $routeProbeContractOk = Test-RuntimeCpuScenarioMatrixRouteProbeContract -ScriptPath $runtimeCpuMeasureScript
 $invocation = New-StaticVerifierInvocation `
     -Ok $routeProbeContractOk `
-    -Message "runtime CPU matrix route probe must use its own wait timeout, pass --wait-timeout-sec, and fail fast on token-mismatched success prompts"
+    -Message "runtime CPU matrix route probe must use the deterministic echo adapter, its own wait timeout, pass --wait-timeout-sec, and fail fast on token-mismatched success prompts"
 Add-CaseResult `
     -Cases $cases `
     -Name "runtime CPU matrix route probe timeout and prompt contract" `

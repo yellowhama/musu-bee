@@ -24963,3 +24963,68 @@ Search terms: `wiki/1225`,
 `20260701-163336-HUGH_SECOND`, `20260701-163413-HUGH_SECOND`,
 `runtime_cpu_scenario_matrix_valid_machine_count=0`, and
 `runtime_cpu_second_pc_route_attempt_valid_machine_count=1`.
+
+## wiki/1226 - 2026-07-01 Runtime CPU post-route self-target fix
+
+Canonical report:
+`docs/RUNTIME_CPU_POST_ROUTE_SELF_TARGET_FIX_2026_07_01.md`.
+
+The strict runtime CPU matrix post-route lane is still NO-GO, but the timeout
+has been narrowed and a source bug has been fixed. `hugh_second` could reach
+`hugh-main` and queue delegated work, but route wait timed out. A direct retry
+with `--adapter echo` also timed out, so the blocker was not the default AI
+adapter.
+
+Fix:
+
+- `musu-rs/src/bridge/router.rs` now returns `RouteDecision::Local` before peer
+  lookup when an explicit target equals this node's own `node_name`; the match
+  trims leading/trailing whitespace.
+- `scripts/windows/measure-musu-runtime-cpu-scenarios.ps1` now defaults the
+  post-route probe to deterministic `-RouteAdapter echo`, passes
+  `musu route --adapter echo`, and records `route_adapter`.
+- `scripts/windows/test-release-evidence-verifiers.ps1` locks the deterministic
+  adapter/source contract.
+
+Verification:
+
+- PowerShell parser checks passed for touched scripts.
+- Release evidence verifier regression passed `220/220` at
+  `.local-build/release-evidence-verifier-tests/20260701-173445`.
+- Targeted Rust router tests passed for lib and bin targets (`7/7` each).
+- The broader filtered cargo run passed the router tests but exited on a
+  filtered integration-test binary requiring Windows elevation (`os error 740`);
+  the scoped lib/bin runs are the authoritative verifier for the router change.
+- Dirty go/no-go at `2026-07-01T17:28:07.6821307+09:00` reported
+  `blocker_count=11`, `warnings=0`, and `manifest_dirty=true`; the extra
+  blocker is expected while the source/docs update is uncommitted.
+
+Live diagnostic cleanup: `hugh-main` had stale CLI tasks after route-probe
+timeouts. Stale rows
+`45dd75ba-4684-410b-9054-a4ce9182a4bc`,
+`c509c314-7289-4e00-af33-83e0e0ac0a5d`, and
+`1b7c854b-15ee-4d10-989d-055860c3ac20` were cancelled through the remote bridge
+API without printing bearer tokens. Older task
+`9dba3497-c80c-417a-8e59-dcb4a2d869ea` still reported `running` after cancel,
+so `hugh-main` should be restarted or stale-task cleanup proof should be
+recorded before the next release CPU capture.
+
+Indexing: final `musu indexer sync` indexed `3731 files` / `3952 symbols`;
+product brain ingest/process under `local/musu` processed `7` final code/docs
+sources, followed by a final docs-only refresh of the canonical report,
+roadmap, `docs/WIKI.md`, and `docs/WIKI_INDEX.md` (`processed: 4`). Recall for
+`wiki/1226 runtime CPU post-route self-target explicit_target_matches_local_node RouteAdapter echo remote_task_wait_timeout`
+returned the canonical report source in the top results.
+
+Product status: source correctness improved, but product readiness remains
+NO-GO. The fix must be rebuilt/reinstalled on both PCs and followed by
+verifier-passing runtime CPU matrix evidence before
+`runtime_cpu_scenario_matrix_valid_machine_count` can move.
+
+Search terms: `wiki/1226`,
+`RUNTIME_CPU_POST_ROUTE_SELF_TARGET_FIX_2026_07_01`,
+`explicit_target_matches_local_node`, `RouteDecision::Local`,
+`RouteAdapter echo`, `route_adapter`, `remote_task_wait_timeout`,
+`45dd75ba-4684-410b-9054-a4ce9182a4bc`,
+`9dba3497-c80c-417a-8e59-dcb4a2d869ea`,
+`runtime_cpu_scenario_matrix_valid_machine_count=0`.
