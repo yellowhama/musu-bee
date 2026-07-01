@@ -11282,4 +11282,45 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `hugh-main`, `hugh_second`, `checksum_mismatches=0`, `file_count=51`, and
   `full product NO-GO`.
 
+- 2026-07-01 final day closeout and product spec audit:
+  `docs/FINAL_DAY_CLOSEOUT_AND_PRODUCT_SPEC_AUDIT_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1215`: current HEAD
+  `aa17e9586a715352892a0d3624a9fc4baa3bf336` remains clean but full product
+  completion is still NO-GO. Latest clean go/no-go at
+  `2026-07-01T11:33:14.1215284+09:00` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `warnings=0`, and `blockers=10`: `multi-device`,
+  `private-mesh-packaged-release-proof`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `store-public-metadata`, `store-release`,
+  `p2p-control-plane`, `design-approval`, `relay-transport`, and
+  `v34-stale-self-heal`. Qualitative audit: local `HUGH_SECOND` lanes are
+  green, the current second-PC kit is fresh, brain handoff is discoverable in
+  both repos, and MUSU product brain root remains `~/.musu/brain` while brain
+  standalone default remains `~/.musubrain`. P2P remains NO-GO because
+  `source_release_relay_tunnel_runtime_not_implemented`, no route metadata, no
+  transport proof, and no payload delivery proof. Vercel inspect and DNS
+  planner agree that `musu.pro` is attached to project `musu-pro` but DNS still
+  uses Cloudflare nameservers `blakely.ns.cloudflare.com` and
+  `weston.ns.cloudflare.com` instead of intended Vercel nameservers
+  `ns1.vercel-dns.com` and `ns2.vercel-dns.com`; planner at
+  `2026-07-01T11:40:46.8093729+09:00` still reports
+  `ready_for_public_metadata_verifier=false`, apex TLS failure, and
+  `vercel_edge_apex_tls_failed`. Next smallest action is still physical
+  `hugh-main` kit run/import plus DNS/TLS repair; do not flip relay release
+  markers before real `quic_relay_tunnel` byte transit and `quic_tls_1_3`
+  proof exist. Index refresh: `musu indexer sync` indexed `3675 files` and
+  `3947 symbols`; product brain ingest under `local/musu` posted `4` sources,
+  processed `4`, recovered `0`, and recall returned top title
+  `wiki/1215 WIKI final day closeout entry`. Search terms should include
+  `wiki/1215`,
+  `FINAL_DAY_CLOSEOUT_AND_PRODUCT_SPEC_AUDIT_2026_07_01`,
+  `aa17e9586a715352892a0d3624a9fc4baa3bf336`,
+  `2026-07-01T11:33:14.1215284+09:00`,
+  `2026-07-01T11:40:46.8093729+09:00`,
+  `source_release_relay_tunnel_runtime_not_implemented`, `quic_relay_tunnel`,
+  `quic_tls_1_3`, `blakely.ns.cloudflare.com`, `weston.ns.cloudflare.com`,
+  `ns1.vercel-dns.com`, `ns2.vercel-dns.com`, `~/.musu/brain`, and
+  `~/.musubrain`.
+
 **End of WIKI_INDEX.md.**

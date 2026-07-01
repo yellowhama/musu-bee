@@ -1,5 +1,62 @@
 # MUSU Full Product Spec Completion Roadmap (2026-06-27)
 
+## 2026-07-01 11:41 KST final day closeout and product spec audit
+
+Canonical report:
+`docs/FINAL_DAY_CLOSEOUT_AND_PRODUCT_SPEC_AUDIT_2026_07_01.md`.
+
+Current HEAD before the final closeout doc was
+`aa17e9586a715352892a0d3624a9fc4baa3bf336`. Latest clean go/no-go at
+`2026-07-01T11:33:14.1215284+09:00` reports
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`warnings=0`, and `blockers=10`; the blocker areas remain `multi-device`,
+`private-mesh-packaged-release-proof`, `runtime-idle-cpu`,
+`runtime-cpu-scenario-matrix`, `store-public-metadata`, `store-release`,
+`p2p-control-plane`, `design-approval`, `relay-transport`, and
+`v34-stale-self-heal`.
+
+Qualitative status:
+
+- Local `HUGH_SECOND` lanes are strong: single-machine, process ownership,
+  startup single-instance, desktop single-instance, MSIX install, hidden brain
+  product proof, and targeted second-PC route-attempt CPU proof all remain
+  green.
+- The current second-PC kit is fresh and internally checksum-verified:
+  `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-112343.zip`,
+  SHA256
+  `ea77111bb29559317b67b070c5f2432ad40c77a6dbce4bbec596ebaec4d2e5da`.
+- Brain integration remains product-coherent: canonical brain handoff is still
+  `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md`; MUSU product root is
+  still `~/.musu/brain`, not standalone `~/.musubrain` and never MSIX
+  `LocalState`.
+
+System design/code audit:
+
+- No release marker was changed. `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` and
+  Rust `release_relay_tunnel_runtime_not_implemented` remain correct until a
+  real `quic_relay_tunnel` byte path plus `quic_tls_1_3` transport proof exists.
+- P2P remains NO-GO: live status still has
+  `source_release_relay_tunnel_runtime_not_implemented`, no proven route
+  metadata, no transport proof, and no payload delivery proof.
+- Public metadata remains NO-GO because Vercel inspect and the DNS planner both
+  show Cloudflare nameservers while Vercel expects `ns1.vercel-dns.com` and
+  `ns2.vercel-dns.com`; apex DNS/TLS still fails.
+
+Next smallest action:
+
+Run the current kit on `hugh-main`, return/import the evidence zip, then rerun
+go/no-go. In parallel, repair `musu.pro` DNS/TLS and keep relay runtime as a
+separate implementation lane; do not flip relay release markers before real
+transport evidence exists.
+
+Indexing and recall:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3675 files` and `3947 symbols`.
+- Product brain ingest under `local/musu` posted `4` sources, processed `4`,
+  recovered `0`, and recall returned top title
+  `wiki/1215 WIKI final day closeout entry`.
+
 ## 2026-07-01 11:24 KST current second-PC kit refresh after final local evidence
 
 Canonical report:

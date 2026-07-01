@@ -24287,3 +24287,82 @@ Search terms: `wiki/1214`,
 `HANDOFF-musu-integration`, `~/.musu/brain`, `~/.musubrain`,
 `hugh-main`, `hugh_second`, `checksum_mismatches=0`, `file_count=51`,
 `full product NO-GO`.
+
+## wiki/1215 - 2026-07-01 Final day closeout and product spec audit
+
+Canonical report:
+
+- `docs/FINAL_DAY_CLOSEOUT_AND_PRODUCT_SPEC_AUDIT_2026_07_01.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+
+What changed:
+
+- Added the final same-day product spec audit against current HEAD
+  `aa17e9586a715352892a0d3624a9fc4baa3bf336`.
+- Reconfirmed the latest clean go/no-go at
+  `2026-07-01T11:33:14.1215284+09:00`: `manifest_git.dirty=false`,
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `warnings=0`, and `blockers=10`.
+- Reconfirmed green local lanes: single-machine, process ownership, startup
+  single-instance, desktop single-instance, MSIX install, hidden brain product
+  proof, and targeted second-PC route-attempt CPU proof.
+- Reconfirmed that the second-PC kit from `20260701-112343` is current,
+  checksum-verified, and still waiting for physical `hugh-main` returned
+  evidence.
+
+Product meaning:
+
+- The product is not complete yet. The remaining blockers are real release
+  gates, not stale documentation: second physical PC coverage, Private Mesh
+  packaged proof, runtime CPU two-machine coverage, public metadata DNS/TLS,
+  Store release, P2P control-plane, design approval, release relay transport,
+  and V34 stale self-heal.
+- The brain handoff is discoverable in both repos. Brain standalone defaults
+  remain `~/.musubrain`; the MUSU packaged product contract remains
+  `~/.musu/brain`.
+- Release relay markers stay false on purpose. `quic_relay_tunnel` and
+  `quic_tls_1_3` proof must exist before relay can be called release-grade.
+
+External blocker recheck:
+
+- Vercel CLI inspect found `musu.pro` attached to project `musu-pro`, but
+  current nameservers are `blakely.ns.cloudflare.com` and
+  `weston.ns.cloudflare.com` while intended Vercel nameservers are
+  `ns1.vercel-dns.com` and `ns2.vercel-dns.com`.
+- The non-mutating DNS planner at `2026-07-01T11:40:46.8093729+09:00` still
+  reports `ready_for_public_metadata_verifier=false`, Cloudflare apex A
+  records, conflicting apex AAAA records, apex TLS failure, and
+  `vercel_edge_apex_tls_failed`.
+
+Next steps:
+
+1. Run/import the current second-PC kit on `hugh-main`.
+2. Repair `musu.pro` DNS/TLS and rerun the public metadata verifier.
+3. Capture real Private Mesh packaged proof and V34 physical stale self-heal
+   proof.
+4. Implement real relay runtime separately; do not flip release markers before
+   byte transit and proof exist.
+5. Record Store evidence and design approval.
+
+Indexing and recall:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3675 files` and `3947 symbols`.
+- Product brain ingest under `local/musu` posted `4` sources: this final
+  closeout report, the roadmap closeout section, this wiki entry, and the
+  `WIKI_INDEX` entry.
+- `/v1/process` processed `4`, recovered `0`.
+- Recall for
+  `wiki/1215 final day closeout source_release_relay_tunnel_runtime_not_implemented aa17e958`
+  returned `5` results with top title
+  `wiki/1215 WIKI final day closeout entry`.
+
+Search terms: `wiki/1215`,
+`FINAL_DAY_CLOSEOUT_AND_PRODUCT_SPEC_AUDIT_2026_07_01`,
+`aa17e9586a715352892a0d3624a9fc4baa3bf336`,
+`2026-07-01T11:33:14.1215284+09:00`,
+`2026-07-01T11:40:46.8093729+09:00`, `full_product_spec_ready=false`,
+`ready_for_public_desktop_release=false`, `blockers=10`,
+`source_release_relay_tunnel_runtime_not_implemented`, `quic_relay_tunnel`,
+`quic_tls_1_3`, `blakely.ns.cloudflare.com`, `weston.ns.cloudflare.com`,
+`ns1.vercel-dns.com`, `ns2.vercel-dns.com`, `~/.musu/brain`, `~/.musubrain`.
