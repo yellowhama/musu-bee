@@ -11323,4 +11323,35 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `ns1.vercel-dns.com`, `ns2.vercel-dns.com`, `~/.musu/brain`, and
   `~/.musubrain`.
 
+- 2026-07-01 remote file share and shell cancel audit:
+  `docs/REMOTE_FILE_SHARE_AND_SHELL_CANCEL_AUDIT_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1216`: explicit remote shell to
+  `hugh-main` initially worked (`hostname`, `whoami`, `where musu`), the
+  target proof root
+  `C:\Users\empty\.musu\codex-remote-file-proof` was created and registered as
+  writable `remote-file-cli-proof`, and `hugh_second` fleet status now sees
+  that root in `hugh-main.shared_dirs`. The remote file proof remains
+  incomplete because `musu ls
+  hugh-main:C:\Users\empty\.musu\codex-remote-file-proof` still returns
+  `forbidden: file API disabled: MUSU_FILE_SERVE_ROOTS not configured`.
+  Current source says `musu share` applies without bridge restart, but the
+  installed rc.22 target output says restart is required, so this is a live
+  package/state gap rather than auth or route reachability. A remote
+  self-restart attempt through `shell` exposed an operations bug: task
+  `9dba3497-c80c-417a-8e59-dcb4a2d869ea` stayed `status=running` after direct
+  `DELETE /api/tasks/9dba...` returned `cancelled=true`; bridge lifecycle must
+  not rely on the same task runner it restarts. Next action: locally on
+  `hugh-main`, run `musu down --json --timeout-sec 5` and
+  `musu up --json --timeout-sec 30`, then rerun `musu ls` / `musu put` /
+  `musu get` from `hugh_second`. Product remains full NO-GO. Search terms
+  should include `wiki/1216`,
+  `REMOTE_FILE_SHARE_AND_SHELL_CANCEL_AUDIT_2026_07_01`,
+  `remote-file-cli-proof`, `MUSU_FILE_SERVE_ROOTS not configured`,
+  `9dba3497-c80c-417a-8e59-dcb4a2d869ea`, `cancelled=true`,
+  `status=running`, `musu down --json`, and `musu up --json`. Index refresh:
+  `musu indexer sync` indexed `3676 files` and `3947 symbols`; product brain
+  CLI ingest under `~/.musu/brain` scope `local/musu` ingested `4` sources,
+  processed `4`, and recall returned the new audit report as the top result.
+
 **End of WIKI_INDEX.md.**

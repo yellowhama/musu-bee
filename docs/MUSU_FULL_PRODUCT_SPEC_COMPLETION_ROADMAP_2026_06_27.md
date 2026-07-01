@@ -1,5 +1,61 @@
 # MUSU Full Product Spec Completion Roadmap (2026-06-27)
 
+## 2026-07-01 12:10 KST remote file share and shell cancel audit
+
+Canonical report:
+`docs/REMOTE_FILE_SHARE_AND_SHELL_CANCEL_AUDIT_2026_07_01.md`.
+
+Current branch stayed clean before this documentation update at
+`92e947c2b4c982e773c7cb4f2c6c0e15b0316823`. The next practical second-PC
+constraint was narrowed from broad "move/run the kit on `hugh-main`" to a
+specific target-side lifecycle issue:
+
+- `hugh-main` direct shell route initially worked (`hostname`, `whoami`, and
+  `where musu` all returned expected target values).
+- The documented target share root
+  `C:\Users\empty\.musu\codex-remote-file-proof` was created and registered
+  writable with label `remote-file-cli-proof`.
+- Fleet status on `hugh_second` now sees that root in `hugh-main.shared_dirs`.
+- Actual remote file API still returns
+  `forbidden: file API disabled: MUSU_FILE_SERVE_ROOTS not configured`.
+
+System design/code audit:
+
+- Current source says `musu share` should apply to the remote file API without
+  bridge restart, but the installed rc.22 target output says restart is needed.
+  Product meaning: source contract and installed package behavior are split; do
+  not call the remote file proof complete until the physical installed target
+  proves it.
+- Attempting to restart the target bridge through its own explicit `shell`
+  adapter exposed a cancellation bug: task
+  `9dba3497-c80c-417a-8e59-dcb4a2d869ea` stayed `running` even though
+  `DELETE /api/tasks/9dba...` returned `cancelled=true`.
+- This is a real operational audit finding: bridge lifecycle must not depend
+  on the same task runner it is trying to restart, and shell cancellation must
+  either kill the child process tree or report that the task is still running.
+
+Required next step:
+
+Use a local terminal on `hugh-main`, not remote shell, to run:
+
+```powershell
+musu down --json --timeout-sec 5
+musu up --json --timeout-sec 30
+```
+
+Then rerun the remote file proof from `hugh_second` with `musu ls`, `musu put`,
+and `musu get`. This audit does not remove any release blocker; full product
+status remains NO-GO.
+
+Indexing and recall:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3676 files` and `3947 symbols`.
+- Product brain CLI ingest under `~/.musu/brain` scope `local/musu` ingested
+  `4` sources, processed `4`, and recall for
+  `wiki/1216 remote file share shell cancel MUSU_FILE_SERVE_ROOTS 9dba3497`
+  returned the new audit report as the top result.
+
 ## 2026-07-01 11:41 KST final day closeout and product spec audit
 
 Canonical report:

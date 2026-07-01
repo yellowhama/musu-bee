@@ -24366,3 +24366,66 @@ Search terms: `wiki/1215`,
 `source_release_relay_tunnel_runtime_not_implemented`, `quic_relay_tunnel`,
 `quic_tls_1_3`, `blakely.ns.cloudflare.com`, `weston.ns.cloudflare.com`,
 `ns1.vercel-dns.com`, `ns2.vercel-dns.com`, `~/.musu/brain`, `~/.musubrain`.
+
+## wiki/1216 - 2026-07-01 Remote file share and shell cancel audit
+
+Canonical report:
+
+- `docs/REMOTE_FILE_SHARE_AND_SHELL_CANCEL_AUDIT_2026_07_01.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+
+What was tested:
+
+- Continued from clean pushed HEAD
+  `92e947c2b4c982e773c7cb4f2c6c0e15b0316823`.
+- Verified explicit remote shell route to `hugh-main` initially worked:
+  `hostname` returned `hugh-main`, `whoami` returned `hugh-main\empty`, and
+  `where musu` found the packaged WindowsApps `musu.exe`.
+- Created and registered the target proof root
+  `C:\Users\empty\.musu\codex-remote-file-proof` as writable
+  `remote-file-cli-proof`.
+- Rechecked local fleet status: `hugh-main.shared_dirs` now includes
+  `\\?\C:\Users\empty\.musu\codex-remote-file-proof`.
+
+Audit result:
+
+- The remote file proof is still **not complete**. `musu ls
+  hugh-main:C:\Users\empty\.musu\codex-remote-file-proof` still returns
+  `forbidden: file API disabled: MUSU_FILE_SERVE_ROOTS not configured`.
+- Current source says `musu share` applies to remote file API without bridge
+  restart, but the installed `hugh-main` rc.22 output said
+  `Restart bridge to apply: musu bridge`. That means this is now a
+  package/live-state gap, not an auth or route reachability gap.
+- A remote self-restart attempt through the same `shell` adapter exposed a
+  cancellation bug: task `9dba3497-c80c-417a-8e59-dcb4a2d869ea` remained
+  `running` after direct `DELETE /api/tasks/9dba...` returned
+  `cancelled=true`. Do not use remote shell as the bridge self-restart path.
+
+Product meaning:
+
+- `hugh-main` direct routing and cross-machine bearer auth are working.
+- The target share policy is registered but not live in file handlers yet.
+- The next action must happen locally on `hugh-main`: `musu down --json
+  --timeout-sec 5` then `musu up --json --timeout-sec 30`; after that rerun
+  `musu ls` / `musu put` / `musu get` from `hugh_second`.
+- Full product remains NO-GO. This does not close multi-device, CPU,
+  Private Mesh, V34, public metadata, Store, P2P, relay, or design gates.
+
+Indexing and recall:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3676 files` and `3947 symbols`.
+- Product brain CLI ingest under `~/.musu/brain` scope `local/musu` ingested
+  `4` sources: this audit report, the roadmap, this wiki, and `WIKI_INDEX`.
+- `musu-brain process` reported `processed: 4`, and recall for
+  `wiki/1216 remote file share shell cancel MUSU_FILE_SERVE_ROOTS 9dba3497`
+  returned this new audit report as the top result.
+
+Search terms: `wiki/1216`,
+`REMOTE_FILE_SHARE_AND_SHELL_CANCEL_AUDIT_2026_07_01`,
+`remote-file-cli-proof`,
+`C:\Users\empty\.musu\codex-remote-file-proof`,
+`MUSU_FILE_SERVE_ROOTS not configured`,
+`9dba3497-c80c-417a-8e59-dcb4a2d869ea`, `hugh-main`,
+`hugh_second`, `cancelled=true`, `status=running`, `musu share`,
+`musu down --json`, `musu up --json`.
