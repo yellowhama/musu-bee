@@ -2718,3 +2718,55 @@ Unknown or needs evidence:
 - Microsoft Store certification timing and restricted capability approval.
 - Relay transport design choice and self-contained risk until the separate
   relay design gate is run.
+
+## 2026-07-01 Current Blocker Triage and Day Closeout
+
+Canonical report:
+
+- `docs/CURRENT_BLOCKER_TRIAGE_AND_DAY_CLOSEOUT_2026_07_01.md`
+
+Current pushed HEAD:
+
+- `d5e380158614e28befb8b371ff874090fea82c88`
+
+Rechecked facts:
+
+- Brain handoff is discoverable in both repos. Canonical brain file:
+  `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md`; local product copy:
+  `docs/HANDOFF-musu-integration.md`.
+- Brain repo is clean on `main...origin/main` at
+  `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`.
+- Local product overlay remains authoritative for MUSU data root:
+  `~/.musu/brain`.
+- `npm run test:public-release` passed `16/16`, so public install/download and
+  public metadata route contracts are present in source.
+- Fresh DNS planner output:
+  `.local-build\public-metadata-dns-repair\20260701-100843.musu-pro-public-metadata-dns-repair.json`.
+  It still reports Cloudflare/DNS/TLS mismatch:
+  `release_blocker_present=true`,
+  `ready_for_public_metadata_verifier=false`, `provider_guess=cloudflare`,
+  `dns_path_matches_expected=false`, `apex_tls_ok=false`,
+  `vercel_edge_apex_tls_ok=false`, `metadata_ok=false`.
+- P2P env status still reports
+  `source_release_relay_tunnel_runtime_not_implemented`, missing KV/Upstash env,
+  and missing live relay route/metadata/transport/payload delivery proof.
+- Private Mesh and V34 verifiers require explicit final evidence paths; current
+  `.local-build` fixture/verifier-test artifacts are not release evidence.
+- Index refresh: `musu indexer sync --work-dir F:\workspace\musu-bee --name
+  musu-bee` indexed `3653 files` and `3947 symbols`; product brain ingest under
+  `local/musu` posted `3` closeout sources, `/v1/process` processed `3`,
+  recovered `0`, and recall returned top title
+  `wiki/1210 current blocker triage and day closeout report`.
+
+Spec status:
+
+- **NO-GO** remains correct.
+- Current source has the public install command and metadata route contracts,
+  but the public release lane still requires live `musu.pro` DNS/TLS/provider
+  repair and canonical verifier success.
+- Current source still intentionally separates store-forward queue fallback from
+  release-grade relay transport. Do not mark relay complete until real
+  `quic_relay_tunnel` / `quic_tls_1_3` delegated work transport is implemented
+  and proven.
+- Current V34 code/tooling must still be backed by physical two-node stale
+  registry/cache/manual-peer proof before the blocker closes.

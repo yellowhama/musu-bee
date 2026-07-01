@@ -11118,4 +11118,36 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   processed 8, recovered 0, and recall returned top title
   `wiki/1209 current product closeout audit report`.
 
+- 2026-07-01 current blocker triage and day closeout:
+  `docs/CURRENT_BLOCKER_TRIAGE_AND_DAY_CLOSEOUT_2026_07_01.md`,
+  `docs/CURRENT_PRODUCT_CLOSEOUT_AUDIT_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/WIKI_INDEX.md` now record `wiki/1210`: after
+  pushed HEAD `d5e380158614e28befb8b371ff874090fea82c88`, brain handoff
+  alignment was rechecked against
+  `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md` at brain repo commit
+  `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`; the local handoff copy
+  intentionally adds the MUSU product root override `~/.musu/brain`.
+  `npm run test:public-release` passed `16/16`, so public install/download
+  source routes are present. The fresh non-mutating DNS planner output
+  `.local-build\public-metadata-dns-repair\20260701-100843.musu-pro-public-metadata-dns-repair.json`
+  still reports `release_blocker_present=true`,
+  `ready_for_public_metadata_verifier=false`, `provider_guess=cloudflare`,
+  `dns_path_matches_expected=false`, `apex_tls_ok=false`,
+  `vercel_edge_apex_tls_ok=false`, and `metadata_ok=false`. P2P env status
+  still reports `source_release_relay_tunnel_runtime_not_implemented`, missing
+  KV/Upstash env, and missing live relay route/metadata/transport/payload
+  delivery evidence. Product remains NO-GO; fixture artifacts must not be used
+  as final V34 or Private Mesh proof. Search terms should include `wiki/1210`,
+  `CURRENT_BLOCKER_TRIAGE_AND_DAY_CLOSEOUT`,
+  `20260701-100843.musu-pro-public-metadata-dns-repair`,
+  `test:public-release 16/16`,
+  `source_release_relay_tunnel_runtime_not_implemented`, `quic_relay_tunnel`,
+  `quic_tls_1_3`, `HANDOFF-musu-integration`, `~/.musu/brain`, and
+  `V34 physical two-node stale proof`. Index refresh: `musu indexer sync`
+  indexed `3653 files` and `3947 symbols`; product brain ingest under
+  `local/musu` posted `3` closeout sources, processed `3`, recovered `0`, and
+  recall returned top title
+  `wiki/1210 current blocker triage and day closeout report`.
+
 **End of WIKI_INDEX.md.**

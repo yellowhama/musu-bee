@@ -23970,3 +23970,60 @@ Search terms: `wiki/1209`, `CURRENT_PRODUCT_CLOSEOUT_AUDIT_2026_07_01`,
 `release_relay_tunnel_runtime_not_implemented`, `quic_relay_tunnel`,
 `quic_tls_1_3`, `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`,
 `~/.musu/brain`, `store-forward fallback non-release-grade`.
+
+## wiki/1210 - 2026-07-01 Current blocker triage and day closeout
+
+Canonical report:
+
+- `docs/CURRENT_BLOCKER_TRIAGE_AND_DAY_CLOSEOUT_2026_07_01.md`
+- `docs/CURRENT_PRODUCT_CLOSEOUT_AUDIT_2026_07_01.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+- `docs/HANDOFF-musu-integration.md`
+
+What was rechecked:
+
+- Current pushed HEAD is
+  `d5e380158614e28befb8b371ff874090fea82c88`.
+- Brain canonical handoff exists at
+  `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md`; brain repo is clean on
+  `main...origin/main` at
+  `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`.
+- Local `docs/HANDOFF-musu-integration.md` intentionally differs only by a
+  MUSU-BEE note: standalone brain defaults mention `~/.musubrain`, while MUSU
+  product root remains `~/.musu/brain`.
+- Public site contract test `npm run test:public-release` passed `16/16`,
+  proving source contracts for `/install.ps1`, `/repair-fleet.ps1`,
+  `/fleet-proof.ps1`, `/download`, `/privacy`, `/support`, and
+  `/api/public-config`.
+- Non-mutating DNS planner wrote
+  `.local-build\public-metadata-dns-repair\20260701-100843.musu-pro-public-metadata-dns-repair.json`
+  and still reports `release_blocker_present=true`,
+  `ready_for_public_metadata_verifier=false`, `provider_guess=cloudflare`,
+  `dns_path_matches_expected=false`, `apex_tls_ok=false`,
+  `vercel_edge_apex_tls_ok=false`, and `metadata_ok=false`.
+- P2P env status still reports
+  `source_release_relay_tunnel_runtime_not_implemented`, missing KV/Upstash env,
+  and missing live relay route/metadata/transport/payload delivery evidence.
+- Index refresh: `musu indexer sync --work-dir F:\workspace\musu-bee --name
+  musu-bee` indexed `3653 files` and `3947 symbols`; product brain ingest under
+  `local/musu` posted `3` closeout sources, processed `3`, recovered `0`, and
+  recall returned top title
+  `wiki/1210 current blocker triage and day closeout report`.
+
+Product meaning:
+
+- Public install/download implementation exists; the current public metadata
+  blocker is live DNS/TLS/provider state, not missing local site routes.
+- Full product completion remains NO-GO. The remaining blockers require
+  second-PC return evidence, DNS/Vercel repair, Store/design external evidence,
+  real V34 physical stale-state evidence, Private Mesh packaged physical proof,
+  and real `quic_relay_tunnel` / `quic_tls_1_3` relay transport.
+- `.local-build` fixture/verifier artifacts must not be promoted to final V34
+  or Private Mesh release evidence.
+
+Search terms: `wiki/1210`, `CURRENT_BLOCKER_TRIAGE_AND_DAY_CLOSEOUT`,
+`d5e380158614e28befb8b371ff874090fea82c88`,
+`20260701-100843.musu-pro-public-metadata-dns-repair`,
+`test:public-release 16/16`, `source_release_relay_tunnel_runtime_not_implemented`,
+`quic_relay_tunnel`, `quic_tls_1_3`, `HANDOFF-musu-integration`,
+`~/.musu/brain`, `V34 physical two-node stale proof`.
