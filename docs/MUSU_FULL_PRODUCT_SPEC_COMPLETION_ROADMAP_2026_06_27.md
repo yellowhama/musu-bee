@@ -1,5 +1,56 @@
 # MUSU Full Product Spec Completion Roadmap (2026-06-27)
 
+## 2026-07-01 15:23 KST release relay transport design gate
+
+Canonical report:
+`docs/RELEASE_RELAY_TRANSPORT_DESIGN_GATE_2026_07_01.md`.
+
+The `relay-transport` and `p2p-control-plane` lanes remain NO-GO. This change
+does not implement delegated work over relay. It adds an executable design gate
+so operators and future agents cannot close the lane by flipping
+`RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true` before real `quic_relay_tunnel` byte
+transit, bound `quic_tls_1_3` proof, relay payload delivery proof, and two-PC
+direct-blocked evidence exist.
+
+Fix:
+
+- Added `scripts/windows/audit-release-relay-transport-design-gate.ps1` with
+  schema `musu.release_relay_transport_design_gate.v1`.
+- `scripts/windows/write-release-go-no-go.ps1` now points the
+  `relay-transport` next action at the design gate and says to keep
+  `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` until
+  `runtime_marker_can_be_flipped=true`.
+- `scripts/windows/prepare-multidevice-test-kit.ps1` and
+  `scripts/windows/prepare-final-operator-gate-packet.ps1` now ship and run the
+  design gate before the relay failure-injection recorder/verifier commands.
+- `scripts/windows/audit-desktop-release-readiness.ps1` and
+  `scripts/windows/test-release-evidence-verifiers.ps1` now require the new
+  gate in release-readiness/tooling contracts.
+
+Verification:
+
+- PowerShell parser check passed for all touched scripts.
+- Design gate output returned `ok=true`, `release_ready=false`,
+  `runtime_marker_can_be_flipped=false`, and
+  `must_keep_runtime_marker_false=true`.
+- Current design gate blockers are `runtime_byte_path_missing`,
+  `release_relay_route_evidence_missing`,
+  `release_relay_route_metadata_missing`,
+  `release_relay_transport_proof_missing`, and
+  `release_relay_payload_delivery_proof_missing`.
+- Release evidence verifier regression passed `220/220` with output root
+  `.local-build\release-evidence-verifier-tests\20260701-152311`.
+- Indexing: `musu indexer sync` indexed `3703 files` / `3949 symbols`;
+  product brain ingest under `local/musu` posted 10 changed sources and
+  `musu-brain process` reported `processed: 10`; a final docs-only refresh
+  posted 4 updated docs and processed 4. Recall for
+  `wiki/1223 RELEASE_RELAY_TRANSPORT_DESIGN_GATE runtime_marker_can_be_flipped audit-release-relay-transport-design-gate`
+  returned the canonical report and the design gate script in the top results.
+
+Product meaning: this reduces release-process risk and makes the next step
+unambiguous. It does not close product readiness; `relay_transport_product_verified`
+must stay false until a real relay byte path and live bound proofs exist.
+
 ## 2026-07-01 15:00 KST public metadata DNS repair operator path
 
 Canonical report:

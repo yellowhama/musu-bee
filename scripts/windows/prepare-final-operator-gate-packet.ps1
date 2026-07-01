@@ -127,6 +127,7 @@ $scriptsToCopy = @(
     "record-p2p-control-plane-evidence.ps1",
     "verify-p2p-control-plane-evidence.ps1",
     "configure-musu-pro-p2p-env.ps1",
+    "audit-release-relay-transport-design-gate.ps1",
     "show-musu-pro-p2p-env-status.ps1",
     "record-external-release-gate-recheck.ps1",
     "verify-store-submission-bundle.ps1",
@@ -563,9 +564,13 @@ The relay lane is separate from direct route proof. To close it, block the
 direct path between the two physical PCs, prove the relay task succeeds, and
 record hosted control-plane evidence with route transport proof and payload
 delivery proof. Until the real QUIC/TLS relay tunnel runtime exists, this gate
-must remain diagnostic and `relay_transport_product_verified=false`.
+must remain diagnostic and `relay_transport_product_verified=false`. Run the
+design gate first; keep `RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` until it
+reports `runtime_marker_can_be_flipped=true` from real `quic_relay_tunnel` byte
+transit and bound `quic_tls_1_3` proof.
 
 ```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-release-relay-transport-design-gate.ps1 -BaseUrl https://musu.pro -Json
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\show-musu-pro-p2p-env-status.ps1 -Json
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -Json
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\verify-p2p-control-plane-evidence.ps1 -EvidencePath docs\evidence\p2p-control-plane\__VERSION__\<P2P_EVIDENCE_JSON> -ExpectedVersion __VERSION__ -ExpectedBaseUrl https://musu.pro -RequireIntegrity -Json

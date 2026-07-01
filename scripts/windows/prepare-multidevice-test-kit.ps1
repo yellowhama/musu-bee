@@ -65,6 +65,7 @@ $scriptFiles = @(
     "verify-runtime-cpu-scenario-matrix.ps1",
     "record-route-reachability-diagnostic.ps1",
     "verify-route-reachability-diagnostic.ps1",
+    "audit-release-relay-transport-design-gate.ps1",
     "show-musu-pro-p2p-env-status.ps1",
     "record-p2p-control-plane-evidence.ps1",
     "verify-p2p-control-plane-evidence.ps1",
@@ -291,9 +292,14 @@ stale self-heal proof. To close it, block the direct path between the two
 physical PCs, prove the relay task succeeds, and record hosted control-plane
 evidence that contains the release relay transport and payload delivery proofs.
 
-The kit includes the hosted P2P/relay status, recorder, and verifier scripts:
+The kit includes the hosted P2P/relay design gate, status, recorder, and
+verifier scripts. Run the design gate first; keep
+`RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` until it reports
+`runtime_marker_can_be_flipped=true` from real `quic_relay_tunnel` byte transit
+and bound `quic_tls_1_3` proof.
 
 ```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\audit-release-relay-transport-design-gate.ps1 -BaseUrl https://musu.pro -Json
 powershell -ExecutionPolicy Bypass -File scripts\windows\show-musu-pro-p2p-env-status.ps1 -Json
 powershell -ExecutionPolicy Bypass -File scripts\windows\record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -Json
 powershell -ExecutionPolicy Bypass -File scripts\windows\verify-p2p-control-plane-evidence.ps1 -EvidencePath .local-build\p2p-control-plane\<P2P_EVIDENCE_JSON> -ExpectedVersion __VERSION__ -ExpectedBaseUrl https://musu.pro -RequireIntegrity -Json

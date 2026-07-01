@@ -11553,4 +11553,36 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `CLOUDFLARE_API_TOKEN`, `store-public-metadata NO-GO`,
   `HANDOFF-musu-integration`, and `~/.musu/brain`.
 
+- 2026-07-01 release relay transport design gate:
+  `docs/RELEASE_RELAY_TRANSPORT_DESIGN_GATE_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1223`: `relay-transport` and
+  `p2p-control-plane` remain NO-GO, but a new executable design gate now
+  prevents release closure by marker flip alone. Added
+  `scripts/windows/audit-release-relay-transport-design-gate.ps1`; updated
+  `write-release-go-no-go.ps1` so the relay next action runs that gate; updated
+  the multi-device test kit and final operator packet to copy and run the gate
+  before P2P recorder/verifier commands; and updated release-readiness/verifier
+  contracts to require it. The gate reports `ok=true`, `release_ready=false`,
+  `runtime_marker_can_be_flipped=false`, and
+  `must_keep_runtime_marker_false=true` while blockers remain
+  `runtime_byte_path_missing`, `release_relay_route_evidence_missing`,
+  `release_relay_route_metadata_missing`,
+  `release_relay_transport_proof_missing`, and
+  `release_relay_payload_delivery_proof_missing`. Release evidence verifier
+  regression passed `220/220` at
+  `.local-build\release-evidence-verifier-tests\20260701-152311`. Indexing:
+  `musu indexer sync` indexed `3703 files` / `3949 symbols`; product brain
+  ingest under `local/musu` posted 10 changed sources and `musu-brain process`
+  reported `processed: 10`; a final docs-only refresh posted 4 updated docs and
+  processed 4. Recall for
+  `wiki/1223 RELEASE_RELAY_TRANSPORT_DESIGN_GATE runtime_marker_can_be_flipped audit-release-relay-transport-design-gate`
+  returned the canonical report and the design gate script in the top results.
+  Search terms should include `wiki/1223`,
+  `RELEASE_RELAY_TRANSPORT_DESIGN_GATE_2026_07_01`,
+  `audit-release-relay-transport-design-gate.ps1`,
+  `runtime_marker_can_be_flipped`, `must_keep_runtime_marker_false`,
+  `source_release_relay_tunnel_runtime_not_implemented`,
+  `quic_relay_tunnel`, `quic_tls_1_3`, and `relay-transport NO-GO`.
+
 **End of WIKI_INDEX.md.**

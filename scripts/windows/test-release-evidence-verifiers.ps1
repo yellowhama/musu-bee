@@ -51,6 +51,7 @@ $desktopReleaseReadinessAuditor = Join-Path $scriptDir "audit-desktop-release-re
 $p2pControlPlaneEvidenceRecorder = Join-Path $scriptDir "record-p2p-control-plane-evidence.ps1"
 $externalGateRecheckRecorder = Join-Path $scriptDir "record-external-release-gate-recheck.ps1"
 $p2pEnvStatusReporter = Join-Path $scriptDir "show-musu-pro-p2p-env-status.ps1"
+$releaseRelayTransportDesignGate = Join-Path $scriptDir "audit-release-relay-transport-design-gate.ps1"
 $finalHandoffStatusReporter = Join-Path $scriptDir "show-final-release-handoff-status.ps1"
 $operatorApiSecurityAuditor = Join-Path $scriptDir "audit-operator-api-security-contract.ps1"
 $msixLegacyConflictsChecker = Join-Path $scriptDir "check-msix-legacy-conflicts.ps1"
@@ -1097,6 +1098,10 @@ function Test-FinalOperatorPacketFullProductRoadmapContract {
         'RouteDuplicateTaskExecutionPrevented',
         'v34_stale_self_heal_verified=true',
         'Gate E - Relay transport failure-injection proof',
+        '"audit-release-relay-transport-design-gate.ps1"',
+        'audit-release-relay-transport-design-gate.ps1 -BaseUrl https://musu.pro -Json',
+        'runtime_marker_can_be_flipped=true',
+        'RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false',
         'record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -Json',
         'relay_transport_product_verified=true',
         'musu.relay_payload_delivery_proof.v1'
@@ -1258,11 +1263,15 @@ function Test-SecondPcKitRelayTransportProofContract {
 
     $source = Get-Content -LiteralPath $ScriptPath -Raw
     $requiredNeedles = @(
+        '"audit-release-relay-transport-design-gate.ps1"',
         '"show-musu-pro-p2p-env-status.ps1"',
         '"record-p2p-control-plane-evidence.ps1"',
         '"verify-p2p-control-plane-evidence.ps1"',
         '## Relay transport failure-injection proof',
         'block the direct path between the two',
+        'audit-release-relay-transport-design-gate.ps1 -BaseUrl https://musu.pro -Json',
+        'runtime_marker_can_be_flipped=true',
+        'RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false',
         'record-p2p-control-plane-evidence.ps1 -BaseUrl https://musu.pro -Json',
         'verify-p2p-control-plane-evidence.ps1 -EvidencePath',
         'musu.relay_transport_proof.v1',
@@ -2262,9 +2271,13 @@ function Test-GoNoGoNextActionsContract {
         '-StoreDesktopEntrypointEvidencePath',
         '-StoreInstallObservedAt',
         '-StoreLaunchObservedAt',
+        'audit-release-relay-transport-design-gate.ps1 -BaseUrl $PublicMetadataBaseUrl -Json',
+        'Run the separate relay transport design gate: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\windows\audit-release-relay-transport-design-gate.ps1 -BaseUrl $PublicMetadataBaseUrl -Json',
+        'Keep RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false until the gate reports runtime_marker_can_be_flipped=true after real quic_relay_tunnel byte transit exists.',
+        'real quic_relay_tunnel byte transit',
         'show-musu-pro-p2p-env-status.ps1 -Json',
         'record-p2p-control-plane-evidence.ps1 -BaseUrl $PublicMetadataBaseUrl -Json',
-        'Release-grade relay payload endpoint and relay tunnel runtime are not implemented/proven yet; this command is diagnostic until those source/env/live gates pass.',
+        'Relay transport remains a separate implementation lane until the design gate, route evidence, relay transport proof, and payload delivery proof all prove real quic_relay_tunnel byte transit.',
         'git status --short',
         'Review the dirty worktree, commit only after all intended changes and release evidence are present, then regenerate release manifests.',
         'Do not commit just to clear the git blocker while required release evidence is still missing.',
@@ -2655,6 +2668,41 @@ function Test-P2pEnvStatusReleaseTunnelMarkerConflictContract {
         'Do not set RELAY_PAYLOAD_ENDPOINT_IMPLEMENTED=true while /api/v1/relay/payload still returns preflight-only',
         'Do not set RELAY_TUNNEL_RUNTIME_IMPLEMENTED=true until the Rust source has release tunnel submit/accept hooks',
         'removes the release_relay_tunnel_runtime_not_implemented branch'
+    )
+
+    foreach ($needle in $requiredNeedles) {
+        if (-not $source.Contains($needle)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Test-ReleaseRelayTransportDesignGateContract {
+    param([Parameter(Mandatory = $true)][string]$ScriptPath)
+
+    if (-not (Test-Path -LiteralPath $ScriptPath)) {
+        return $false
+    }
+
+    $source = Get-Content -LiteralPath $ScriptPath -Raw
+    $requiredNeedles = @(
+        'schema = "musu.release_relay_transport_design_gate.v1"',
+        'show-musu-pro-p2p-env-status.ps1',
+        'runtime_marker_can_be_flipped',
+        'must_keep_runtime_marker_false',
+        'RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false until real quic_relay_tunnel byte transit and quic_tls_1_3 proof exist',
+        'source_release_relay_tunnel_runtime_not_implemented',
+        'runtime_byte_path_missing',
+        'release_relay_transport_proof_missing',
+        'release_relay_payload_delivery_proof_missing',
+        'two_pc_failure_injection',
+        'quic_relay_tunnel',
+        'quic_tls_1_3',
+        'musu_quic_tls_transport',
+        'relay_payload_delivery_proof',
+        'record-p2p-control-plane-evidence.ps1',
+        'verify-p2p-control-plane-evidence.ps1'
     )
 
     foreach ($needle in $requiredNeedles) {
@@ -6406,6 +6454,18 @@ Add-CaseResult `
     -Name "P2P env status rejects marker-only relay tunnel flips" `
     -Verifier "P2P env status source contract" `
     -FixturePath $p2pEnvStatusReporter `
+    -ShouldPass $true `
+    -Invocation $invocation
+
+$releaseRelayTransportDesignGateContractOk = Test-ReleaseRelayTransportDesignGateContract -ScriptPath $releaseRelayTransportDesignGate
+$invocation = New-StaticVerifierInvocation `
+    -Ok $releaseRelayTransportDesignGateContractOk `
+    -Message "Release relay transport design gate must keep runtime marker false until real quic_relay_tunnel byte transit, quic_tls_1_3 proof, payload delivery proof, and two-PC failure-injection evidence exist"
+Add-CaseResult `
+    -Cases $cases `
+    -Name "release relay transport design gate is explicit" `
+    -Verifier "Release relay transport design gate source contract" `
+    -FixturePath $releaseRelayTransportDesignGate `
     -ShouldPass $true `
     -Invocation $invocation
 

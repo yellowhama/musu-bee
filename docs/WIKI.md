@@ -24798,3 +24798,57 @@ Search terms: `wiki/1222`,
 `dry_run_command`, `mutation_requires_confirm_apply`,
 `apply-musu-pro-public-metadata-cloudflare-dns.ps1`, `CLOUDFLARE_API_TOKEN`,
 `store-public-metadata NO-GO`, `HANDOFF-musu-integration`, `~/.musu/brain`.
+
+## wiki/1223 - 2026-07-01 Release relay transport design gate
+
+Canonical report:
+`docs/RELEASE_RELAY_TRANSPORT_DESIGN_GATE_2026_07_01.md`.
+
+`relay-transport` and `p2p-control-plane` remain NO-GO. This update adds an
+executable design gate, not a release proof. The gate keeps
+`RELAY_TUNNEL_RUNTIME_IMPLEMENTED=false` until real `quic_relay_tunnel` byte
+transit, bound `quic_tls_1_3` proof, `musu.relay_payload_delivery_proof.v1`,
+and two-PC direct-blocked relay execution evidence exist.
+
+Changed:
+
+- Added `scripts/windows/audit-release-relay-transport-design-gate.ps1`.
+- `write-release-go-no-go.ps1` now uses the design gate as the
+  `relay-transport` next action.
+- `prepare-multidevice-test-kit.ps1` and
+  `prepare-final-operator-gate-packet.ps1` now copy and run the gate before
+  P2P recorder/verifier commands.
+- `audit-desktop-release-readiness.ps1` and
+  `test-release-evidence-verifiers.ps1` now lock the gate into tooling
+  contracts.
+
+Verification:
+
+- Design gate returned `ok=true`, `release_ready=false`,
+  `runtime_marker_can_be_flipped=false`,
+  `must_keep_runtime_marker_false=true`.
+- Current blockers: `runtime_byte_path_missing`,
+  `release_relay_route_evidence_missing`,
+  `release_relay_route_metadata_missing`,
+  `release_relay_transport_proof_missing`,
+  `release_relay_payload_delivery_proof_missing`.
+- Release evidence verifier regression passed `220/220` with output root
+  `.local-build/release-evidence-verifier-tests/20260701-152311`.
+- Indexing: `musu indexer sync` indexed `3703 files` / `3949 symbols`;
+  product brain ingest under `local/musu` posted 10 changed sources and
+  `musu-brain process` reported `processed: 10`; a final docs-only refresh
+  posted 4 updated docs and processed 4. Recall for
+  `wiki/1223 RELEASE_RELAY_TRANSPORT_DESIGN_GATE runtime_marker_can_be_flipped audit-release-relay-transport-design-gate`
+  returned the canonical report and the design gate script in the top results.
+
+Product meaning: the release process is clearer, but the product is not
+complete. Relay is still diagnostic/control-plane only until actual payload
+bytes cross the release relay tunnel and live owner-scoped evidence verifies it.
+
+Search terms: `wiki/1223`,
+`RELEASE_RELAY_TRANSPORT_DESIGN_GATE_2026_07_01`,
+`audit-release-relay-transport-design-gate.ps1`,
+`runtime_marker_can_be_flipped`, `must_keep_runtime_marker_false`,
+`source_release_relay_tunnel_runtime_not_implemented`,
+`quic_relay_tunnel`, `quic_tls_1_3`,
+`relay_transport_product_verified=false`, `relay-transport NO-GO`.
