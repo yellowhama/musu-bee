@@ -11686,4 +11686,35 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260701-173445`, and
   `runtime_cpu_scenario_matrix_valid_machine_count=0`.
 
+- 2026-07-01 local package refresh after brain pin update:
+  `docs/LOCAL_PACKAGE_REFRESH_AFTER_BRAIN_PIN_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/BRAIN_INTEGRATION_ROOT_CONTRACT_2026_07_01.md`,
+  `docs/NEXT_STEPS_AFTER_CURRENT_PACKAGE_REFRESH_2026_06_30.md`, and
+  `docs/WIKI.md` now record `wiki/1227`: the external brain checkout advanced
+  from pin `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14` to
+  `0b47c430e94fa504029c9b754dea70055beeee6e`; `build-msix.ps1 -NoBump
+  -PreflightOnly` failed until `musu-bee/src-tauri/musu-brain.pin.json` was
+  updated, proving the brain pin coherence gate is active. Full build and
+  reinstall passed. Evidence includes `20260701-182634-HUGH_SECOND` MSIX
+  install/single-machine/process/startup/desktop/idle CPU,
+  `20260701-183101-HUGH_SECOND` brain product proof, and
+  `20260701-183437-HUGH_SECOND` runtime CPU matrix. Clean go/no-go at
+  `2026-07-01T18:49:50.0962676+09:00` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `blockers=10`, `manifest_git.dirty=false`,
+  `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`,
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1 [HUGH_SECOND]`,
+  and `runtime_cpu_scenario_matrix_valid_machine_count=0/2`. Product remains
+  NO-GO; strict runtime matrix still needs successful target-bound post-route
+  proof on both PCs, and the `hugh-main` install/check path must be regenerated
+  or republished for current source `ee597c7e03fa12da853451e2c1339d63b93de52b`.
+  Search terms should include `wiki/1227`,
+  `LOCAL_PACKAGE_REFRESH_AFTER_BRAIN_PIN_2026_07_01`,
+  `musu-brain.pin.json`, `0b47c430e94fa504029c9b754dea70055beeee6e`,
+  `20260701-182634-HUGH_SECOND`, `20260701-183101-HUGH_SECOND`,
+  `20260701-183437-HUGH_SECOND`, `runtime_idle_cpu_valid_machine_count=1`,
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=0`, and `blockers=10`.
+
 **End of WIKI_INDEX.md.**

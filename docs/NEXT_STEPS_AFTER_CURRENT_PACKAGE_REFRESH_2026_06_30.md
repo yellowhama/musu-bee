@@ -8,15 +8,16 @@ blockers are physical, external, or release-transport proof gates.
 
 Current local evidence report:
 
-- `docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_AFTER_SHELL_CANCEL_FIX_2026_07_01.md`
+- `docs/LOCAL_PACKAGE_REFRESH_AFTER_BRAIN_PIN_2026_07_01.md`
 
-Current second-PC kit:
+Current second-PC kit status:
 
-- `.local-build/multi-device-test-kit/musu-multidevice-1.15.0-rc.22-20260701-135632.zip`
-- SHA256:
-  `3d97eb84b7359a35199f5739ecea5d6fa43ef124931e4937ba7891c9c41cdd8b`
-- source commit:
-  `9ce134bb6b10c6320e21bdebe4abf6ddcdc8760d`
+- The older `20260701-135632` kit is stale for the current source/package
+  because the local package has since moved to commit
+  `ee597c7e03fa12da853451e2c1339d63b93de52b` and brain pin
+  `0b47c430e94fa504029c9b754dea70055beeee6e`.
+- Regenerate or republish the second-PC install/check path before treating a
+  new `hugh-main` return as current release evidence.
 
 ## What Is Proven
 
@@ -27,11 +28,13 @@ Current second-PC kit:
 - Five-scenario runtime CPU matrix captures on `HUGH_SECOND`; the targeted
   route-attempt verifier passes for `hugh-main`, but the default successful
   post-route matrix gate remains open because `route_ok=false`.
-- The packaged hidden-brain lane now passes on `HUGH_SECOND` after the MSIX
-  `windows.fullTrustProcess` repair for `musu-brain.exe`.
-- The current second-PC kit was regenerated from clean HEAD after the shell
-  cancel latch fix and local package evidence refresh, so the next `hugh-main`
-  run is not tied to the older `20260701-112343` source snapshot.
+- The packaged hidden-brain lane now passes on `HUGH_SECOND` with the current
+  brain pin `0b47c430e94fa504029c9b754dea70055beeee6e`.
+- Clean go/no-go at `2026-07-01T18:49:50.0962676+09:00` reports
+  `blockers=10`, `manifest_git.dirty=false`,
+  `runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`,
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1 [HUGH_SECOND]`,
+  and `runtime_cpu_scenario_matrix_valid_machine_count=0/2`.
 
 ## What Is Not Proven
 
@@ -52,7 +55,9 @@ Current second-PC kit:
 
 ## Run On hugh-main
 
-Extract the current kit on `hugh-main`, then run from inside the extracted kit:
+First install or otherwise deliver the current package built from
+`ee597c7e03fa12da853451e2c1339d63b93de52b` to `hugh-main`. Then run the current
+second-PC release check from a regenerated kit or equivalent current scripts:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\windows\run-second-pc-release-check.ps1 -RouteReachabilityTarget hugh_second -RuntimeCpuRouteTarget hugh_second -FailOnRouteReachabilityDiagnostic -FailOnRuntimeCpuScenarioMatrix -FailOnPrivateMeshPhysicalPeerEvidence
@@ -66,7 +71,9 @@ Return the generated:
 .local-build/second-pc-return/*.zip
 ```
 
-Then import it on this repo before recording final two-machine gates.
+Then import it on this repo before recording final two-machine gates. Do not
+reuse the older `20260701-135632` kit as release-grade evidence for the current
+source.
 
 ## Remote File Proof Setup
 
@@ -108,10 +115,11 @@ Required proof:
 
 ## Priority Order
 
-1. Run/import `hugh-main` kit return.
-2. Pass physical remote file `put/ls/get` proof.
-3. Repair `musu.pro` apex DNS/TLS and rerun public metadata verifier.
-4. Produce Private Mesh packaged proof archive.
-5. Complete release-grade route transport and relay proof.
-6. Record Store, design approval, live P2P control-plane, and V34 stale
+1. Regenerate/publish the current `hugh-main` install and release-check path.
+2. Run/import `hugh-main` kit return.
+3. Pass physical remote file `put/ls/get` proof.
+4. Repair `musu.pro` apex DNS/TLS and rerun public metadata verifier.
+5. Produce Private Mesh packaged proof archive.
+6. Complete release-grade route transport and relay proof.
+7. Record Store, design approval, live P2P control-plane, and V34 stale
    self-heal evidence.

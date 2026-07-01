@@ -40,6 +40,15 @@ brain sidecar start. A fresh local-sideload install on `HUGH_SECOND` now writes
 `musu doctor --json` reports `knowledge.status=ok`. Brain product proof
 `20260701-085057-HUGH_SECOND` verifies with `ok=true` and `fail_count=0`.
 
+2026-07-01 brain pin refresh update: the local package has now been rebuilt and
+reinstalled after the external brain checkout advanced from
+`eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14` to
+`0b47c430e94fa504029c9b754dea70055beeee6e`. `build-msix.ps1 -NoBump
+-PreflightOnly` failed until `musu-bee/src-tauri/musu-brain.pin.json` matched
+the clean brain HEAD, so the pin coherence gate is product-enforced. Fresh
+brain product proof `20260701-183101-HUGH_SECOND` verifies with `ok=true` and
+`fail_count=0`.
+
 ## Product Contract
 
 - Product root: `~/.musu/brain`.
@@ -78,26 +87,39 @@ Current code now makes the root contract explicit in the desktop process tree:
 
 ## Brain Repo State
 
-The brain handoff was followed by a packaging hygiene fix in the brain repo:
+The current pinned brain repo state is:
 
 - brain repo: `F:\musu_2nd_brain`
-- pushed commit: `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14`
-- change: `.gitignore` now ignores SQLite `*.db-shm` and `*.db-wal` sidecar
-  files.
+- pushed commit: `0b47c430e94fa504029c9b754dea70055beeee6e`
+- pin file: `musu-bee/src-tauri/musu-brain.pin.json`
+- pinned product version: `1.15.0-rc.22`
+- pinned commit time: `2026-07-01T16:52:30+09:00`
+
+The diff from the previous pin
+`eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14` to the current pin only touched
+Claude Code hook helper files:
+
+- `clients/claude-code/feed-memory.mjs`
+- `clients/claude-code/install-hooks.sh`
+
+The previous pin was still important because it included the packaging hygiene
+fix in the brain repo: `.gitignore` ignores SQLite `*.db-shm` and `*.db-wal`
+sidecar files.
 
 Reason: `scripts/windows/build-msix.ps1::Assert-BrainRepoMatchesPin` refuses to
 start a release build when the external knowledge chip checkout is dirty. The
 brain repo already ignored `*.db`; it did not ignore SQLite WAL/SHM sidecars,
 which made a code-clean checkout look dirty.
 
-`musu-bee/src-tauri/musu-brain.pin.json` now points at that clean pushed brain
-HEAD.
+`musu-bee/src-tauri/musu-brain.pin.json` now points at the current clean pushed
+brain HEAD.
 
 ## Qualitative Audit
 
 | Severity | Finding | Evidence | Impact | Next |
 |---|---|---|---|---|
 | HIGH | The root conflict is resolved for MUSU source and now locally package-proven on `HUGH_SECOND`. | `docs/CURRENT_PACKAGED_BRAIN_MSIX_AUDIT_2026_07_01.md`; `20260701-012822` brain product proof uses `C:\Users\empty\.musu\brain`. | The local MSIX package contains the root contract. Public channel and second-PC freshness still need separate proof. | Keep this lane green after any source/package change; refresh hosted channel before other-PC install. |
+| HIGH | The brain pin coherence gate is active and current. | `build-msix.ps1 -NoBump -PreflightOnly` failed until `musu-brain.pin.json` moved to `0b47c430e94fa504029c9b754dea70055beeee6e`; `20260701-183101` brain product proof passed after rebuild/reinstall. | Release builds cannot silently ship a brain chip that differs from the product pin. | Keep pin updates explicit and re-run package proof after every pin movement. |
 | HIGH | The hidden brain lifecycle is now locally package-proven after adding the cross-process start lock. | `docs/evidence/brain-product/1.15.0-rc.22/20260701-085057-HUGH_SECOND.brain-product-verification.json` has `ok=true`, `fail_count=0`, sidecar process observed, health OK, task recall OK, and capture recall OK; `sidecar-autostart-status.json` records `result=started`, `readiness_ok=true`. | The local user-invisible motherboard+chip experience is proven on `HUGH_SECOND`. | Keep proof fresh after any source/package change; public/second-PC freshness still needs separate capture. |
 | HIGH | MSIX must declare the brain sidecar as full trust. | `20260701-012657` MSIX install evidence records `brain_full_trust_process=true`. | File presence alone can produce a dead hidden brain sidecar. | Keep package and installed-package verifiers rejecting missing `fullTrustProcess`. |
 | HIGH | The standalone brain default remains `~/.musubrain`. | Brain handoff Part 1 describes standalone data layout. | Future agents could reintroduce split stores if they follow standalone defaults inside MUSU. | Treat this document and `BRAIN_INTEGRATION_THESIS` as the MUSU product overlay. |

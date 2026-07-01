@@ -25033,3 +25033,58 @@ Search terms: `wiki/1226`,
 `45dd75ba-4684-410b-9054-a4ce9182a4bc`,
 `9dba3497-c80c-417a-8e59-dcb4a2d869ea`,
 `runtime_cpu_scenario_matrix_valid_machine_count=0`.
+
+## wiki/1227 - 2026-07-01 Local package refresh after brain pin update
+
+Canonical report:
+`docs/LOCAL_PACKAGE_REFRESH_AFTER_BRAIN_PIN_2026_07_01.md`.
+
+After the self-target route source fix, the local package was rebuilt and
+reinstalled again because the external brain checkout had advanced from the
+previous pin `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14` to
+`0b47c430e94fa504029c9b754dea70055beeee6e`. The first
+`build-msix.ps1 -NoBump -PreflightOnly` failed until
+`musu-bee/src-tauri/musu-brain.pin.json` was updated, confirming the brain pin
+coherence gate is active. The diff from `eb0c0ec` to `0b47c43` only touched
+Claude Code hook helper files, not brain Go runtime code.
+
+Build/install:
+
+- `build-msix.ps1 -NoBump -PreflightOnly`: passed after the pin update.
+- `build-msix.ps1 -NoBump`: passed and built
+  `github.com/yellowhama/musu-brain@0b47c430e94fa504029c9b754dea70055beeee6e`.
+- `install-msix.ps1 -StartupContract local-sideload-manual -ReplaceExisting`:
+  installed `blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc`.
+
+Evidence:
+
+- `20260701-182634-HUGH_SECOND` MSIX install, single-machine, process
+  ownership, startup single-instance, desktop single-instance, and desktop-open
+  idle CPU evidence.
+- `20260701-183101-HUGH_SECOND` brain product proof and verification.
+- `20260701-183437-HUGH_SECOND` runtime CPU scenario matrix and verification.
+
+Clean go/no-go at `2026-07-01T18:49:50.0962676+09:00` reports
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`blockers=10`, and `manifest_git.dirty=false`. Green local lanes:
+`brain_product_verified=true`, `single_machine_verified=true`,
+`process_ownership_verified=true`, `startup_single_instance_verified=true`, and
+`desktop_single_instance_verified=true`. Runtime CPU status:
+`runtime_idle_cpu_valid_machine_count=1/2 [HUGH_SECOND]`,
+`runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1 [HUGH_SECOND]`,
+and `runtime_cpu_scenario_matrix_valid_machine_count=0/2`.
+
+Product meaning: the rebuilt local package is healthy on `HUGH_SECOND`, but the
+full product remains NO-GO. The route-attempt CPU lane is proven with preserved
+failed-attempt metadata, but the strict runtime CPU matrix still needs a
+successful target-bound post-route probe on both physical PCs. The second-PC
+kit/install path must be regenerated or republished for current source
+`ee597c7e03fa12da853451e2c1339d63b93de52b`.
+
+Search terms: `wiki/1227`,
+`LOCAL_PACKAGE_REFRESH_AFTER_BRAIN_PIN_2026_07_01`,
+`musu-brain.pin.json`, `0b47c430e94fa504029c9b754dea70055beeee6e`,
+`20260701-182634-HUGH_SECOND`, `20260701-183101-HUGH_SECOND`,
+`20260701-183437-HUGH_SECOND`, `runtime_idle_cpu_valid_machine_count=1`,
+`runtime_cpu_second_pc_route_attempt_valid_machine_count=1`,
+`runtime_cpu_scenario_matrix_valid_machine_count=0`, and `blockers=10`.

@@ -1,5 +1,53 @@
 # MUSU Full Product Spec Completion Roadmap (2026-06-27)
 
+## 2026-07-01 18:50 KST local package refresh after brain pin update
+
+Canonical report:
+`docs/LOCAL_PACKAGE_REFRESH_AFTER_BRAIN_PIN_2026_07_01.md`.
+
+The local package has been rebuilt and reinstalled after the external brain
+sidecar pin moved from `eb0c0ec2b83a9226f431012bc8c7b2267a3c0d14` to
+`0b47c430e94fa504029c9b754dea70055beeee6e`. The build preflight initially
+failed because `F:\musu_2nd_brain` was ahead of the pinned revision, proving the
+brain pin coherence gate is active. After updating
+`musu-bee/src-tauri/musu-brain.pin.json`, `build-msix.ps1 -NoBump
+-PreflightOnly`, full MSIX build, and local reinstall all passed.
+
+Evidence refreshed on `HUGH_SECOND`:
+
+- MSIX install:
+  `docs/evidence/msix-install/1.15.0-rc.22/20260701-182634-HUGH_SECOND.evidence.json`
+- brain product proof:
+  `docs/evidence/brain-product/1.15.0-rc.22/20260701-183101-HUGH_SECOND.brain-product-proof.json`
+- single-machine:
+  `docs/evidence/single-machine/1.15.0-rc.22/20260701-182634-HUGH_SECOND.evidence.json`
+- process ownership:
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260701-182634-HUGH_SECOND.process-ownership.json`
+- startup single-instance:
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260701-182634-HUGH_SECOND.startup-single-instance.json`
+- desktop single-instance:
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260701-182634-HUGH_SECOND.desktop-single-instance.json`
+- desktop-open idle CPU:
+  `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260701-182634-HUGH_SECOND.desktop-open.evidence.json`
+- runtime CPU matrix:
+  `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260701-183437-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+
+Clean go/no-go at `2026-07-01T18:49:50.0962676+09:00` reports
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`blockers=10`, and `manifest_git.dirty=false`. Local package hygiene is green
+again (`brain_product_verified`, `single_machine_verified`,
+`process_ownership_verified`, `startup_single_instance_verified`, and
+`desktop_single_instance_verified` are all true). Runtime idle CPU is now
+valid for `1/2` required machines (`HUGH_SECOND`), and the targeted second-PC
+route-attempt CPU lane is valid for `1/1`. The strict runtime CPU scenario
+matrix remains `0/2` because go/no-go requires a successful post-route probe,
+not only an allowed failed route attempt with metadata.
+
+Product status remains NO-GO. Remaining blocker areas are multi-device,
+Private Mesh packaged proof, second-machine idle CPU, successful strict runtime
+CPU matrix, `musu.pro` public metadata DNS/TLS, Store release, live P2P
+control-plane, design approval, real relay transport, and V34 stale self-heal.
+
 ## 2026-07-01 17:24 KST runtime CPU post-route self-target source fix
 
 Canonical report:
