@@ -24505,3 +24505,84 @@ Search terms: `wiki/1217`,
 `runner.rs`, `DELETE /api/tasks/{task_id}`, `9dba3497-c80c-417a-8e59-dcb4a2d869ea`,
 `status=running`, `cancelled=true`, `hugh-main`, `hugh_second`,
 `full product NO-GO`.
+
+## wiki/1218 - 2026-07-01 Local package evidence refresh after shell cancel fix
+
+Canonical report:
+
+- `docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_AFTER_SHELL_CANCEL_FIX_2026_07_01.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+
+What changed:
+
+- Rebuilt and installed the current rc.22 local-sideload MSIX after the shell
+  cancel latch source fix.
+- Installed package:
+  `blossompark.musu_1.15.0.22_x64__f5h38pf4yt4gc`.
+- New local evidence paths:
+  - `docs/evidence/msix-install/1.15.0-rc.22/20260701-132112-HUGH_SECOND.evidence.json`
+  - `docs/evidence/single-machine/1.15.0-rc.22/20260701-132208-HUGH_SECOND.evidence.json`
+  - `docs/evidence/process-ownership/1.15.0-rc.22/20260701-132237-HUGH_SECOND.process-ownership.json`
+  - `docs/evidence/startup-single-instance/1.15.0-rc.22/20260701-132237-HUGH_SECOND.startup-single-instance.json`
+  - `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260701-132237-HUGH_SECOND.desktop-single-instance.json`
+  - `docs/evidence/runtime-idle-cpu/1.15.0-rc.22/20260701-132844-HUGH_SECOND.desktop-open.evidence.json`
+  - `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260701-133011-HUGH_SECOND.runtime-cpu-scenario-matrix.json`
+  - `docs/evidence/runtime-cpu-scenarios/1.15.0-rc.22/20260701-133011-HUGH_SECOND.target-route.verification.json`
+
+Audit result:
+
+- Local package freshness lanes are green again:
+  `msix_install_verified=true`, `single_machine_verified=true`,
+  `process_ownership_verified=true`, `startup_single_instance_verified=true`,
+  and `desktop_single_instance_verified=true`.
+- Clean desktop-open idle CPU evidence passed on HUGH_SECOND with
+  `git_dirty=false` and `sample_seconds=60.026`.
+- Runtime CPU matrix captured all five scenarios with `ok=true` and
+  `git_dirty=false`.
+- The targeted `hugh-main` route-attempt verifier passed with failed route
+  allowed because target, route-explain, network probe, and per-attempt route
+  evidence are present.
+- The default runtime CPU matrix gate is still not closed:
+  `route_ok=false`, so successful post-route proof is missing.
+
+GO/NO-GO:
+
+- Dirty pre-documentation go/no-go generated at
+  `2026-07-01T13:42:33.0531675+09:00`.
+- `full_product_spec_ready=false`,
+  `ready_for_public_desktop_release=false`, `warnings=0`, `blockers=11`.
+- The `git` blocker is expected before this evidence/docs commit.
+- Runtime CPU counts: `runtime_idle_cpu_valid_machine_count=1/2`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=0/2`,
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1`.
+
+Product meaning:
+
+- The shell cancel fix is now local-package proven on HUGH_SECOND.
+- The product is still NO-GO. Remaining work is not local-package freshness; it
+  is physical second-PC proof, successful post-route matrix evidence, public
+  metadata DNS/TLS, Store evidence, P2P control plane, design approval, relay
+  transport, and V34 stale-self-heal.
+- Brain integration contracts are unchanged: MUSU product brain root remains
+  `~/.musu/brain`, and the canonical handoff remains
+  `F:\musu_2nd_brain\docs\HANDOFF-musu-integration.md`.
+
+Indexing and recall:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3698 files` and `3949 symbols`.
+- Product brain CLI ingest under `~/.musu/brain` scope `local/musu` ingested
+  `6` sources: the local package evidence report, roadmap, this wiki,
+  `WIKI_INDEX`, `shell.rs`, and `runner.rs`.
+- `/process` reported `processed: 6`.
+- Recall for
+  `Local Packaged Evidence Refresh After Shell Cancel Fix 2026 07 01 wiki 1218`
+  returned the new report as the top result.
+
+Search terms: `wiki/1218`,
+`LOCAL_PACKAGED_EVIDENCE_REFRESH_AFTER_SHELL_CANCEL_FIX_2026_07_01`,
+`20260701-132112`, `20260701-132208`, `20260701-132237`,
+`20260701-132844`, `20260701-133011`, `hugh-main`, `HUGH_SECOND`,
+`runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1`,
+`runtime_cpu_scenario_matrix_valid_machine_count=0/2`, `route_ok=false`,
+`full product NO-GO`, `~/.musu/brain`, `HANDOFF-musu-integration`.

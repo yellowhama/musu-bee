@@ -1,5 +1,58 @@
 # MUSU Full Product Spec Completion Roadmap (2026-06-27)
 
+## 2026-07-01 13:47 KST local package evidence refresh after shell cancel fix
+
+Canonical report:
+`docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_AFTER_SHELL_CANCEL_FIX_2026_07_01.md`.
+
+The shell cancel source fix has now been rebuilt, installed, and locally
+proven on HUGH_SECOND. Fresh evidence includes MSIX install `20260701-132112`,
+single-machine smoke `20260701-132208`, process/startup/desktop single-instance
+evidence `20260701-132237`, desktop-open idle CPU
+`20260701-132844`, and runtime CPU scenario matrix `20260701-133011`.
+
+The package freshness lanes reopened by the source fix are locally green again:
+`msix_install_verified=true`, `single_machine_verified=true`,
+`process_ownership_verified=true`, `startup_single_instance_verified=true`,
+and `desktop_single_instance_verified=true`.
+
+Dirty pre-documentation go/no-go at
+`2026-07-01T13:42:33.0531675+09:00` reports
+`full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+`warnings=0`, and `blockers=11`. The `git` blocker is expected until this
+documentation/evidence refresh is committed. The substantive remaining blocker
+areas are still `multi-device`, `private-mesh-packaged-release-proof`,
+`runtime-idle-cpu`, `runtime-cpu-scenario-matrix`, `store-public-metadata`,
+`store-release`, `p2p-control-plane`, `design-approval`, `relay-transport`,
+and `v34-stale-self-heal`.
+
+Runtime CPU details:
+
+- `runtime_idle_cpu_valid_machine_count=1/2`.
+- `runtime_cpu_scenario_matrix_valid_machine_count=0/2` because the default
+  matrix verifier requires a successful post-route probe and the current
+  `hugh-main` route attempt recorded `route_ok=false`.
+- `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1`; the targeted
+  verifier passed because the failed `hugh-main` attempt records target,
+  route-explain, network probe, and per-attempt route evidence.
+
+Product meaning: the shell cancel fix is now local-package proven on
+HUGH_SECOND, but the product remains NO-GO. The next release-moving action is
+still physical `hugh-main` evidence: apply/restart the target runtime, rerun
+remote file proof, and run/import the current second-PC kit.
+
+Indexing and recall:
+
+- `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
+  indexed `3698 files` and `3949 symbols`.
+- Product brain CLI ingest under `~/.musu/brain` scope `local/musu` ingested
+  `6` sources: the new local package evidence report, this roadmap, `WIKI`,
+  `WIKI_INDEX`, `shell.rs`, and `runner.rs`.
+- `/process` reported `processed: 6`.
+- Recall for
+  `Local Packaged Evidence Refresh After Shell Cancel Fix 2026 07 01 wiki 1218`
+  returned the new report as the top result.
+
 ## 2026-07-01 12:37 KST shell task cancel latch source fix
 
 Canonical report:

@@ -11389,4 +11389,42 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `9dba3497-c80c-417a-8e59-dcb4a2d869ea`, `status=running`,
   `cancelled=true`, `hugh-main`, `hugh_second`, and `full product NO-GO`.
 
+- 2026-07-01 local package evidence refresh after shell cancel fix:
+  `docs/LOCAL_PACKAGED_EVIDENCE_REFRESH_AFTER_SHELL_CANCEL_FIX_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`, and
+  `docs/WIKI.md` now record `wiki/1218`: the shell cancel source fix was
+  rebuilt, installed, and locally package-proven on HUGH_SECOND. Fresh evidence
+  includes MSIX install `20260701-132112`, single-machine smoke
+  `20260701-132208`, process/startup/desktop single-instance evidence
+  `20260701-132237`, desktop-open CPU `20260701-132844`, and runtime CPU
+  scenario matrix `20260701-133011`. Local package freshness lanes are green
+  again: `msix_install_verified=true`, `single_machine_verified=true`,
+  `process_ownership_verified=true`, `startup_single_instance_verified=true`,
+  and `desktop_single_instance_verified=true`. Dirty pre-documentation
+  go/no-go at `2026-07-01T13:42:33.0531675+09:00` reports
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `warnings=0`, and `blockers=11`; the `git` blocker is expected before this
+  evidence/docs commit. Runtime CPU counts are
+  `runtime_idle_cpu_valid_machine_count=1/2`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=0/2`, and
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1`. The targeted
+  `hugh-main` route-attempt verifier passed with failed route allowed because
+  metadata was recorded, but the default matrix gate remains open because
+  `route_ok=false` and successful post-route proof is missing. Product status
+  remains NO-GO; the remaining blockers are physical second-PC proof,
+  successful post-route matrix, public metadata DNS/TLS, Store, P2P, design
+  approval, relay transport, and V34 stale-self-heal. Search terms should
+  include `wiki/1218`,
+  `LOCAL_PACKAGED_EVIDENCE_REFRESH_AFTER_SHELL_CANCEL_FIX_2026_07_01`,
+  `20260701-132112`, `20260701-132208`, `20260701-132237`,
+  `20260701-132844`, `20260701-133011`, `route_ok=false`,
+  `runtime_cpu_second_pc_route_attempt_valid_machine_count=1/1`,
+  `runtime_cpu_scenario_matrix_valid_machine_count=0/2`, `hugh-main`,
+  `HUGH_SECOND`, `~/.musu/brain`, and `HANDOFF-musu-integration`. Index
+  refresh: `musu indexer sync` indexed `3698 files` and `3949 symbols`;
+  product brain ingest under `local/musu` posted `6` sources, processed `6`,
+  and recall for
+  `Local Packaged Evidence Refresh After Shell Cancel Fix 2026 07 01 wiki 1218`
+  returned the new report as the top result.
+
 **End of WIKI_INDEX.md.**
