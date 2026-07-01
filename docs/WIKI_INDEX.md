@@ -11367,7 +11367,13 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `shell_cancel_signal_returns_promptly`, all `adapter::shell::tests::*`, and
   `cancel_signal_transitions_to_cancelled`. Product meaning: source-fixed, but
   not yet package-proven on `hugh-main`; remote file physical proof and full
-  product completion remain NO-GO. Index refresh: `musu indexer sync` indexed
+  product completion remain NO-GO. Post-commit go/no-go for source-fix commit
+  `6aa8072489b474906c88aabe3f19665fb6bf7aa7`, generated at
+  `2026-07-01T12:48:54.1223036+09:00`, has `dirty=false`,
+  `full_product_spec_ready=false`, `ready_for_public_desktop_release=false`,
+  `warnings=0`, and `blockers=15` because package/evidence freshness is reset
+  until this source fix is rebuilt and reproven. Index refresh:
+  `musu indexer sync` indexed
   `3677 files` and `3949 symbols`; product brain CLI ingest under
   `~/.musu/brain` scope `local/musu` ingested `8` sources and processed `8`;
   recall for

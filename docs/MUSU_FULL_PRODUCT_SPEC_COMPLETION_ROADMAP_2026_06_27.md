@@ -47,6 +47,23 @@ Product meaning:
   `hugh_second`.
 - Full product status remains NO-GO.
 
+Post-commit go/no-go:
+
+- Source-fix commit: `6aa8072489b474906c88aabe3f19665fb6bf7aa7`.
+- Generated at `2026-07-01T12:48:54.1223036+09:00`.
+- `manifest_git.dirty=false`.
+- `full_product_spec_ready=false`.
+- `ready_for_public_desktop_release=false`.
+- `warnings=0`.
+- `blockers=15`: `single-machine`, `multi-device`,
+  `private-mesh-packaged-release-proof`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `runtime-cpu-second-pc-route-attempt`,
+  `process-ownership`, `startup-single-instance`, `desktop-single-instance`,
+  `store-public-metadata`, `store-release`, `p2p-control-plane`,
+  `design-approval`, `relay-transport`, and `v34-stale-self-heal`.
+- Interpretation: source bug is fixed, but package/evidence freshness is reset
+  until this commit is rebuilt and local plus second-PC evidence is refreshed.
+
 Indexing and recall:
 
 - `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`

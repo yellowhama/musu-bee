@@ -98,6 +98,30 @@ Still not complete:
   multi-device, runtime CPU, Private Mesh, public metadata, Store, P2P,
   relay-transport, design approval, or V34 gates.
 
+## Post-Commit Go/No-Go
+
+After source-fix commit `6aa8072489b474906c88aabe3f19665fb6bf7aa7`, a fresh
+go/no-go run generated
+`.local-build/go-no-go/latest.json` at
+`2026-07-01T12:48:54.1223036+09:00`.
+
+Result:
+
+- `manifest_git.dirty=false`
+- `full_product_spec_ready=false`
+- `ready_for_public_desktop_release=false`
+- `warnings=0`
+- `blockers=15`
+
+The blocker count increased from the prior clean 10-blocker state because this
+source fix has not been rebuilt into a current package/evidence set. Current
+blocker areas are `single-machine`, `multi-device`,
+`private-mesh-packaged-release-proof`, `runtime-idle-cpu`,
+`runtime-cpu-scenario-matrix`, `runtime-cpu-second-pc-route-attempt`,
+`process-ownership`, `startup-single-instance`, `desktop-single-instance`,
+`store-public-metadata`, `store-release`, `p2p-control-plane`,
+`design-approval`, `relay-transport`, and `v34-stale-self-heal`.
+
 ## Next Required Steps
 
 1. Rebuild/package this source fix before using shell cancel as release

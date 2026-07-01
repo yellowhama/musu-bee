@@ -24468,6 +24468,21 @@ Product meaning:
   `hugh_second`.
 - Full product completion remains NO-GO.
 
+Post-commit go/no-go:
+
+- Commit `6aa8072489b474906c88aabe3f19665fb6bf7aa7` produced a clean
+  manifest (`dirty=false`) at `2026-07-01T12:48:54.1223036+09:00`.
+- `full_product_spec_ready=false`,
+  `ready_for_public_desktop_release=false`, `warnings=0`, `blockers=15`.
+- Blockers: `single-machine`, `multi-device`,
+  `private-mesh-packaged-release-proof`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `runtime-cpu-second-pc-route-attempt`,
+  `process-ownership`, `startup-single-instance`, `desktop-single-instance`,
+  `store-public-metadata`, `store-release`, `p2p-control-plane`,
+  `design-approval`, `relay-transport`, and `v34-stale-self-heal`.
+- Meaning: source-fixed, but package/evidence freshness is intentionally
+  reset until this commit is rebuilt and proven.
+
 Indexing and recall:
 
 - `musu indexer sync --work-dir F:\workspace\musu-bee --name musu-bee`
