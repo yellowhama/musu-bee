@@ -23807,3 +23807,63 @@ Product meaning:
   `20260701-085057-HUGH_SECOND.brain-product-proof`,
   `20260701-085145-HUGH_SECOND.evidence`, `brain_product_verified=true`,
   `msix_install_verified=true`.
+
+## wiki/1207 - 2026-07-01 Current local package freshness after brain lock
+
+Canonical report:
+
+- `docs/CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_AFTER_BRAIN_LOCK_2026_07_01.md`
+- `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`
+- `docs/evidence/single-machine/1.15.0-rc.22/20260701-091035-HUGH_SECOND.evidence.json`
+- `docs/evidence/single-machine/1.15.0-rc.22/20260701-091035-HUGH_SECOND.verification.json`
+- `docs/evidence/process-ownership/1.15.0-rc.22/20260701-091101-HUGH_SECOND.process-ownership.json`
+- `docs/evidence/startup-single-instance/1.15.0-rc.22/20260701-091101-HUGH_SECOND.startup-single-instance.json`
+- `docs/evidence/startup-single-instance/1.15.0-rc.22/20260701-091101-HUGH_SECOND.startup-single-instance.process-ownership.json`
+- `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260701-091101-HUGH_SECOND.desktop-single-instance.json`
+
+What changed:
+
+- After wiki/1206, the current local non-brain package freshness lanes were
+  recaptured on `HUGH_SECOND` for source commit
+  `7c971844bc984f8da458f3c5dc499d9478f67a1a`.
+- Single-machine smoke passed through the packaged bridge-only local runtime
+  surface with packaged WindowsApps `musu.exe`, bridge URL
+  `http://127.0.0.1:1539`, and CLI route smoke checked.
+- Process ownership passed with one packaged MUSU runtime process, one
+  packaged desktop shell, zero owned Node helpers, six owned WebView2 helpers,
+  and no repo-related orphan helpers.
+- Startup single-instance passed: repeated startup invocations reused bridge
+  PID `27700` and the nested process ownership audit passed.
+- Desktop single-instance passed: three AppUserModelId activations reused the
+  existing packaged desktop shell PID `3728`, with no new desktop shell.
+
+Verification:
+
+- Dirty go/no-go at `2026-07-01T09:13:49.6298415+09:00` reports
+  `single_machine_verified=true`, `process_ownership_verified=true`,
+  `startup_single_instance_verified=true`,
+  `desktop_single_instance_verified=true`, `brain_product_verified=true`, and
+  `msix_install_verified=true`.
+- Remaining blockers in that run are `multi-device`,
+  `private-mesh-packaged-release-proof`, `runtime-idle-cpu`,
+  `runtime-cpu-scenario-matrix`, `runtime-cpu-second-pc-route-attempt`,
+  `store-public-metadata`, `store-release`, `p2p-control-plane`, `git`,
+  `design-approval`, `relay-transport`, and `v34-stale-self-heal`.
+- The `git` blocker is expected until this documentation/evidence refresh is
+  committed. The evidence source commit remains `7c971844`; the release
+  verifiers allow documentation/evidence-only commits after that runtime source
+  commit.
+
+Product meaning:
+
+- Current packaged local single-machine/process/startup/desktop evidence is
+  restored for this PC after the brain sidecar lock work.
+- Full product completion remains NO-GO until second-PC, CPU machine count,
+  public metadata/DNS/TLS, Store, P2P/relay, Private Mesh, V34, and design
+  approval gates are proven.
+- Search terms: `wiki/1207`,
+  `CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_AFTER_BRAIN_LOCK`,
+  `20260701-091035-HUGH_SECOND`, `20260701-091101-HUGH_SECOND`,
+  `single_machine_verified=true`, `process_ownership_verified=true`,
+  `startup_single_instance_verified=true`,
+  `desktop_single_instance_verified=true`.

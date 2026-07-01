@@ -260,6 +260,30 @@ recaptured if this source revision becomes the release candidate. Product
 meaning: the hidden-brain motherboard+chip lifecycle is now locally
 package-proven on `HUGH_SECOND`, but the full product remains NO-GO.
 
+2026-07-01 09:14 KST current local freshness recapture after brain lock:
+the local non-brain freshness blockers created by the brain sidecar source/docs
+commit were recaptured on `HUGH_SECOND` without touching runtime source.
+Canonical report:
+`docs/CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_AFTER_BRAIN_LOCK_2026_07_01.md`.
+Fresh evidence includes single-machine smoke `20260701-091035`, process
+ownership `20260701-091101`, startup single-instance `20260701-091101`, and
+desktop repeated activation `20260701-091101`. Dirty go/no-go at
+`2026-07-01T09:13:49.6298415+09:00` reports
+`single_machine_verified=true`, `process_ownership_verified=true`,
+`startup_single_instance_verified=true`,
+`desktop_single_instance_verified=true`, `brain_product_verified=true`, and
+`msix_install_verified=true`. Remaining blockers are now `multi-device`,
+`private-mesh-packaged-release-proof`, `runtime-idle-cpu`,
+`runtime-cpu-scenario-matrix`, `runtime-cpu-second-pc-route-attempt`,
+`store-public-metadata`, `store-release`, `p2p-control-plane`, `git`,
+`design-approval`, `relay-transport`, and `v34-stale-self-heal`. The `git`
+blocker is expected until this documentation/evidence refresh is committed.
+Product meaning: the current packaged local single-machine/process/startup/
+desktop freshness lanes are restored for this PC; full product completion
+remains NO-GO because the remaining gates require second-PC evidence, CPU
+machine count, public DNS/TLS/metadata, Store approval, P2P/relay, Private
+Mesh, V34, and design approval.
+
 2026-07-01 01:33 KST packaged brain MSIX fullTrust repair:
 the rebuilt local-sideload package now proves the hidden brain chip from the
 installed MSIX on `HUGH_SECOND`. The earlier package could contain

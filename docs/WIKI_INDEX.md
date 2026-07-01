@@ -11031,4 +11031,32 @@ Per-push Const VII typecheck/test gates are autonomous (no user prompt); main-me
   `20260701-085145-HUGH_SECOND.evidence`, `brain_product_verified=true`, and
   `msix_install_verified=true`.
 
+- 2026-07-01 current local package freshness after brain lock:
+  `docs/CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_AFTER_BRAIN_LOCK_2026_07_01.md`,
+  `docs/MUSU_FULL_PRODUCT_SPEC_COMPLETION_ROADMAP_2026_06_27.md`,
+  `docs/WIKI.md`, and `docs/WIKI_INDEX.md` now record `wiki/1207`: after the
+  brain sidecar cross-process lock package proof, the current local non-brain
+  package freshness lanes were recaptured on `HUGH_SECOND` for source commit
+  `7c971844bc984f8da458f3c5dc499d9478f67a1a`. Evidence includes
+  `docs/evidence/single-machine/1.15.0-rc.22/20260701-091035-HUGH_SECOND.evidence.json`,
+  `docs/evidence/single-machine/1.15.0-rc.22/20260701-091035-HUGH_SECOND.verification.json`,
+  `docs/evidence/process-ownership/1.15.0-rc.22/20260701-091101-HUGH_SECOND.process-ownership.json`,
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260701-091101-HUGH_SECOND.startup-single-instance.json`,
+  `docs/evidence/startup-single-instance/1.15.0-rc.22/20260701-091101-HUGH_SECOND.startup-single-instance.process-ownership.json`,
+  and
+  `docs/evidence/desktop-single-instance/1.15.0-rc.22/20260701-091101-HUGH_SECOND.desktop-single-instance.json`.
+  Dirty go/no-go at `2026-07-01T09:13:49.6298415+09:00` reports
+  `single_machine_verified=true`, `process_ownership_verified=true`,
+  `startup_single_instance_verified=true`,
+  `desktop_single_instance_verified=true`, `brain_product_verified=true`, and
+  `msix_install_verified=true`; remaining blockers are second-PC, Private Mesh,
+  CPU machine count, public metadata/DNS/TLS, Store, P2P/relay, design
+  approval, relay transport, V34, and the expected pre-commit `git` blocker.
+  Search terms should include `wiki/1207`,
+  `CURRENT_LOCAL_PACKAGE_EVIDENCE_REFRESH_AFTER_BRAIN_LOCK`,
+  `20260701-091035-HUGH_SECOND`, `20260701-091101-HUGH_SECOND`,
+  `single_machine_verified=true`, `process_ownership_verified=true`,
+  `startup_single_instance_verified=true`, and
+  `desktop_single_instance_verified=true`.
+
 **End of WIKI_INDEX.md.**
